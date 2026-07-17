@@ -1,0 +1,41 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local data, caches, and generated artifacts
+/data/
+/datasets/
+/.cache/
+/outputs
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Notebook and editor state
+.ipynb_checkpoints/
+.idea/
+.vscode/
+
+# React frontend dependencies and production output
+/frontend/node_modules/
+/frontend/dist/
+
+# Isolated agent worktrees
+/.worktrees/
+
+# LaTeX build side files
+paper/out/*.aux
+paper/out/*.log
+paper/out/*.out
+paper/out/missfont.log

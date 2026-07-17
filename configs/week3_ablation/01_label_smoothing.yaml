@@ -1,0 +1,33 @@
+data:
+  image_size: 224
+  batch_size: 16
+  num_workers: 0
+  train_ratio: 0.85
+  validation_ratio: 0.15
+  test_ratio: 0.0
+model:
+  name: resnet50
+  pretrained: true
+training:
+  seed: 42
+  epochs: 5
+  learning_rate: 0.001
+  device: auto
+augmentation:
+  randaugment_enabled: false
+  randaugment_num_ops: 2
+  randaugment_magnitude: 9
+  random_erasing_enabled: false
+  random_erasing_probability: 0.25
+  mixup_alpha: 0.0
+  cutmix_alpha: 0.0
+loss:
+  name: cross_entropy
+  label_smoothing: 0.1
+  focal_gamma: 2.0
+scheduler:
+  name: none
+  eta_min: 0.0
+ema:
+  enabled: false
+  decay: 0.999

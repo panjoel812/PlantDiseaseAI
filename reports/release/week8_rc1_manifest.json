@@ -1,0 +1,874 @@
+{
+  "artifacts": [
+    {
+      "logical_path": "ASSET_LICENSES.md",
+      "note": null,
+      "required": true,
+      "sha256": "0424f0128f8ac6dc629e77b79f30420062203c0c68e6922cf2d0e01e63eedf24",
+      "size_bytes": 553,
+      "status": "passed"
+    },
+    {
+      "logical_path": "README.md",
+      "note": null,
+      "required": true,
+      "sha256": "0a9f7ddc5da74497f28d875d9c9f639b2c985f72ae58973bb6712c88014841c5",
+      "size_bytes": 16843,
+      "status": "passed"
+    },
+    {
+      "logical_path": "README.zh-CN.md",
+      "note": null,
+      "required": true,
+      "sha256": "df34354f4bd3994146ba9b6e03ae01ee7cd9cb20a41bb760783f9ac91d5d435c",
+      "size_bytes": 3117,
+      "status": "passed"
+    },
+    {
+      "logical_path": "configs/week8_claims.yaml",
+      "note": null,
+      "required": true,
+      "sha256": "0ca11ecfe38f7b4b66b607a0bc462743d686cb42ad592dbea289aa38775f8045",
+      "size_bytes": 8381,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/artifact-index.md",
+      "note": null,
+      "required": true,
+      "sha256": "e3dd718859083c6c2f82e7a165340856e6aa6758ea861499ac346360bae0cce9",
+      "size_bytes": 24831,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/blog/week7_technical_blog_zh.md",
+      "note": null,
+      "required": true,
+      "sha256": "111112cad7176aca26fbda068ff1b54718ecfbb8d894925711bf57c8cee02802",
+      "size_bytes": 10151,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/mentor/week8_mentor_summary.md",
+      "note": null,
+      "required": true,
+      "sha256": "12ba6fbd3b2ad4476bdf77247213c728f845ba41abb650a95c23d64f7d193754",
+      "size_bytes": 4390,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/01-project-evidence-snapshot.png",
+      "note": null,
+      "required": true,
+      "sha256": "d2bbffa84706f0d12a090e919f1269cdd17494b0187dee93ee75cc5482faf067",
+      "size_bytes": 80290,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/01-project-evidence-snapshot.svg",
+      "note": null,
+      "required": true,
+      "sha256": "95451d8afe5c2a00b2b116f5e9d4616cf78f6e8ca3ea7c84ae2bd98b15f99828",
+      "size_bytes": 2078,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/02-dataset-composition.png",
+      "note": null,
+      "required": true,
+      "sha256": "146e7236b88c655a07a256409343fe39c79ca331de7172bc479ca0f96f842e50",
+      "size_bytes": 80430,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/02-dataset-composition.svg",
+      "note": null,
+      "required": true,
+      "sha256": "f7e6713e64204943e4a8ef84f97cce9e23a88b292eb55ec4105a9bfbc260d26a",
+      "size_bytes": 1922,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/03-split-and-overlap.png",
+      "note": null,
+      "required": true,
+      "sha256": "1ab998e31e3050f73ea72694234f93a3169b1a15bd16b09e9325c40f3c6d9ca0",
+      "size_bytes": 84732,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/03-split-and-overlap.svg",
+      "note": null,
+      "required": true,
+      "sha256": "87f3d984f50a59f5e0659927ecc17463ee85f46f8fbd9ab23970087de5637efe",
+      "size_bytes": 2214,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/04-class-distribution.png",
+      "note": null,
+      "required": true,
+      "sha256": "539414c00e7a0b897c4047ed14bf9312c5dfd7e4f2fe7db79e29dcba9ea46e51",
+      "size_bytes": 275854,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/04-class-distribution.svg",
+      "note": null,
+      "required": true,
+      "sha256": "2006c2a4fc256bcd942fff334d487d5e66344590a8cd158e92b96ee1f34a0268",
+      "size_bytes": 21205,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/05-model-accuracy-f1.png",
+      "note": null,
+      "required": true,
+      "sha256": "05b05d09cb95686c26f8be492cc95215e822beb36868fde4f621b28a18fa6529",
+      "size_bytes": 131558,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/05-model-accuracy-f1.svg",
+      "note": null,
+      "required": true,
+      "sha256": "ec03abc9df5cf2dde43875aec989eae70031d13829c14daceaba32d0d0986b9f",
+      "size_bytes": 5929,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/06-model-efficiency-pareto.png",
+      "note": null,
+      "required": true,
+      "sha256": "c5d300983f59f92b03366701223c81c032e828b14f1dd8b4b25f2de93acaeb85",
+      "size_bytes": 117399,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/06-model-efficiency-pareto.svg",
+      "note": null,
+      "required": true,
+      "sha256": "7105c2630f3fe4637895ed612f351b7bf69f4439d54ffd0e99f90d62fb55f65d",
+      "size_bytes": 7158,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/07-model-latency.png",
+      "note": null,
+      "required": true,
+      "sha256": "6849bef72e14f7f74ed53b9733b02e847e16c82776b8df2d90a2d7360fa4208c",
+      "size_bytes": 92828,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/07-model-latency.svg",
+      "note": null,
+      "required": true,
+      "sha256": "47c89e7b8ef77f3dcde94c5b503880790bafc38e68130cd7f72884891a178012",
+      "size_bytes": 3713,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/08-ablation-macro-f1.png",
+      "note": null,
+      "required": true,
+      "sha256": "11521be7cd77d9826d830cadd02217d3208af60c8e8f547b1fe2c5d674780e34",
+      "size_bytes": 148917,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/08-ablation-macro-f1.svg",
+      "note": null,
+      "required": true,
+      "sha256": "ce8bb704f9d8df63fb52cfefecdfe7e44ca46d8aeea9553a659690d164015cd1",
+      "size_bytes": 5939,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/09-ablation-delta.png",
+      "note": null,
+      "required": true,
+      "sha256": "ecb014a17aa66d44590ea52ceec45451a13675895d720bfe585a3468e7840d5d",
+      "size_bytes": 120792,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/09-ablation-delta.svg",
+      "note": null,
+      "required": true,
+      "sha256": "849efa36cca5dee599ddf7f75e557cfbdc928ec22028a63051cd42f55c4e64b9",
+      "size_bytes": 4753,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/10-ablation-duration.png",
+      "note": null,
+      "required": true,
+      "sha256": "0ec004673f070d603a5c6d5abf40cede13d3cbc1b08cec93d4230b4e161a10ce",
+      "size_bytes": 132330,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/10-ablation-duration.svg",
+      "note": null,
+      "required": true,
+      "sha256": "2f8f1fe710a873019bb4022a6c9e345706c3046f2dd552d326c2c894315a7cac",
+      "size_bytes": 9701,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/11-final-improvement.png",
+      "note": null,
+      "required": true,
+      "sha256": "d001a6f0dbe6c15b873b394ff77b2f57abf228dc46b7ebbdf9139bab3215018f",
+      "size_bytes": 113763,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/11-final-improvement.svg",
+      "note": null,
+      "required": true,
+      "sha256": "fad4035171582034f8871567843568db4f5c58ce8f9923f3c5c26da03620a2f1",
+      "size_bytes": 2311,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/12-error-audit.png",
+      "note": null,
+      "required": true,
+      "sha256": "7bfdf4d49003e2c9f45a2a75b7486d0d1aa19eca7070cc4b26770aeec91fd151",
+      "size_bytes": 119651,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/12-error-audit.svg",
+      "note": null,
+      "required": true,
+      "sha256": "2fcd065e980b4f4893912c56760d47ce3f0c959de034511af7d8da83fdf29572",
+      "size_bytes": 2404,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/13-top-confusions.png",
+      "note": null,
+      "required": true,
+      "sha256": "f837a7c95b5b55806d7b8ca96ae4565500d92bbc8f03ab3892963bc1eec2e256",
+      "size_bytes": 151808,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/13-top-confusions.svg",
+      "note": null,
+      "required": true,
+      "sha256": "1976e9117f8315467c1891c07a8351aea8d297a3eb4912be6f827327a8c872a0",
+      "size_bytes": 5231,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/14-attention-review.png",
+      "note": null,
+      "required": true,
+      "sha256": "d4ce9390c126af6f3b914da11b81b193a74016e899076e29c5cb7499f7812101",
+      "size_bytes": 77311,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/14-attention-review.svg",
+      "note": null,
+      "required": true,
+      "sha256": "c0e7cb77bb3440365f05e8562c1a67bb68065ffffa758b43fc833a7a805532b8",
+      "size_bytes": 3618,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/15-calibration.png",
+      "note": null,
+      "required": true,
+      "sha256": "4308a61eb0bbf94b49fc27e8929320893cd98437f2b618925267519cad2ad1f9",
+      "size_bytes": 159049,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/15-calibration.svg",
+      "note": null,
+      "required": true,
+      "sha256": "d977409a3d1fb41c5a41b2b0d7eafa527a1e454226b65b94dce1a2fdb07576c9",
+      "size_bytes": 6434,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/16-gradcam-reproducibility.png",
+      "note": null,
+      "required": true,
+      "sha256": "94081f3baabfff9a3a50c8d9a396e3834e645738865112e12ba258d9cc7f2966",
+      "size_bytes": 92757,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/16-gradcam-reproducibility.svg",
+      "note": null,
+      "required": true,
+      "sha256": "c977cd5275eb4018e307d444d7fdc9cf4e79144cd4330a459e50e88fc6c620c9",
+      "size_bytes": 2286,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/17-demo-timing-observations.png",
+      "note": null,
+      "required": true,
+      "sha256": "421b12999a23458efdf0632c27167e73cff3fc4b60a399db4c85a527be81a39f",
+      "size_bytes": 92516,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/17-demo-timing-observations.svg",
+      "note": null,
+      "required": true,
+      "sha256": "fa5536536bc8f2c00eb7f9f27f2a3d1adfefdff9a5dedda848928c26e3abb741",
+      "size_bytes": 2298,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/18-vqa-seed-composition.png",
+      "note": null,
+      "required": true,
+      "sha256": "9ee1039427af3a463793574ff898373bf4e4a46ad97edf7e5db6a8a08f3836c0",
+      "size_bytes": 101450,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/18-vqa-seed-composition.svg",
+      "note": null,
+      "required": true,
+      "sha256": "c4e7c4073e90e841f5533508fdd8cd4902b9d4816c69e47748d504d16e8ce746",
+      "size_bytes": 3570,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/19-vlm-prompt-comparison.png",
+      "note": null,
+      "required": true,
+      "sha256": "d349a6678db987a14938bbd8848c4d3f5a9789a6229b75f30de464f785ebdf38",
+      "size_bytes": 83050,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/19-vlm-prompt-comparison.svg",
+      "note": null,
+      "required": true,
+      "sha256": "c59c79a1c9590cb5a62ecc80f965a15eaa8af8e90804e824fa15c6691daf1ff0",
+      "size_bytes": 3024,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/20-clean-reproducibility.png",
+      "note": null,
+      "required": true,
+      "sha256": "0e6de6333799dff2e4d82d8783bfb4e61aedcd2aa26f97a0501ecb6e5a60f196",
+      "size_bytes": 81361,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/20-clean-reproducibility.svg",
+      "note": null,
+      "required": true,
+      "sha256": "2ac44d191ac6d6771295ccc6506cd45eb7bd5c4436f4d685ebcd767a73d96ec2",
+      "size_bytes": 2020,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/21-eight-week-evidence-timeline.png",
+      "note": null,
+      "required": true,
+      "sha256": "eeaa83d6bd95e2431d494182fea2b863586036d65539ea0bdb720742eae8f796",
+      "size_bytes": 61372,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/21-eight-week-evidence-timeline.svg",
+      "note": null,
+      "required": true,
+      "sha256": "3f2ab20be0e86b32d15a74bf371c60338ef73eeba5ae2ab58dee4e46bc7bda80",
+      "size_bytes": 5223,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/22-apple-container-facts.png",
+      "note": null,
+      "required": true,
+      "sha256": "1e0a6e2a62b2894ffa791bebfc43899f3ab3226abe78e489222f8a9736f8c426",
+      "size_bytes": 102529,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/22-apple-container-facts.svg",
+      "note": null,
+      "required": true,
+      "sha256": "1c71390f9029e30f2267c6856d948bd5e5618ef46fc36475f4fa111a4bedc439",
+      "size_bytes": 1812,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/23-per-class-f1.png",
+      "note": null,
+      "required": true,
+      "sha256": "c53f1687a1d0daa4604ee4e65b06968807cca4befb1b62c4de334439dcc233a5",
+      "size_bytes": 318050,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/23-per-class-f1.svg",
+      "note": null,
+      "required": true,
+      "sha256": "667690837b72d507a4d793fea751584cda1891f4fe161e4dba4b0a9b520cba2e",
+      "size_bytes": 24163,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/24-full-confusion-matrix.png",
+      "note": null,
+      "required": true,
+      "sha256": "9e965aeffcd94b17a6c35dc4a33abfb113f0f862f583948c904ec408792e4bfd",
+      "size_bytes": 219688,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/24-full-confusion-matrix.svg",
+      "note": null,
+      "required": true,
+      "sha256": "daab7ab8c2be4d96db30e57056955b3c61d2fbf519d75d5f8b188d9cd98b6ef5",
+      "size_bytes": 146564,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/README.md",
+      "note": null,
+      "required": true,
+      "sha256": "3a128cbd787108282b5354757210f7c2432649d146ef08960f86193637984523",
+      "size_bytes": 6954,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/charts/english-transparent/_qa-contact-sheet.png",
+      "note": null,
+      "required": true,
+      "sha256": "2ab5ce6a778653dc56aa69680356e7e246b9f3d49207d2db301663c456275d63",
+      "size_bytes": 371963,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_complete_bilingual_outline.md",
+      "note": null,
+      "required": true,
+      "sha256": "cf8e3877df56818778892a4335acc0752d00584e2c5751535ad42b83a114956d",
+      "size_bytes": 94143,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-1.png",
+      "note": null,
+      "required": true,
+      "sha256": "ede659c5102ca45fca6d13c3f053ea446b5d0291ded78756690d4d050f50e64d",
+      "size_bytes": 46787,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-10.png",
+      "note": null,
+      "required": true,
+      "sha256": "7dc68e3da7695b3fdcb914f84861ebda16414a3bb94eae9b47a347aa9bf0f8ac",
+      "size_bytes": 68896,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-11.png",
+      "note": null,
+      "required": true,
+      "sha256": "fc4204f5f44ac18255f29b8633e0a172f042941bc2f74512f80ac282bb4d86e8",
+      "size_bytes": 60025,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-12.png",
+      "note": null,
+      "required": true,
+      "sha256": "32b65e65bf6c0914ec1837b2d3dbe44a31c782dd9f8a1205bbc750afcfb706b8",
+      "size_bytes": 396137,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-13.png",
+      "note": null,
+      "required": true,
+      "sha256": "250c6212471efd106b588500bb423e765016d7572d501e8465bf4ecb7dbcee53",
+      "size_bytes": 98135,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-14.png",
+      "note": null,
+      "required": true,
+      "sha256": "1810c50ed1b7ac3a17139f6bb096e5847929c65ac0d4253db1492f51a9805c3c",
+      "size_bytes": 303206,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-15.png",
+      "note": null,
+      "required": true,
+      "sha256": "0ef033a223c7c110e1ddee0e85200deefe1e91f148d1c8bd3db049daed7ebb3e",
+      "size_bytes": 157610,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-16.png",
+      "note": null,
+      "required": true,
+      "sha256": "66fa9de52220f4a5a55a28512abe097421ec1dfad9e8258cc7ef5542ebd47faf",
+      "size_bytes": 138515,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-17.png",
+      "note": null,
+      "required": true,
+      "sha256": "9984f2ba1338bc5094ad7d1e1ef6e783ac988a96365b78cc56b77e46fab3d8e4",
+      "size_bytes": 76210,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-18.png",
+      "note": null,
+      "required": true,
+      "sha256": "e818eba0ce8953e948e2d2eed605c052e3d304de4666541ccf5296f96915d99d",
+      "size_bytes": 72613,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-19.png",
+      "note": null,
+      "required": true,
+      "sha256": "24f22f57c75fad9e050e16ec6ed788f648459413464d8342776582638d3fc0cf",
+      "size_bytes": 96047,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-2.png",
+      "note": null,
+      "required": true,
+      "sha256": "bdc39f9bcd4adc91d0b4f4123fe26728f3c8f650aa269332bca977b0c1c08cac",
+      "size_bytes": 60732,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-20.png",
+      "note": null,
+      "required": true,
+      "sha256": "3277215380fdaa36f4b9d86cb19dcc85c2a5206fe2b1a6baf04ac04e54492407",
+      "size_bytes": 73051,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-3.png",
+      "note": null,
+      "required": true,
+      "sha256": "b2d21a489de2c8e39b74c4872ffde02b89c134e9fbaf2a2b85ba3d2c58bfaf63",
+      "size_bytes": 100011,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-4.png",
+      "note": null,
+      "required": true,
+      "sha256": "53d712ac413c93acbfb93061d878290b5fd645b1d03bce743f03dc9065032e8b",
+      "size_bytes": 44487,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-5.png",
+      "note": null,
+      "required": true,
+      "sha256": "c548b2de153a2738f17dd0f6fba8065ddb6ae4177f7beff90c7325e099f63788",
+      "size_bytes": 90824,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-6.png",
+      "note": null,
+      "required": true,
+      "sha256": "1e3eb5c9c3096f8951066ee08ade510988ca31a7316adc785528a223b32bfbd8",
+      "size_bytes": 62450,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-7.png",
+      "note": null,
+      "required": true,
+      "sha256": "fff5bf5b4fcd4261d90b51a51b21ebe8dea667e7993b3502621e19c33be6121f",
+      "size_bytes": 90223,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-8.png",
+      "note": null,
+      "required": true,
+      "sha256": "726ac8b44153a687c7069add74f6c1657fe05cd515ab1b80817c509db43f63e5",
+      "size_bytes": 55314,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense/slide-9.png",
+      "note": null,
+      "required": true,
+      "sha256": "90af414d75f77ce36c5ec3d0e33e89a449f31e276e429c18014db1a43311bac1",
+      "size_bytes": 79889,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense.key",
+      "note": null,
+      "required": true,
+      "sha256": "7f5f2e64b52ad12dc5caeb7e189f3691adf1af1a8c73100111a403eacc9f6dd7",
+      "size_bytes": 1472196,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+      "note": null,
+      "required": true,
+      "sha256": "5cd566918861a70e3c5998ff83ad711b43589eec1097795a2faa4139574f3144",
+      "size_bytes": 1503627,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/week7_apple_showcase_deck.pptx",
+      "note": null,
+      "required": true,
+      "sha256": "df08bb114db512b2cc779454eddf2d822e33372c8cb3bc99389a3b7aacd9fc9a",
+      "size_bytes": 3680868,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/presentation/week8_research_defense_animation_map.md",
+      "note": null,
+      "required": true,
+      "sha256": "ad838b4712a3d3ddabae54644059ab880ef7633087642d0a98da3bdf7338ca2d",
+      "size_bytes": 2498,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/release/publication_decisions.md",
+      "note": null,
+      "required": true,
+      "sha256": "2c3cd9456c521afc28d6aac995325296b34c3e7cb23a7aa8654a2ec439f9581a",
+      "size_bytes": 1005,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/release/week8_release_checklist.md",
+      "note": null,
+      "required": true,
+      "sha256": "8fe46df9e85cff6a9d45917fa69e2bc62b780eddc233a7c43fabad2310029ce1",
+      "size_bytes": 6793,
+      "status": "passed"
+    },
+    {
+      "logical_path": "docs/resume/week8_resume_evidence.md",
+      "note": null,
+      "required": true,
+      "sha256": "b897e9bfaf063fa6df2441d6691e3cdd23641822a283063677e96f4d0ad07e05",
+      "size_bytes": 5415,
+      "status": "passed"
+    },
+    {
+      "logical_path": "outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/checkpoint.pt",
+      "note": null,
+      "required": true,
+      "sha256": "d53c09ab7fd3e0d1e93fdfbbcac307ebde2d2ee40adfa66440068486374486cf",
+      "size_bytes": 94660305,
+      "status": "passed"
+    },
+    {
+      "logical_path": "paper/en/main.tex",
+      "note": null,
+      "required": true,
+      "sha256": "4cdd8fcfb427c2b478f7bef60ff78a08289d894f5e537c7362b239e887b4ab54",
+      "size_bytes": 30405,
+      "status": "passed"
+    },
+    {
+      "logical_path": "paper/out/plantdisease_ai_en.pdf",
+      "note": null,
+      "required": true,
+      "sha256": "1d75bede9651203548c82a5b627dce1a6d89743c660fe11771b11501a61679b7",
+      "size_bytes": 3006127,
+      "status": "passed"
+    },
+    {
+      "logical_path": "paper/out/plantdisease_ai_zh.pdf",
+      "note": null,
+      "required": true,
+      "sha256": "ce9f40cdfacf97bb5193700ad5fdcb369139eddac02cd5d603501c9e27ad131e",
+      "size_bytes": 3197470,
+      "status": "passed"
+    },
+    {
+      "logical_path": "paper/zh/main.tex",
+      "note": null,
+      "required": true,
+      "sha256": "b80ec06552c8ec6ad63b995f764e257fcc56d64ce0fb834f24bfe7c2908611b1",
+      "size_bytes": 25989,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/data_audit.md",
+      "note": null,
+      "required": true,
+      "sha256": "c51a77ecd9cd9fd8c8b3dc19e954f10062e36455f32171f8faadd1074b9dae18",
+      "size_bytes": 3294,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/data_card.md",
+      "note": null,
+      "required": true,
+      "sha256": "531b766bcb11de2a79a53626174dbc2cf8ad57cb80c5986cafd9a34430ed07d1",
+      "size_bytes": 5610,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/figures/week8_react_demo_desktop.png",
+      "note": null,
+      "required": true,
+      "sha256": "9dfd5109b7ffa9199d9809f9e3a91f09bf8c4830b802b6d6ac61d24c4f3c00a6",
+      "size_bytes": 134451,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/figures/week8_react_demo_mobile.png",
+      "note": null,
+      "required": true,
+      "sha256": "768c6dea65b3862db51c00d287889dd73bbb80d876aae1190c5304c143bc09b0",
+      "size_bytes": 66944,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/final_experiment_report.md",
+      "note": null,
+      "required": true,
+      "sha256": "212e236041456da6de64bf1ca8bc1c3b0d3b697327346bd7f1532ae3d79ae32e",
+      "size_bytes": 14397,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/model_card.md",
+      "note": null,
+      "required": true,
+      "sha256": "1c1918b774ff67533119cc3c9d0c7c21448caae0d7e1774301b69ad5ef2ec48c",
+      "size_bytes": 7070,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/release/week8_claim_evidence.json",
+      "note": null,
+      "required": true,
+      "sha256": "7919a03e43a0e51c285186321131c9d1dda317d656b1676ed87374293d96684a",
+      "size_bytes": 11653,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/release/week8_paper_audit.json",
+      "note": null,
+      "required": true,
+      "sha256": "2098af8efa6b7b9fee11f77b13a1b8813bac4a79af5041d72549d2238bca9e3f",
+      "size_bytes": 154,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/week3_final_model_decision.md",
+      "note": null,
+      "required": true,
+      "sha256": "ecd773a2a192b5278a1874e045a68ab44bf7645900aa17aac4c729212dbb9205",
+      "size_bytes": 4601,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/week4_stage_report.md",
+      "note": null,
+      "required": true,
+      "sha256": "d6599f4b401d32466049fe99d1b60f370bf7bbcae56e69b31102c0bb45161c41",
+      "size_bytes": 13544,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/week5_demo_engineering.md",
+      "note": null,
+      "required": true,
+      "sha256": "3a60e6e35fb2ca74a2d10d9f26ba86308642eb6b9e6cb6d5a566019a140ffc96",
+      "size_bytes": 6444,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/week6_vlm_prompt_compare.md",
+      "note": null,
+      "required": true,
+      "sha256": "a24eb8ba06a9b492660711ff3f4ee92adb3233da4efe2e63000a03d6ed365942",
+      "size_bytes": 7102,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/week8_presentation_qa.md",
+      "note": null,
+      "required": true,
+      "sha256": "264a1a476fb6100cd94dacf5e747096b2aaa0a6cac29340c66723f1ce037e2ce",
+      "size_bytes": 4186,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/week8_react_demo_qa.md",
+      "note": null,
+      "required": true,
+      "sha256": "e4bb7ae7566d747f4fde787b47ea685be2b1960af803d691f11a8800e8a7d5ea",
+      "size_bytes": 7413,
+      "status": "passed"
+    },
+    {
+      "logical_path": "reports/week8_reproducibility.md",
+      "note": null,
+      "required": true,
+      "sha256": "85f78fab2d8bbb5ecc6bcc22ba3e8c1c8163ee1f55fd8c5795f60e6429d8a411",
+      "size_bytes": 12474,
+      "status": "passed"
+    },
+    {
+      "logical_path": "uv.lock",
+      "note": null,
+      "required": true,
+      "sha256": "33e04fbb717b48c3e23a2fd63edd159bb127c67fbf84647e22e135be420476b9",
+      "size_bytes": 248911,
+      "status": "passed"
+    }
+  ],
+  "candidate_id": "week8-rc1",
+  "environment": {
+    "machine": "arm64",
+    "mps_available": false,
+    "os": "Darwin 25.5.0",
+    "python": "3.12.13",
+    "pytorch": "2.13.0",
+    "uv_lock_sha256": "33e04fbb717b48c3e23a2fd63edd159bb127c67fbf84647e22e135be420476b9"
+  },
+  "generated_at_utc": "2026-07-17T07:36:08.978738Z",
+  "lane_evidence": {},
+  "lanes": {
+    "claims": "passed",
+    "clean_reproduction": "not_run",
+    "container": "not_run",
+    "evidence": "passed",
+    "local_evidence": "not_run",
+    "package": "not_run"
+  },
+  "release_commit": null,
+  "schema_version": 1,
+  "source_commit": "f32334a635ff60942d0b7c7df8b4771399d87110"
+}

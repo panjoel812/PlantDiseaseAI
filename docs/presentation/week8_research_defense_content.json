@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "deck_id": "plantdisease-ai-week8-research-defense",
+  "audience": "科研申请与导师答辩",
+  "language": "zh-CN-first",
+  "duration_minutes": 15,
+  "transition_defaults": {
+    "effect": "Magic Move / Morph",
+    "duration_seconds": 0.9,
+    "trigger": "click"
+  },
+  "slides": [
+    {
+      "number": 1,
+      "id": "title",
+      "title": "PlantDiseaseAI",
+      "claim": "从高分模型到可审计研究系统",
+      "visual": "纯黑画布中央放置项目名与一条 Apple blue 证据线，保持极简开场。",
+      "notes": "今天汇报的重点不是再展示一个高准确率数字，而是说明 PlantDiseaseAI 如何把数据审计、统一实验、错误分析、解释、演示与复现组织成可核查的研究系统。证据：docs/week7_evidence_map.md。转场：无配对动效，点击进入研究问题。",
+      "theme": "black",
+      "transition_group": null,
+      "required_boundary": "项目是本地、可审计的研究原型，不是已公开部署的专业诊断服务。",
+      "evidence": [
+        "docs/week7_evidence_map.md"
+      ]
+    },
+    {
+      "number": 2,
+      "id": "question",
+      "title": "高准确率，等于可信诊断吗？",
+      "claim": "研究问题与判断标准",
+      "visual": "off-white 画布上的超大问题句，蓝色强调“可信”，琥珀色强调“边界”。",
+      "notes": "我的研究问题是：当受控数据集上的数字接近饱和时，怎样判断结果是否仍然可信？判断标准不只包括 Accuracy，还包括数据边界、Macro F1、负结果、逐样本错误、置信度、解释限制、工程条件与安全行为。证据：reports/week4_stage_report.md。转场：无配对动效，下一页先界定任务范围。",
+      "theme": "white",
+      "transition_group": null,
+      "required_boundary": "受控数据集高分不能直接外推为真实田间泛化或专业诊断能力。",
+      "evidence": [
+        "reports/week4_stage_report.md"
+      ]
+    },
+    {
+      "number": 3,
+      "id": "scope",
+      "title": "38 类受控图像分类",
+      "claim": "PlantVillage 定义了任务，也限制了结论",
+      "visual": "38 类以紧凑环形标签围绕一张叶片样本，中央保留任务定义。",
+      "notes": "主线任务是 PlantVillage 的 38 类闭集图像分类。统一标签映射让训练、评估、推理与 Demo 使用同一语义，但受控背景、闭集类别和数据来源也同时限定了结论。证据：reports/data_card.md。转场：scope-risk 第一个画面；38 类环形标签在下一页收拢为 227 这个风险数字。",
+      "theme": "white",
+      "transition_group": "scope-risk",
+      "required_boundary": "38 类闭集结果不能覆盖未见作物、未见病害、复杂田间背景或开放集输入。",
+      "evidence": [
+        "reports/data_card.md"
+      ]
+    },
+    {
+      "number": 4,
+      "id": "overlap",
+      "title": "227",
+      "claim": "official split 并非实体隔离",
+      "visual": "纯黑画布上的超大 227，背景以两组叶片实体轮廓交叠表达 train/test 风险。",
+      "notes": "数据审计发现 official split 的 train/test 之间有 227 个重叠 leaf_id；图片路径本身不重叠，但叶片实体没有完全隔离。因此所有 official split 结果都必须与这一限制同时出现，不能写成严格无泄漏泛化。证据：reports/data_audit.md。转场：scope-risk 第二个画面；完成 38 类范围到实体重叠风险的展开。",
+      "theme": "black",
+      "transition_group": "scope-risk",
+      "required_boundary": "227 个 leaf_id 重叠意味着结果不是实体隔离证据，也不是田间泛化证明。",
+      "evidence": [
+        "reports/data_audit.md"
+      ]
+    },
+    {
+      "number": 5,
+      "id": "loop",
+      "title": "证据必须形成闭环",
+      "claim": "数据、训练、评估、解释与服务",
+      "visual": "唯一 Bento 总览：数据、训练、评估、解释、服务五张圆角卡片由细线闭环连接。",
+      "notes": "项目把研究拆成五个相互约束的环节：数据定义实验边界，统一训练支持公平比较，评估保存机器可读结果，解释与错误分析检查失败模式，服务层复用同一 checkpoint 与预处理。证据：docs/week7_evidence_map.md。转场：无配对动效，下一页进入统一 Benchmark。",
+      "theme": "white",
+      "transition_group": null,
+      "required_boundary": "闭环表示证据可追溯，不表示每一个环节已经完成真实田间验证。",
+      "evidence": [
+        "docs/week7_evidence_map.md"
+      ]
+    },
+    {
+      "number": 6,
+      "id": "models",
+      "title": "五个模型，同一协议",
+      "claim": "比较架构，而不是比较训练条件",
+      "visual": "五个等权模型名沿水平轴出现，共享同一 split、输入尺寸、训练预算与评估协议。",
+      "notes": "Week 2 在同一协议下比较 MobileNetV2、ResNet18、ResNet50、EfficientNet-B0 与 EfficientNetV2-S。统一 split、训练预算和指标入口，使差异主要来自架构，而不是脚本漂移。证据：reports/week2_benchmark_progress.md。转场：models 第一个画面；五个候选在下一页分离为精度与效率两条决策线。",
+      "theme": "white",
+      "transition_group": "models",
+      "required_boundary": "这是冻结协议下的单轮正式比较；未测峰值内存，不能补写不存在的资源结论。",
+      "evidence": [
+        "reports/week2_benchmark_progress.md"
+      ]
+    },
+    {
+      "number": 7,
+      "id": "tradeoff",
+      "title": "一个追求精度，一个追求效率",
+      "claim": "ResNet50 与 MobileNetV2",
+      "visual": "ResNet50 与 MobileNetV2 从模型家族中左右分离，中央以 Accuracy 与 throughput 两条细线对照。",
+      "notes": "ResNet50 是精度候选，official split 上 Accuracy 0.9830、Macro F1 0.9743。MobileNetV2 是轻量候选：2.27M 参数、0.31G FLOPs、记录的 MPS batch-32 吞吐 644.3 img/s，且该吞吐不含预处理。证据：reports/week2_benchmark_progress.md、outputs/plantvillage/benchmarks/mobilenet_v2_seed42.json。转场：models 第二个画面；完成模型家族到双目标决策的分离。",
+      "theme": "white",
+      "transition_group": "models",
+      "required_boundary": "644.3 img/s 只适用于记录的 MPS、batch 32、排除预处理的协议，不是跨设备通用速度。",
+      "evidence": [
+        "reports/week2_benchmark_progress.md",
+        "outputs/plantvillage/benchmarks/mobilenet_v2_seed42.json"
+      ]
+    },
+    {
+      "number": 8,
+      "id": "baseline",
+      "title": "先冻结基线",
+      "claim": "ResNet50: 0.9830 / 0.9743",
+      "visual": "黑色舞台中央是一条冻结的 ResNet50 基线，Accuracy 与 Macro F1 作为两个固定锚点。",
+      "notes": "Week 3 的 00 baseline 复刻 Week 2 ResNet50，Test Accuracy 0.9830、Macro F1 0.9743，最佳验证 epoch 也一致。先冻结基线，才能判断后续改变是否真的来自目标因素。证据：reports/week3_ablation_results.md。转场：ablation 第一帧；基线锚点将在后两页沿同一坐标系移动。",
+      "theme": "black",
+      "transition_group": "ablation",
+      "required_boundary": "基线与后续消融均为 seed 42、official split 条件下的可比结果。",
+      "evidence": [
+        "reports/week3_ablation_results.md"
+      ]
+    },
+    {
+      "number": 9,
+      "id": "single",
+      "title": "最强单变量改变优化路径",
+      "claim": "Cosine Scheduler: 0.9898",
+      "visual": "同一黑色坐标系中，学习率余弦曲线从基线展开，Macro F1 锚点移动到 0.9898。",
+      "notes": "单变量消融中，Cosine Scheduler 是最强因素：只改变学习率调度，Test Accuracy 达到 0.9935，Macro F1 达到 0.9898。Focal Loss、EMA、RandAugment 和 Random Erasing 等负结果也被保留。证据：reports/week3_ablation_results.md。转场：ablation 第二帧；余弦曲线与指标继续收敛到组合候选。",
+      "theme": "black",
+      "transition_group": "ablation",
+      "required_boundary": "0.9898 是最强单变量的 Macro F1，不是最终组合结果，也不是多 seed 均值。",
+      "evidence": [
+        "reports/week3_ablation_results.md"
+      ]
+    },
+    {
+      "number": 10,
+      "id": "final",
+      "title": "0.9953 / 0.9941",
+      "claim": "seed 42 · official split · 227 overlap",
+      "visual": "Accuracy 与 Macro F1 以超大银白数字完成收敛，下方固定显示 seed、split 与 overlap 限制。",
+      "notes": "Label Smoothing 0.1 加 Cosine Scheduler 的组合候选，在 seed 42、official split 上达到 Accuracy 0.9953、Macro F1 0.9941。这个结果只来自单 seed，并且必须与 227 个重叠 leaf_id 同页呈现；它不是实体隔离或田间泛化证据。证据：reports/week3_final_model_decision.md。转场：ablation 第三帧；完成从冻结基线、最强单变量到最终候选的收敛。",
+      "theme": "black",
+      "transition_group": "ablation",
+      "required_boundary": "0.9953 / 0.9941 仅为 seed 42 official split 单次结果，且受 227 leaf_id overlap 限制。",
+      "evidence": [
+        "reports/week3_final_model_decision.md"
+      ]
+    },
+    {
+      "number": 11,
+      "id": "errors",
+      "title": "50 / 10709",
+      "claim": "高分仍需要逐样本错误审计",
+      "visual": "off-white 画布上仅保留 50 / 10709 大数字，50 使用琥珀色强调。",
+      "notes": "冻结候选在 10,709 个测试样本中记录 50 个错误。总体错误率很低，但每一个错误都有样本路径、真实标签、预测标签与置信度，便于追踪高置信错误和系统性混淆。证据：reports/week4_error_analysis.md。转场：errors 第一帧；50 这个总数在下一页展开为主要混淆对。",
+      "theme": "white",
+      "transition_group": "errors",
+      "required_boundary": "50 / 10709 描述当前 official split 的逐样本结果，不能代表真实田间错误率。",
+      "evidence": [
+        "reports/week4_error_analysis.md"
+      ]
+    },
+    {
+      "number": 12,
+      "id": "confusions",
+      "title": "错误集中在视觉相似病害",
+      "claim": "三组主要混淆对",
+      "visual": "50 展开为三组叶片对照：玉米灰斑/北方叶枯、晚疫病跨作物、番茄早疫/靶斑。",
+      "notes": "主要混淆集中在视觉相似类别，包括玉米灰斑与北方叶枯、马铃薯或番茄晚疫病，以及番茄早疫病与靶斑病。这里区分观察与解释：混淆表证明错误共现，不单独证明因果机制。证据：reports/week4_error_analysis.md。转场：errors 第二帧；完成从错误总数到类别结构的展开。",
+      "theme": "white",
+      "transition_group": "errors",
+      "required_boundary": "混淆对是后续人工与 Grad-CAM 审阅入口，不是病理因果结论。",
+      "evidence": [
+        "reports/week4_error_analysis.md"
+      ]
+    },
+    {
+      "number": 13,
+      "id": "calibration",
+      "title": "准确率不等于置信度质量",
+      "claim": "ECE 0.0965 · MCE 0.3348 · Brier 0.0140",
+      "visual": "可靠性图作为主视觉，三个校准指标沿图边缘以蓝色局部强调。",
+      "notes": "Week 4 的 top-label calibration 给出 ECE 0.0965、MCE 0.3348、Brier 0.0140。它检查最高预测概率与实际正确率是否一致，但不是完整多类别校准。证据：reports/week4_calibration.md。转场：explainability 第一帧；可靠性图在下一页缩为证据侧栏，让位给 Grad-CAM。",
+      "theme": "white",
+      "transition_group": "explainability",
+      "required_boundary": "这些数值是 top-label calibration，不能描述为完整多类别概率校准。",
+      "evidence": [
+        "reports/week4_calibration.md"
+      ]
+    },
+    {
+      "number": 14,
+      "id": "gradcam",
+      "title": "解释目标层会改变观察结果",
+      "claim": "Grad-CAM 是相关性，不是因果",
+      "visual": "黑色画布上并列 target-layer 修正前后热力图，正确层以 Apple blue 框选。",
+      "notes": "ResNet50 的目标层从 bottleneck 内部 layer4.2.conv3 修正为 residual block 输出 layer4.2；固定样本 test_index=9750 的热点由叶外背景回到叶片主体。目标层修正证据：reports/week4_stage_report.md、reports/week4_frozen_samples.md。最终审阅只支持空间相关性结论；最终非因果审阅证据：reports/week4_attention_review.md。热力图不能证明病斑导致了模型结论。转场：explainability 第二帧；完成校准证据到相关性可视化边界的转换。",
+      "theme": "black",
+      "transition_group": "explainability",
+      "required_boundary": "Grad-CAM 是相关性可视化与审阅工具，属于非因果证据。",
+      "evidence": [
+        "reports/week4_stage_report.md",
+        "reports/week4_frozen_samples.md",
+        "reports/week4_attention_review.md"
+      ]
+    },
+    {
+      "number": 15,
+      "id": "demo",
+      "title": "React Demo 也必须可审计",
+      "claim": "Top-5 · Grad-CAM · 安全边界",
+      "visual": "浏览器审计后的 React Liquid Glass 桌面截图在黑色舞台中央成为 hero，真实田间样例、Top-5 与 Grad-CAM 同屏。",
+      "notes": "React Demo 复用冻结 checkpoint、标签映射和预处理，输出 Top-5 与 Grad-CAM。用户图片 SHA-256 为 0364ff44229c70666216343057f9ae77d82438a7f842b30af1ffabb786061a7e；它是 out-of-domain 田间样例且 no verified ground truth。代表性本地 MPS 请求返回 Cercospora leaf spot Gray leaf spot、0.870144；这只是 prediction，不是真值或田间准确率证据。界面始终显示教育用途、PlantVillage 域与非专业诊断边界。证据：reports/week8_react_demo_qa.md。转场：demo 第一帧；完整界面在下一页拆分为运行设备、容器和延迟条件。",
+      "theme": "black",
+      "transition_group": "demo",
+      "required_boundary": "仅供教育研究；非专业诊断声明：本 Demo 不构成或替代专业诊断。分类器只提供警告与输入错误，不声称具有 Week 6 助手动作。",
+      "evidence": [
+        "reports/week8_react_demo_qa.md"
+      ]
+    },
+    {
+      "number": 16,
+      "id": "serving",
+      "title": "工程证据也必须注明条件",
+      "claim": "MPS · Apple container · fixed-example latency",
+      "visual": "Demo hero 拆为三块条件证据：MPS 本地推理、linux/arm64 CPU 容器、固定样例计时。",
+      "notes": "本地证据使用 MPS；Apple container 构建 linux/arm64 CPU 镜像并通过 Streamlit health probe，当前状态是 Apple container：passed。历史 Week 5 的 129.8 ms 只是容器内一个固定合成输入的单次总耗时，不能当作通用 benchmark。证据：reports/week8_reproducibility.md、reports/week5_demo_engineering.md。转场：demo 第二帧；完成界面 hero 到工程条件证据的拆解。",
+      "theme": "black",
+      "transition_group": "demo",
+      "required_boundary": "129.8 ms 是固定合成图、CPU 容器、单次总耗时观测；当前 passed 只证明本机 health lane。",
+      "evidence": [
+        "reports/week8_reproducibility.md",
+        "reports/week5_demo_engineering.md"
+      ]
+    },
+    {
+      "number": 17,
+      "id": "vlm",
+      "title": "VLM 是探索分支，不是主线替代",
+      "claim": "Qwen3-VL smoke exploration",
+      "visual": "off-white 画布上从分类器主线分出一条琥珀色 Qwen3-VL 探索支线。",
+      "notes": "分类主线完成后，项目才用 Apple Silicon 上的 Qwen3-VL 4-bit 运行小样本 smoke。React 可选面板连接 mlx-community/Qwen3-VL-4B-Instruct-4bit；浏览器审计时默认缓存无权重、ready=false，仅验证 UI unavailable state，browser/API no automatic download。输入只有 5 张图、15 个问题，用来比较 prompt 约束与安全行为，不是完整 VQA 评估。证据：reports/week6_vlm_experiment.md、reports/week8_react_demo_qa.md。转场：vlm 第一帧；探索支线在下一页放大为整体与 condition 两个结果。",
+      "theme": "white",
+      "transition_group": "vlm",
+      "required_boundary": "这是 5 图 15 问 smoke exploration；没有完成 LoRA/QLoRA，也不是分类主线替代。",
+      "evidence": [
+        "reports/week6_vlm_experiment.md",
+        "reports/week8_react_demo_qa.md"
+      ]
+    },
+    {
+      "number": 18,
+      "id": "vlm_boundary",
+      "title": "11/15 与 1/5",
+      "claim": "结构化选择提升输出，细粒度病害仍弱",
+      "visual": "黑色画布上 11/15 以白色出现，1/5 以琥珀色从其中分离，强调能力断层。",
+      "notes": "choice 与 few-shot choice 的严格匹配都是 11/15，但 condition 只有 1/5。封闭选择减少自由生成漂移和风险词，却没有解决细粒度病害识别；few-shot 也不是微调。证据：reports/week6_vlm_prompt_compare.md。转场：vlm 第二帧；完成探索模型到能力边界的放大。",
+      "theme": "black",
+      "transition_group": "vlm",
+      "required_boundary": "11/15 与 1/5 只来自同一小样本 smoke；不得声称完成微调或具备田间诊断可靠性。",
+      "evidence": [
+        "reports/week6_vlm_prompt_compare.md"
+      ]
+    },
+    {
+      "number": 19,
+      "id": "release",
+      "title": "结果必须能被重新检查",
+      "claim": "week8-rc1 · manifest · claim ledger",
+      "visual": "off-white 画布上以三个纵向证据块展示 clean lane、manifest 哈希与 claim ledger。",
+      "notes": "Week 8 把复现拆为 clean、local evidence 与 Apple container 三条通道。干净环境完整测试记录为 226 passed，Ruff、ty、claims、synthetic smoke、package build 与 CLI help 均通过；当前 Apple container：passed。manifest 保存逻辑路径、哈希和状态，claim ledger 约束数字必须携带边界。证据：reports/week8_reproducibility.md、reports/release/week8_rc1_manifest.json。转场：无配对动效，下一页收束为可执行的后续研究。",
+      "theme": "white",
+      "transition_group": null,
+      "required_boundary": "week8-rc1 证明记录环境中的本地复现，不等于公开部署、跨机器或田间有效性。",
+      "evidence": [
+        "reports/week8_reproducibility.md",
+        "reports/release/week8_rc1_manifest.json"
+      ]
+    },
+    {
+      "number": 20,
+      "id": "future",
+      "title": "下一步不是再堆功能",
+      "claim": "实体隔离 · 多 seed · 田间数据 · 人工审计",
+      "visual": "纯黑收束页以四条从近到远的研究路线结束：entity split、multi-seed、field、human review。",
+      "notes": "下一阶段优先解决证据缺口：建立 leaf_id 实体隔离 split，运行多个随机种子，采集或引入合法的真实田间数据，并完成 VQA 与注意区域人工审计。LoRA/QLoRA 只有在资源、协议和固定测试集都明确后才考虑。证据：docs/release/week8_release_checklist.md。转场：无配对动效，以研究边界和下一步结束答辩。",
+      "theme": "black",
+      "transition_group": null,
+      "required_boundary": "实体隔离、多 seed、田间验证、完整人工审计与 LoRA/QLoRA 均是未完成工作。",
+      "evidence": [
+        "docs/release/week8_release_checklist.md"
+      ]
+    }
+  ]
+}

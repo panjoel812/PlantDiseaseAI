@@ -1,0 +1,15 @@
+\begin{table}[htbp]
+\centering
+\caption{Week 4 error and top-label calibration audit on the official split}
+\label{tab:week4-analysis-en}
+\begin{tabular}{p{0.44\textwidth}p{0.42\textwidth}}
+\toprule
+Audit item & Observation \\
+\midrule
+Test errors & 50 / 10709 \\
+High-confidence errors (threshold 0.8) & Potato late blight $\rightarrow$ Tomato late blight (0.8475); Apple scab $\rightarrow$ Apple healthy (0.8322) \\
+Top-label calibration & ECE 0.0965; MCE 0.3348; Brier 0.0140 \\
+Interpretation boundary & Predicted-label confidence only; not full multiclass calibration or field reliability \\
+\bottomrule
+\end{tabular}
+\end{table}

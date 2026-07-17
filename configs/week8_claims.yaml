@@ -1,0 +1,226 @@
+schema_version: 1
+claims:
+  - id: official_split_overlap
+    value: "227"
+    source: reports/data_audit.md
+    consumers:
+      - README.md
+      - README.zh-CN.md
+      - docs/blog/week7_technical_blog_zh.md
+      - docs/presentation/week7_apple_showcase_deck.pptx
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - reports/model_card.md
+      - reports/data_card.md
+      - docs/release/week8_release_checklist.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+    required_boundary: "field"
+  - id: final_accuracy
+    value: "0.9953"
+    source: reports/week3_final_model_decision.md
+    consumers:
+      - README.md
+      - README.zh-CN.md
+      - docs/blog/week7_technical_blog_zh.md
+      - docs/presentation/week7_apple_showcase_deck.pptx
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - reports/model_card.md
+      - docs/release/week8_release_checklist.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+    required_boundary: "official split"
+  - id: final_macro_f1
+    value: "0.9941"
+    source: reports/week3_final_model_decision.md
+    consumers:
+      - README.md
+      - README.zh-CN.md
+      - docs/blog/week7_technical_blog_zh.md
+      - docs/presentation/week7_apple_showcase_deck.pptx
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - reports/model_card.md
+      - docs/release/week8_release_checklist.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+    required_boundary: "seed 42"
+  - id: container_observation_ms
+    value: "129.8"
+    source: reports/week5_demo_engineering.md
+    consumers:
+      - docs/blog/week7_technical_blog_zh.md
+      - docs/presentation/week7_apple_showcase_deck.pptx
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - reports/model_card.md
+      - docs/release/week8_release_checklist.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+    required_boundary: "fixed"
+  - id: qwen_choice_score
+    value: "11/15"
+    source: reports/week6_vlm_prompt_compare.md
+    consumers:
+      - README.md
+      - docs/blog/week7_technical_blog_zh.md
+      - docs/presentation/week7_apple_showcase_deck.pptx
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+    required_boundary: "smoke"
+  - id: qwen_condition_score
+    value: "1/5"
+    source: reports/week6_vlm_prompt_compare.md
+    consumers:
+      - README.md
+      - docs/blog/week7_technical_blog_zh.md
+      - docs/presentation/week7_apple_showcase_deck.pptx
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+    required_boundary: "condition"
+  - id: clean_test_count
+    value: "226"
+    source: reports/week8_reproducibility.md
+    consumers:
+      - reports/final_experiment_report.md
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - docs/release/week8_release_checklist.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+    required_boundary: "clean"
+  - id: react_field_image_no_ground_truth
+    value: "0364ff44229c70666216343057f9ae77d82438a7f842b30af1ffabb786061a7e"
+    source: reports/week8_react_demo_qa.md
+    consumers:
+      - docs/artifact-index.md
+      - docs/release/week8_release_checklist.md
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - reports/model_card.md
+      - reports/data_card.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+    required_boundary: "no verified ground truth"
+  - id: react_field_image_out_of_domain
+    value: "0364ff44229c70666216343057f9ae77d82438a7f842b30af1ffabb786061a7e"
+    source: reports/week8_react_demo_qa.md
+    consumers:
+      - docs/artifact-index.md
+      - docs/release/week8_release_checklist.md
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - reports/model_card.md
+      - reports/data_card.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+    required_boundary: "out-of-domain"
+  - id: react_classifier_prediction
+    value: "0.870144"
+    source: reports/week8_react_demo_qa.md
+    consumers:
+      - docs/artifact-index.md
+      - docs/release/week8_release_checklist.md
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - reports/model_card.md
+    required_boundary: "prediction"
+  - id: react_qwen_local_runtime
+    value: "mlx-community/Qwen3-VL-4B-Instruct-4bit"
+    source: reports/week8_react_demo_qa.md
+    consumers:
+      - docs/artifact-index.md
+      - docs/release/week8_release_checklist.md
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+    required_boundary: "no automatic download"
+
+boundaries:
+  - id: gradcam_non_causality
+    source: reports/week4_stage_report.md
+    consumers:
+      - README.md
+      - README.zh-CN.md
+      - docs/blog/week7_technical_blog_zh.md
+      - docs/presentation/week7_apple_showcase_deck.pptx
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - reports/model_card.md
+      - docs/release/week8_release_checklist.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+  - id: lora_incomplete
+    source: reports/week6_vlm_prompt_compare.md
+    consumers:
+      - README.md
+      - docs/blog/week7_technical_blog_zh.md
+      - docs/presentation/week7_apple_showcase_deck.pptx
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - docs/release/week8_release_checklist.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+  - id: field_limits
+    source: reports/data_audit.md
+    consumers:
+      - README.md
+      - README.zh-CN.md
+      - docs/blog/week7_technical_blog_zh.md
+      - docs/presentation/week7_apple_showcase_deck.pptx
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - reports/model_card.md
+      - reports/data_card.md
+      - docs/release/week8_release_checklist.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md
+  - id: no_professional_diagnosis
+    source: reports/week5_demo_engineering.md
+    consumers:
+      - README.md
+      - README.zh-CN.md
+      - docs/blog/week7_technical_blog_zh.md
+      - docs/presentation/week7_apple_showcase_deck.pptx
+      - docs/presentation/plantdisease_ai_week8_research_defense.pptx
+      - paper/zh/main.tex
+      - paper/en/main.tex
+      - reports/final_experiment_report.md
+      - reports/model_card.md
+      - reports/data_card.md
+      - docs/release/week8_release_checklist.md
+      - docs/resume/week8_resume_evidence.md
+      - docs/mentor/week8_mentor_summary.md

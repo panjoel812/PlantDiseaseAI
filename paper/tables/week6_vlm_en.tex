@@ -1,0 +1,14 @@
+\begin{table}[htbp]
+\centering
+\caption{Week 6 Qwen3-VL smoke comparison (5 images and 15 questions)}
+\label{tab:week6-vlm-en}
+\begin{tabular}{lrrp{0.35\textwidth}}
+\toprule
+Prompt style & Exact match & Condition & Evidence boundary \\
+\midrule
+short free-form & 10/15 & 0/5 & Format improved, but unsupported pathogen terms appeared \\
+choice & 11/15 & 1/5 & No automatic risk-word flags; fine-grained labels remained weak \\
+few-shot choice & 11/15 & 1/5 & Tied with choice; this was not fine-tuning \\
+\bottomrule
+\end{tabular}
+\end{table}

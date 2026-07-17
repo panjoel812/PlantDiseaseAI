@@ -1,0 +1,339 @@
+{
+  "boundary_results": [
+    {
+      "boundary_id": "gradcam_non_causality",
+      "consumers": [
+        "README.md",
+        "README.zh-CN.md",
+        "docs/blog/week7_technical_blog_zh.md",
+        "docs/presentation/week7_apple_showcase_deck.pptx",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "reports/model_card.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_consumers": [],
+      "missing_sources": [],
+      "source": "reports/week4_stage_report.md",
+      "status": "passed"
+    },
+    {
+      "boundary_id": "lora_incomplete",
+      "consumers": [
+        "README.md",
+        "docs/blog/week7_technical_blog_zh.md",
+        "docs/presentation/week7_apple_showcase_deck.pptx",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_consumers": [],
+      "missing_sources": [],
+      "source": "reports/week6_vlm_prompt_compare.md",
+      "status": "passed"
+    },
+    {
+      "boundary_id": "field_limits",
+      "consumers": [
+        "README.md",
+        "README.zh-CN.md",
+        "docs/blog/week7_technical_blog_zh.md",
+        "docs/presentation/week7_apple_showcase_deck.pptx",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "reports/model_card.md",
+        "reports/data_card.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_consumers": [],
+      "missing_sources": [],
+      "source": "reports/data_audit.md",
+      "status": "passed"
+    },
+    {
+      "boundary_id": "no_professional_diagnosis",
+      "consumers": [
+        "README.md",
+        "README.zh-CN.md",
+        "docs/blog/week7_technical_blog_zh.md",
+        "docs/presentation/week7_apple_showcase_deck.pptx",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "reports/model_card.md",
+        "reports/data_card.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_consumers": [],
+      "missing_sources": [],
+      "source": "reports/week5_demo_engineering.md",
+      "status": "passed"
+    }
+  ],
+  "broken_links": [],
+  "claim_results": [
+    {
+      "claim_id": "official_split_overlap",
+      "consumers": [
+        "README.md",
+        "README.zh-CN.md",
+        "docs/blog/week7_technical_blog_zh.md",
+        "docs/presentation/week7_apple_showcase_deck.pptx",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "reports/model_card.md",
+        "reports/data_card.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_boundary_consumers": [],
+      "missing_sources": [],
+      "missing_value_consumers": [],
+      "required_boundary": "field",
+      "source": "reports/data_audit.md",
+      "status": "passed",
+      "value": "227"
+    },
+    {
+      "claim_id": "final_accuracy",
+      "consumers": [
+        "README.md",
+        "README.zh-CN.md",
+        "docs/blog/week7_technical_blog_zh.md",
+        "docs/presentation/week7_apple_showcase_deck.pptx",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "reports/model_card.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_boundary_consumers": [],
+      "missing_sources": [],
+      "missing_value_consumers": [],
+      "required_boundary": "official split",
+      "source": "reports/week3_final_model_decision.md",
+      "status": "passed",
+      "value": "0.9953"
+    },
+    {
+      "claim_id": "final_macro_f1",
+      "consumers": [
+        "README.md",
+        "README.zh-CN.md",
+        "docs/blog/week7_technical_blog_zh.md",
+        "docs/presentation/week7_apple_showcase_deck.pptx",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "reports/model_card.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_boundary_consumers": [],
+      "missing_sources": [],
+      "missing_value_consumers": [],
+      "required_boundary": "seed 42",
+      "source": "reports/week3_final_model_decision.md",
+      "status": "passed",
+      "value": "0.9941"
+    },
+    {
+      "claim_id": "container_observation_ms",
+      "consumers": [
+        "docs/blog/week7_technical_blog_zh.md",
+        "docs/presentation/week7_apple_showcase_deck.pptx",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "reports/model_card.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_boundary_consumers": [],
+      "missing_sources": [],
+      "missing_value_consumers": [],
+      "required_boundary": "fixed",
+      "source": "reports/week5_demo_engineering.md",
+      "status": "passed",
+      "value": "129.8"
+    },
+    {
+      "claim_id": "qwen_choice_score",
+      "consumers": [
+        "README.md",
+        "docs/blog/week7_technical_blog_zh.md",
+        "docs/presentation/week7_apple_showcase_deck.pptx",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_boundary_consumers": [],
+      "missing_sources": [],
+      "missing_value_consumers": [],
+      "required_boundary": "smoke",
+      "source": "reports/week6_vlm_prompt_compare.md",
+      "status": "passed",
+      "value": "11/15"
+    },
+    {
+      "claim_id": "qwen_condition_score",
+      "consumers": [
+        "README.md",
+        "docs/blog/week7_technical_blog_zh.md",
+        "docs/presentation/week7_apple_showcase_deck.pptx",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_boundary_consumers": [],
+      "missing_sources": [],
+      "missing_value_consumers": [],
+      "required_boundary": "condition",
+      "source": "reports/week6_vlm_prompt_compare.md",
+      "status": "passed",
+      "value": "1/5"
+    },
+    {
+      "claim_id": "clean_test_count",
+      "consumers": [
+        "reports/final_experiment_report.md",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "docs/release/week8_release_checklist.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_boundary_consumers": [],
+      "missing_sources": [],
+      "missing_value_consumers": [],
+      "required_boundary": "clean",
+      "source": "reports/week8_reproducibility.md",
+      "status": "passed",
+      "value": "226"
+    },
+    {
+      "claim_id": "react_field_image_no_ground_truth",
+      "consumers": [
+        "docs/artifact-index.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "reports/model_card.md",
+        "reports/data_card.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_boundary_consumers": [],
+      "missing_sources": [],
+      "missing_value_consumers": [],
+      "required_boundary": "no verified ground truth",
+      "source": "reports/week8_react_demo_qa.md",
+      "status": "passed",
+      "value": "0364ff44229c70666216343057f9ae77d82438a7f842b30af1ffabb786061a7e"
+    },
+    {
+      "claim_id": "react_field_image_out_of_domain",
+      "consumers": [
+        "docs/artifact-index.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "reports/model_card.md",
+        "reports/data_card.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_boundary_consumers": [],
+      "missing_sources": [],
+      "missing_value_consumers": [],
+      "required_boundary": "out-of-domain",
+      "source": "reports/week8_react_demo_qa.md",
+      "status": "passed",
+      "value": "0364ff44229c70666216343057f9ae77d82438a7f842b30af1ffabb786061a7e"
+    },
+    {
+      "claim_id": "react_classifier_prediction",
+      "consumers": [
+        "docs/artifact-index.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "reports/model_card.md"
+      ],
+      "missing_boundary_consumers": [],
+      "missing_sources": [],
+      "missing_value_consumers": [],
+      "required_boundary": "prediction",
+      "source": "reports/week8_react_demo_qa.md",
+      "status": "passed",
+      "value": "0.870144"
+    },
+    {
+      "claim_id": "react_qwen_local_runtime",
+      "consumers": [
+        "docs/artifact-index.md",
+        "docs/release/week8_release_checklist.md",
+        "docs/presentation/plantdisease_ai_week8_research_defense.pptx",
+        "paper/zh/main.tex",
+        "paper/en/main.tex",
+        "reports/final_experiment_report.md",
+        "docs/resume/week8_resume_evidence.md",
+        "docs/mentor/week8_mentor_summary.md"
+      ],
+      "missing_boundary_consumers": [],
+      "missing_sources": [],
+      "missing_value_consumers": [],
+      "required_boundary": "no automatic download",
+      "source": "reports/week8_react_demo_qa.md",
+      "status": "passed",
+      "value": "mlx-community/Qwen3-VL-4B-Instruct-4bit"
+    }
+  ],
+  "counts": {
+    "boundaries": 4,
+    "broken_links": 0,
+    "claims": 11,
+    "failed": 0,
+    "passed": 15
+  },
+  "schema_version": 1,
+  "status": "passed"
+}

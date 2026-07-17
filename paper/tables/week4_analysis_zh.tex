@@ -1,0 +1,15 @@
+\begin{table}[htbp]
+\centering
+\caption{Week 4 错误与 top-label 校准审计（official split）}
+\label{tab:week4-analysis-zh}
+\begin{tabular}{p{0.44\textwidth}p{0.42\textwidth}}
+\toprule
+审计项 & 观测结果 \\
+\midrule
+测试错误 & 50 / 10709 \\
+高置信错误（阈值 0.8） & Potato late blight $\rightarrow$ Tomato late blight（0.8475）；Apple scab $\rightarrow$ Apple healthy（0.8322） \\
+Top-label calibration & ECE 0.0965；MCE 0.3348；Brier 0.0140 \\
+解释边界 & 仅衡量预测标签置信度；不等同于完整多类别校准或田间可靠性 \\
+\bottomrule
+\end{tabular}
+\end{table}

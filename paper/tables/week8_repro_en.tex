@@ -1,0 +1,15 @@
+\begin{table}[htbp]
+\centering
+\small
+\caption{Week 8 local release-candidate reproduction lanes}
+\label{tab:week8-repro-en}
+\begin{tabular}{lp{0.19\textwidth}p{0.49\textwidth}}
+\toprule
+Lane & Status & Recorded evidence \\
+\midrule
+clean reproduction & passed & Locked environment sync, 226 tests, Ruff, and ty static checks \\
+local evidence & passed & Frozen-checkpoint metrics, Top-5, MPS demo, and a 24-sample Grad-CAM atlas \\
+Apple container & passed & linux/arm64 image build, Streamlit health probe, and local model mount \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,15 @@
+data:
+  image_size: 32
+  batch_size: 8
+  num_workers: 0
+  train_ratio: 0.8
+  validation_ratio: 0.2
+  test_ratio: 0.0
+model:
+  name: mobilenet_v2
+  pretrained: false
+training:
+  seed: 42
+  epochs: 1
+  learning_rate: 0.01
+  device: cpu

@@ -1,0 +1,264 @@
+"""Optional, locally cached Qwen3-VL service for the interactive demo."""
+
+from __future__ import annotations
+
+import importlib
+import platform
+import re
+import threading
+from collections.abc import Callable
+from dataclasses import dataclass, replace
+from functools import lru_cache
+
+from plantdisease.serving.images import decode_rgb_image
+from plantdisease.vlm.assistant import (
+    AssistantResponse,
+    ClassifierContext,
+    build_assistant_response,
+)
+from plantdisease.vlm.backends import (
+    QWEN3_VL_MODEL_ID,
+    MLXVLMBackend,
+    VLMBackend,
+    VLMSetupError,
+)
+
+MAX_QUESTION_CHARACTERS = 500
+EVIDENCE_BOUNDARY = (
+    "Fixed smoke: choice/few-shot 11/15; fine-grained condition 1/5; "
+    "not a professional diagnosis."
+)
+
+_REGULATORY_PATTERN = re.compile(
+    r"\b(?:legal|illegal|permitted|approved|regulations?|regulatory)\b"
+    r"|\blocal\s+(?:law|rules?)\b",
+    flags=re.IGNORECASE,
+)
+
+
+@dataclass(frozen=True)
+class QwenRuntimeStatus:
+    """Local platform, dependency, and model-cache readiness."""
+
+    supported_platform: bool
+    dependency_available: bool
+    weights_cached: bool
+    ready: bool
+    model_id: str
+    detail: str
+
+
+@dataclass(frozen=True)
+class InteractiveQwenResult:
+    """One raw model answer plus its bounded educational wrapper."""
+
+    raw_answer: str | None
+    assistant_response: AssistantResponse
+    model_id: str
+    scope: str = "exploratory_smoke"
+    evidence_boundary: str = EVIDENCE_BOUNDARY
+
+
+class QwenUnavailableError(RuntimeError):
+    """Raised when local Qwen setup fails without fabricating an answer."""
+
+    def __init__(self, status: QwenRuntimeStatus) -> None:
+        super().__init__(status.detail)
+        self.status = status
+
+
+StatusProbe = Callable[[str], QwenRuntimeStatus]
+
+
+def probe_qwen_runtime(model_id: str = QWEN3_VL_MODEL_ID) -> QwenRuntimeStatus:
+    """Inspect Apple Silicon, MLX-VLM, and the local-only model cache."""
+
+    if platform.system() != "Darwin" or platform.machine() != "arm64":
+        return QwenRuntimeStatus(
+            supported_platform=False,
+            dependency_available=False,
+            weights_cached=False,
+            ready=False,
+            model_id=model_id,
+            detail="Qwen requires Apple Silicon macOS (Darwin arm64) with MLX/Metal.",
+        )
+
+    try:
+        importlib.import_module("mlx_vlm")
+    except (ImportError, ModuleNotFoundError):
+        return QwenRuntimeStatus(
+            supported_platform=True,
+            dependency_available=False,
+            weights_cached=False,
+            ready=False,
+            model_id=model_id,
+            detail="MLX-VLM is unavailable. Run `uv sync --group vlm` locally.",
+        )
+
+    try:
+        huggingface_hub = importlib.import_module("huggingface_hub")
+        snapshot_download = huggingface_hub.snapshot_download
+    except (AttributeError, ImportError, ModuleNotFoundError):
+        return QwenRuntimeStatus(
+            supported_platform=True,
+            dependency_available=False,
+            weights_cached=False,
+            ready=False,
+            model_id=model_id,
+            detail="The local Hugging Face cache runtime is unavailable.",
+        )
+
+    try:
+        snapshot_download(repo_id=model_id, local_files_only=True)
+    except OSError:
+        return QwenRuntimeStatus(
+            supported_platform=True,
+            dependency_available=True,
+            weights_cached=False,
+            ready=False,
+            model_id=model_id,
+            detail=(
+                f"Model weights for {model_id!r} are not in the local cache. "
+                "The API never downloads them automatically."
+            ),
+        )
+
+    return QwenRuntimeStatus(
+        supported_platform=True,
+        dependency_available=True,
+        weights_cached=True,
+        ready=True,
+        model_id=model_id,
+        detail="ready",
+    )
+
+
+class InteractiveQwenService:
+    """Serialize one cached backend and apply safety before and after generation."""
+
+    def __init__(
+        self,
+        backend: VLMBackend,
+        model_id: str = QWEN3_VL_MODEL_ID,
+        *,
+        status_probe: StatusProbe = probe_qwen_runtime,
+    ) -> None:
+        if not model_id.strip():
+            raise ValueError("model_id must be non-empty")
+        self.backend = backend
+        self.model_id = model_id
+        self._status_probe = status_probe
+        self._generation_lock = threading.Lock()
+        self._status_lock = threading.Lock()
+        self._failed_status: QwenRuntimeStatus | None = None
+
+    def status(self) -> QwenRuntimeStatus:
+        """Return current readiness, including a prior lazy-load failure."""
+
+        with self._status_lock:
+            failed_status = self._failed_status
+        return failed_status or self._status_probe(self.model_id)
+
+    def ask(
+        self,
+        image_bytes: bytes,
+        question: str,
+        classifier_context: ClassifierContext | None,
+    ) -> InteractiveQwenResult:
+        """Answer one bounded question or return a pre-generation refusal."""
+
+        normalized_question = question.strip()
+        if not normalized_question:
+            raise ValueError("question must be non-empty")
+        if len(normalized_question) > MAX_QUESTION_CHARACTERS:
+            raise ValueError(
+                f"question must be at most {MAX_QUESTION_CHARACTERS} characters"
+            )
+
+        image = decode_rgb_image(image_bytes)
+        context = classifier_context or ClassifierContext(
+            top_class_name="unknown",
+            confidence=0.0,
+            warnings=("No classifier context was supplied.",),
+        )
+        preflight = _build_preflight_response(normalized_question, context)
+        if preflight.refused:
+            return InteractiveQwenResult(
+                raw_answer=None,
+                assistant_response=preflight,
+                model_id=self.model_id,
+            )
+
+        runtime_status = self.status()
+        if not runtime_status.ready:
+            raise QwenUnavailableError(runtime_status)
+
+        with self._generation_lock:
+            runtime_status = self.status()
+            if not runtime_status.ready:
+                raise QwenUnavailableError(runtime_status)
+            try:
+                raw_answer = self.backend.generate(image, normalized_question)
+            except VLMSetupError as exc:
+                failed_status = replace(runtime_status, ready=False, detail=str(exc))
+                with self._status_lock:
+                    self._failed_status = failed_status
+                raise QwenUnavailableError(failed_status) from exc
+
+        wrapped = build_assistant_response(
+            normalized_question,
+            classifier_context=context,
+            vqa_answer=raw_answer,
+            answer_source=self.model_id,
+        )
+        return InteractiveQwenResult(
+            raw_answer=raw_answer,
+            assistant_response=wrapped,
+            model_id=self.model_id,
+        )
+
+
+def _build_preflight_response(
+    question: str,
+    context: ClassifierContext,
+) -> AssistantResponse:
+    response = build_assistant_response(question, classifier_context=context)
+    if response.refused or not _contains_regulatory_term(question):
+        return response
+    return AssistantResponse(
+        message=(
+            "I cannot interpret pesticide or agricultural regulations. Please consult "
+            "a local plant-health professional or agricultural extension office and "
+            "follow the applicable local rules."
+        ),
+        action="refuse_high_risk",
+        refused=True,
+        reasons=["Regulatory instructions are high risk and out of scope."],
+        sources=[],
+    )
+
+
+def _contains_regulatory_term(question: str) -> bool:
+    return _REGULATORY_PATTERN.search(question) is not None
+
+
+@lru_cache(maxsize=1)
+def get_qwen_service() -> InteractiveQwenService:
+    """Return the process-wide, download-disabled local Qwen service."""
+
+    return InteractiveQwenService(
+        backend=MLXVLMBackend(allow_model_download=False, max_tokens=96),
+        model_id=QWEN3_VL_MODEL_ID,
+    )
+
+
+__all__ = [
+    "EVIDENCE_BOUNDARY",
+    "InteractiveQwenResult",
+    "InteractiveQwenService",
+    "MAX_QUESTION_CHARACTERS",
+    "QwenRuntimeStatus",
+    "QwenUnavailableError",
+    "get_qwen_service",
+    "probe_qwen_runtime",
+]

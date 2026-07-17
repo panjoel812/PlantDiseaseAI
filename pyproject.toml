@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "plantdisease-ai"
+version = "0.1.0"
+description = "Reproducible plant disease classification research pipeline"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { file = "LICENSE" }
+authors = [{ name = "PlantDiseaseAI contributors" }]
+dependencies = [
+  "datasets>=3.6,<4",
+  "fastapi>=0.139,<1",
+  "fvcore>=0.1.5,<0.2",
+  "matplotlib>=3.9,<4",
+  "numpy>=2,<3",
+  "opencv-python-headless>=4.10,<5",
+  "pillow>=11,<13",
+  "python-multipart>=0.0.20,<1",
+  "pyyaml>=6,<7",
+  "scikit-learn>=1.5,<2",
+  "streamlit>=1.37,<2",
+  "tensorboard>=2.18,<3",
+  "timm>=1,<2",
+  "torch>=2.5,<3",
+  "torchvision>=0.20,<1",
+  "uvicorn>=0.40,<1",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8,<10",
+  "pytest-cov>=6,<8",
+  "ruff>=0.9,<1",
+  "ty>=0.0.59",
+]
+vlm = [
+  "mlx-vlm>=0.5,<0.6; sys_platform == 'darwin' and platform_machine == 'arm64'",
+]
+
+[project.scripts]
+plant-audit = "plantdisease.cli:audit_main"
+plant-train = "plantdisease.cli:train_main"
+plant-attention-review = "plantdisease.cli:attention_review_main"
+plant-benchmark = "plantdisease.cli:benchmark_main"
+plant-calibration-analysis = "plantdisease.cli:calibration_main"
+plant-error-analysis = "plantdisease.cli:error_analysis_main"
+plant-evaluate = "plantdisease.cli:evaluate_main"
+plant-freeze-samples = "plantdisease.cli:freeze_samples_main"
+plant-gradcam-atlas = "plantdisease.cli:gradcam_atlas_main"
+plant-predict = "plantdisease.cli:predict_main"
+plant-smoke = "plantdisease.cli:smoke_main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plantdisease", "app"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

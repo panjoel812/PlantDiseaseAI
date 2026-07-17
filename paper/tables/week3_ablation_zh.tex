@@ -1,0 +1,23 @@
+\begin{table}[htbp]
+\centering
+\caption{Week 3 已完成消融与组合候选结果，seed 42}
+\label{tab:week3-ablation-zh}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrr}
+\toprule
+编号 & 方法 & Best epoch & Val Macro F1 & Test Acc & Test Macro F1 \\
+\midrule
+00 & ResNet50 baseline & 3 & 0.9775 & 0.9830 & 0.9743 \\
+01 & Label Smoothing 0.1 & 5 & 0.9860 & 0.9885 & 0.9865 \\
+02 & Focal Loss gamma 2.0 & 5 & 0.9776 & 0.9751 & 0.9652 \\
+03 & Cosine Scheduler & 5 & 0.9959 & 0.9935 & 0.9898 \\
+04 & EMA decay 0.999 & 5 & 0.9684 & 0.9752 & 0.9673 \\
+05 & RandAugment & 5 & 0.9784 & 0.9765 & 0.9698 \\
+06 & Random Erasing & 5 & 0.9718 & 0.9723 & 0.9683 \\
+07 & Mixup alpha 0.2 & 5 & 0.9858 & 0.9837 & 0.9793 \\
+08 & CutMix alpha 1.0 & 5 & 0.9868 & 0.9893 & 0.9863 \\
+09 & Label Smoothing + Cosine & 5 & 0.9968 & 0.9953 & 0.9941 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}

@@ -1,0 +1,14 @@
+\begin{table}[htbp]
+\centering
+\caption{Week 6 Qwen3-VL 小样本冒烟比较（5 张图像、15 个问题）}
+\label{tab:week6-vlm-zh}
+\begin{tabular}{lrrp{0.35\textwidth}}
+\toprule
+提示方式 & 严格匹配 & condition & 证据边界 \\
+\midrule
+short free-form & 10/15 & 0/5 & 格式改善，但出现无依据病原术语 \\
+choice & 11/15 & 1/5 & 自动风险词标记为 0；细粒度类别仍弱 \\
+few-shot choice & 11/15 & 1/5 & 与 choice 持平；不是微调结果 \\
+\bottomrule
+\end{tabular}
+\end{table}

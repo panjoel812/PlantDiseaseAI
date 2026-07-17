@@ -1,0 +1,18 @@
+\begin{table}[htbp]
+\centering
+\caption{Week 2 统一模型 Benchmark 结果}
+\label{tab:week2-benchmark-zh}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+模型 & Test Acc & Macro F1 & Params & FLOPs & 延迟 & 吞吐 \\
+\midrule
+MobileNetV2 & 0.9760 & 0.9674 & 2.27M & 0.31G & 6.49 ms & 644.3 img/s \\
+ResNet18 & 0.9774 & 0.9661 & 11.20M & 1.82G & 2.82 ms & 564.5 img/s \\
+ResNet50 & 0.9830 & 0.9743 & 23.59M & 4.11G & 7.42 ms & 165.9 img/s \\
+EfficientNet-B0 & 0.9804 & 0.9703 & 4.06M & 0.40G & 7.25 ms & 305.6 img/s \\
+EfficientNetV2-S & 0.9794 & 0.9708 & 20.23M & 2.88G & 14.99 ms & 133.4 img/s \\
+\bottomrule
+\end{tabular}
+}
+\end{table}

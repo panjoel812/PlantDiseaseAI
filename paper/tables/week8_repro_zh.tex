@@ -1,0 +1,15 @@
+\begin{table}[htbp]
+\centering
+\small
+\caption{Week 8 本地 release candidate 复现通道}
+\label{tab:week8-repro-zh}
+\begin{tabular}{lp{0.19\textwidth}p{0.49\textwidth}}
+\toprule
+通道 & 状态 & 实际证据 \\
+\midrule
+clean reproduction & passed & 锁定环境同步、226 项测试、Ruff 与 ty 静态检查通过 \\
+local evidence & passed & 固定 checkpoint 重算指标、Top-5、MPS Demo 与 24 样本 Grad-CAM atlas \\
+Apple container & passed & linux/arm64 镜像构建、Streamlit 健康检查与本地模型挂载通过 \\
+\bottomrule
+\end{tabular}
+\end{table}
