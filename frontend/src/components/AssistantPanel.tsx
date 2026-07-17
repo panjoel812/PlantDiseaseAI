@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type {
   AdviceProviderId,
@@ -48,6 +48,10 @@ export function AssistantPanel({
   const [mode, setMode] = useState<AssistantMode>("visual");
   const [configOpen, setConfigOpen] = useState(false);
   const canConfigure = providers.status === "success";
+
+  useEffect(() => {
+    setMode(classificationReady ? "guidance" : "visual");
+  }, [classificationReady]);
 
   return (
     <div className="assistant-switcher" data-testid="assistant-glass">

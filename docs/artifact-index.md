@@ -154,7 +154,7 @@
 | Claim 与链接账本 | `configs/week8_claims.yaml`、`reports/release/week8_claim_evidence.json` | 11 个数字/运行主张、4 个边界主张与仓库内链接通过审计 |
 | 干净环境复现报告 | `reports/week8_reproducibility.md` | 仓库外锁定环境通过 226 tests、Ruff、ty、claim/link audit、synthetic smoke、package build 与 CLI help |
 | 历史冻结本地证据与 Apple container | `reports/week8_reproducibility.md` | 已记录冻结 checkpoint 指标重算、Top-5/MPS Demo/24 样本 Grad-CAM，以及 linux/arm64 image/health probe；当前交付 manifest 不继承这些运行状态 |
-| React Liquid Glass Demo 与浏览器 QA | `frontend/`、`reports/figures/week8_react_demo_desktop.png`、`reports/week8_react_demo_qa.md` | 用户图片是 no verified ground truth 的 out-of-domain 田间样例；一次 38 类推理先按作物聚合，再在选中作物内排序条件，避免跨作物同名病害混列。`afca2d5` 增加 Qwen 结构化视觉观察/原始回答折叠、网站内三供应商临时进程内存配置、紧凑视口布局与固定叶片/露珠装饰。既有 1280×720 与 390×844 QA 保留为历史证据；按用户要求，本次收尾未重跑 1440×900、1920×1080 或 390×844 浏览器 QA，故不新增几何通过声明。MPS 结果仅为 prediction |
+| React Liquid Glass Demo 与浏览器 QA | `frontend/`、`reports/figures/week8_react_demo_desktop.png`、`reports/week8_react_demo_qa.md` | 用户图片是 no verified ground truth 的 out-of-domain 田间样例；一次 38 类推理先按作物聚合，再在选中作物内排序条件，避免跨作物同名病害混列。当前源码采用顶部上传摄影卡、分析成功后移动到下方完整 Classifier/Management guidance、无结果卡内部纵向滚动的流程，并以 `scripts/export_logo_paths.py` 将用户 Desmos Bézier 内部路径与叶片融合成项目 Logo。既有 1280×720 与 390×844 QA 仅为历史证据；新布局按用户要求未重跑浏览器 QA，不新增几何通过声明。MPS 结果仅为 prediction |
 | React QA 锁定值 | `reports/week8_react_demo_qa.md` | 田间图像 SHA-256 `0364ff44229c70666216343057f9ae77d82438a7f842b30af1ffabb786061a7e`；分类器 prediction `0.870144`；本地运行时 `mlx-community/Qwen3-VL-4B-Instruct-4bit`；图像仍标注 no verified ground truth 与 out-of-domain，模型保持 no automatic download |
 | 最终实验报告 | `reports/final_experiment_report.md` | 汇总 Benchmark、消融、错误与校准、解释、部署、VLM、局限和后续路线 |
 | 模型卡与数据卡 | `reports/model_card.md`、`reports/data_card.md` | 预期/排除用途、数据泄漏、偏差、田间泛化与安全边界已记录 |

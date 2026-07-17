@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { ProjectLogo } from "./ProjectLogo";
+
 interface HeroProps {
   onReset(): void;
   children: ReactNode;
@@ -14,22 +16,13 @@ function ResetIcon() {
   );
 }
 
-function BrandLeafIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="M20 4C11 4.4 6.2 8.2 6.4 15.4c4.4 2.2 9.7.3 11.8-4.1C19.5 8.7 20 6.1 20 4Z" />
-      <path d="M4 20c3.1-5.2 7-8.8 12.5-11.5" />
-    </svg>
-  );
-}
-
 export function Hero({ onReset, children }: HeroProps) {
   return (
     <>
       <header className="site-header">
         <span className="brand">
-          <BrandLeafIcon />
-          PlantDiseaseAI
+          <ProjectLogo className="brand-logo" />
+          <span>PlantDiseaseAI</span>
         </span>
         <button className="reset-button" type="button" onClick={onReset}>
           <ResetIcon />

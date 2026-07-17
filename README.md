@@ -257,12 +257,15 @@ crop context. It is closed-set taxonomy aggregation, not an independent crop
 detector and not evidence of unknown-crop or field generalization.
 
 The interface keeps `liquid-glass-react` for restrained material edges and
-highlights. Large photo/result surfaces disable refraction deformation, use
-stable viewport-derived grid geometry, and keep classifier/Qwen state changes
-from shifting the main layout. At 1440×900 and 1920×1080 the core desktop demo
-is designed to fit one viewport; mobile keeps normal vertical scrolling. Bottom
-leaf and dew decorations stay visible in the initial viewport, are CSS-only,
-ignore pointer input, and stop under `prefers-reduced-motion`.
+highlights. It now follows an upload-first vertical flow: the photograph and
+Analyze action sit above the generated evidence, and a successful analysis
+moves the viewport to fully expanded Classifier and Management guidance panels
+below. Result cards use normal document flow instead of hiding evidence inside
+nested vertical scrolling; mobile preserves the same upload → classifier →
+assistant order. Large surfaces keep zero elasticity, bottom leaf/dew decoration
+ignores pointer input and stops under `prefers-reduced-motion`, and the header
+mark fuses the supplied Desmos Bézier gesture with the PlantDiseaseAI leaf. The
+external SVG remains unchanged and is not required at runtime.
 
 ## Streamlit demo
 

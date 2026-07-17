@@ -34,7 +34,7 @@ React Demo 默认加载用户提供的田间玉米叶图片 `app/examples/field_
 
 因此 Apple 与 Grape 的 `Black rot` 不会再作为两个无作物上下文的同名结果同时出现。界面同时保留作物概率、作物内条件概率和原联合概率的语义边界。这是闭集 taxonomy aggregation，不是独立作物检测器，也不能证明未知作物或真实田间泛化能力。
 
-新版界面使用 `liquid-glass-react` 提供轻量材质边缘，并以雾白、浅蓝、嫩绿构成通透背景。大型摄影卡和结果卡关闭折射形变，使用基于视口的稳定网格；分类与 Qwen 状态切换不会改变主布局。1440×900 与 1920×1080 桌面视口尽量一页展示，移动端保留自然纵向滚动。底部叶片与露珠固定在首屏背景，仅使用 CSS 慢速漂浮，且在 `prefers-reduced-motion` 下停止。
+新版界面使用 `liquid-glass-react` 提供轻量材质边缘，并以雾白、浅蓝、嫩绿构成通透背景。React Demo 采用“先上传、后查看结果”的纵向流程：摄影卡与 Analyze 操作位于顶部，分析成功后页面会移动到照片下方完整展开的 Classifier 与 Management guidance。结果卡使用正常文档流，不再通过嵌套纵向滚动隐藏证据；移动端保持“上传 → 分类器 → 助手”的顺序。大型卡片保持零弹性，底部叶片与露珠不接收指针事件并在 `prefers-reduced-motion` 下停止。页眉 Logo 将用户提供的 Desmos Bézier 内部曲线与 PlantDiseaseAI 叶片融合；外部源 SVG 保持原样，运行时不依赖该个人路径。
 
 在两个终端分别启动使用正式 checkpoint 的 FastAPI 和 React 开发服务：
 
@@ -70,7 +70,7 @@ React 助手卡现在明确分为两个互不混淆的模式：
 
 三家云端供应商彼此独立，**没有 automatic fallback**。页面会始终显示当前选中的供应商；未配置的供应商显示 `Not configured` 并保持禁用。
 
-本地体验时，可直接打开 **Management guidance → Configure**，为准备使用的供应商粘贴 API Key。密码输入框在请求成功后立即清空；Key 通过 `POST /api/advice/providers/{provider}/configure` 发送，只保存在加锁的 FastAPI **进程内存**中，不会返回页面、写入 React state、`localStorage`、`sessionStorage`、Cookie、URL 或 Git。点击 **Clear** 会调用 DELETE 清除覆盖值；重启 API 也会全部清除。临时值只在当前进程覆盖同名环境变量，配置动作本身不会产生付费模型调用。
+本地体验时，可直接打开助手顶部的 **API setup**，为准备使用的供应商粘贴 API Key。密码输入框在请求成功后立即清空；Key 通过 `POST /api/advice/providers/{provider}/configure` 发送，只保存在加锁的 FastAPI **进程内存**中，不会返回页面、写入 React state、`localStorage`、`sessionStorage`、Cookie、URL 或 Git。点击 **Clear** 会调用 DELETE 清除覆盖值；重启 API 也会全部清除。临时值只在当前进程覆盖同名环境变量，配置动作本身不会产生付费模型调用。
 
 服务端部署仍推荐使用环境变量或正式 Secret Manager。按需在启动 FastAPI 的同一个终端设置供应商 Key；模型名都有当前默认值，也可以显式覆盖，完整模板见 `.env.example`：
 

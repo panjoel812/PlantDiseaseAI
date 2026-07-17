@@ -2,6 +2,21 @@
 
 Date: 2026-07-17 (Asia/Shanghai)
 
+## Upload-first results and fused-logo follow-up
+
+The current source places the full-width upload/photo card before a two-column
+Classifier and Management guidance results section. Successful classification
+scrolls to the results region, Management guidance becomes the initial assistant
+mode, and result bodies expand in normal document flow without nested vertical
+scroll containers. The header mark combines the supplied Desmos paths
+`expr-019`–`expr-054` with a blue/green PlantDiseaseAI leaf; the source SVG is
+not modified or required at runtime.
+
+Per the user's explicit fast-path instruction, automated tests and browser
+geometry QA were **not run** for this follow-up. These implementation statements
+are not new viewport PASS claims; the previously executed baseline below remains
+historical evidence for its own commits and layout.
+
 ## Compact configurable-demo closeout
 
 Implementation commit: `afca2d5` (published to public `main`).

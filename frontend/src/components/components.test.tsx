@@ -15,6 +15,7 @@ import type {
 import { AssistantPanel } from "./AssistantPanel";
 import { ClassifierPanel } from "./ClassifierPanel";
 import { ImageWorkspace } from "./ImageWorkspace";
+import { ProjectLogo } from "./ProjectLogo";
 import { QwenPanel } from "./QwenPanel";
 import { ProviderConfigSheet } from "./ProviderConfigSheet";
 
@@ -144,6 +145,30 @@ function qwenAnswer(overrides: Partial<QwenAnswer> = {}): QwenAnswer {
   };
 }
 
+describe("ProjectLogo", () => {
+  it("renders the fused project mark without the source frame", () => {
+    render(<ProjectLogo labelled />);
+    const logo = screen.getByRole("img", { name: "PlantDiseaseAI" });
+    expect(logo).toHaveAttribute("viewBox", "0 0 480 480");
+    expect(
+      logo.querySelector('[data-logo-layer="leaf"]'),
+    ).toBeInTheDocument();
+    expect(
+      logo.querySelector('[data-logo-layer="desmos-gesture"]'),
+    ).toBeInTheDocument();
+    expect(logo.querySelector("rect")).not.toBeInTheDocument();
+    expect(
+      logo.querySelector('[data-source-path="expr-003"]'),
+    ).not.toBeInTheDocument();
+    expect(
+      logo.querySelector('[data-source-path="expr-019"]'),
+    ).toBeInTheDocument();
+    expect(
+      logo.querySelector('[data-source-path="expr-054"]'),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("focused Liquid Glass surfaces", () => {
   it("renders the real LiquidGlass boundary in all three production surfaces", () => {
     render(
@@ -230,11 +255,10 @@ describe("AssistantPanel", () => {
     );
 
     expect(screen.getByTestId("assistant-glass")).toBeVisible();
-    expect(screen.getByRole("tab", { name: /visual evidence/i })).toHaveAttribute(
+    expect(screen.getByRole("tab", { name: /management guidance/i })).toHaveAttribute(
       "aria-selected",
       "true",
     );
-    await user.click(screen.getByRole("tab", { name: /management guidance/i }));
     expect(screen.getByRole("radio", { name: /gemini/i })).toBeDisabled();
     await user.click(screen.getByRole("radio", { name: /claude/i }));
     await user.click(screen.getByRole("button", { name: /ask for guidance/i }));

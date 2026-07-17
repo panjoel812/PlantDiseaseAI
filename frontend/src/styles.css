@@ -38,7 +38,8 @@ body {
   margin: 0;
   min-width: 20rem;
   min-height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background:
     radial-gradient(circle at 8% 5%, var(--sky-soft), transparent 33rem),
     radial-gradient(circle at 94% 18%, var(--leaf-soft), transparent 34rem),
@@ -47,7 +48,8 @@ body {
 }
 
 #root {
-  height: 100%;
+  height: auto;
+  min-height: 100%;
 }
 
 button,
@@ -76,11 +78,11 @@ svg {
   position: relative;
   isolation: isolate;
   width: min(100%, 99.125rem);
-  height: 100dvh;
+  height: auto;
   min-height: 100dvh;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
   margin: 0 auto;
-  overflow: hidden;
+  overflow: visible;
   padding: 0.55rem clamp(0.65rem, 1.8vw, 1.5rem) 0.6rem;
 }
 
@@ -118,6 +120,14 @@ svg {
   height: 1.55rem;
 }
 
+.brand .brand-logo {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  overflow: visible;
+  filter: drop-shadow(0 0.45rem 0.85rem rgb(43 127 87 / 16%));
+}
+
 .reset-button {
   display: inline-flex;
   min-width: 7rem;
@@ -145,11 +155,10 @@ svg {
 }
 
 .app-field {
-  display: grid;
+  display: block;
   position: relative;
   z-index: 1;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr) auto;
   padding: 0.45rem clamp(0.25rem, 1vw, 0.75rem) 0;
 }
 
@@ -175,20 +184,47 @@ svg {
   line-height: 1.5;
 }
 
-.workspace-grid {
-  display: grid;
-  height: auto;
-  min-height: 0;
-  grid-template-columns: minmax(0, 2.05fr) minmax(21rem, 1fr);
-  gap: clamp(0.85rem, 1.25vw, 1.2rem);
-  align-items: stretch;
+.upload-section {
+  min-height: clamp(30rem, 68dvh, 49rem);
 }
 
-.result-rail {
+.upload-section .image-workspace-stage {
+  height: 100%;
+  min-height: inherit;
+}
+
+.results-section {
+  margin-top: clamp(1.25rem, 2.5vw, 2.2rem);
+  outline: none;
+  scroll-margin-top: 0.75rem;
+}
+
+.results-heading {
+  margin: 0 0 0.8rem;
+  padding-inline: 0.4rem;
+}
+
+.results-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(1.55rem, 2.4vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+.results-heading p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.results-grid {
   display: grid;
   min-width: 0;
-  grid-template-rows: minmax(13.25rem, 1.05fr) minmax(12.25rem, 0.95fr);
-  gap: clamp(0.85rem, 1.25vw, 1.2rem);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: clamp(0.9rem, 1.5vw, 1.35rem);
 }
 
 .glass-stage {
@@ -884,6 +920,48 @@ textarea:focus-visible,
   height: 100%;
 }
 
+.results-grid .glass-stage {
+  overflow: visible;
+}
+
+.results-grid .glass-stage > .glass-surface {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  width: 100%;
+  height: auto;
+  min-height: 100%;
+  transform: none !important;
+}
+
+.results-grid .glass-surface .glass,
+.results-grid .glass-surface .glass > .transition-all {
+  height: auto;
+  min-height: 100%;
+}
+
+.results-grid .side-panel {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
+.results-grid .panel-state-body {
+  overflow: visible;
+  scrollbar-gutter: auto;
+}
+
+.results-grid .assistant-tab-panel,
+.results-grid .assistant-tab-panel > .glass-stage {
+  height: auto;
+  overflow: visible;
+}
+
+.results-grid .raw-response p {
+  max-height: none;
+  overflow: visible;
+}
+
 .qwen-panel {
   min-height: 100%;
 }
@@ -1555,10 +1633,6 @@ textarea:focus-visible,
 }
 
 @media (max-width: 1000px) {
-  .workspace-grid {
-    grid-template-columns: minmax(0, 1.7fr) minmax(18rem, 1fr);
-  }
-
   .safety-notice {
     grid-template-columns: 1fr 1.35fr;
   }
@@ -1611,26 +1685,20 @@ textarea:focus-visible,
 
   .workspace-grid {
     height: auto;
-    grid-template-columns: minmax(0, 1fr);
   }
 
-  .result-rail {
+  .results-grid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto;
     gap: 0.85rem;
+  }
+
+  .upload-section {
+    min-height: min(42rem, 125vw);
   }
 
   .image-workspace-stage,
   .image-workspace {
-    min-height: min(38rem, 120vw);
-  }
-
-  .classifier-stage {
-    min-height: 34rem;
-  }
-
-  .qwen-stage {
-    min-height: 22rem;
+    min-height: inherit;
   }
 
   .image-actions {
@@ -1718,6 +1786,10 @@ textarea:focus-visible,
   .ambient-shape {
     opacity: 0.32;
     backdrop-filter: none;
+  }
+
+  .brand-logo {
+    filter: none;
   }
 }
 

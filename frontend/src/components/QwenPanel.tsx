@@ -66,7 +66,7 @@ export function QwenPanel({
         saturation={118}
         elasticity={0}
         overLight
-        style={{ position: "absolute", top: "50%", left: "50%" }}
+        style={{ position: "relative", width: "100%" }}
       >
         <section className="side-panel qwen-panel" aria-labelledby="qwen-title">
           <header className="panel-header">

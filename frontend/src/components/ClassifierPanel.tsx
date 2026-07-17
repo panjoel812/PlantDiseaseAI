@@ -206,7 +206,7 @@ export function ClassifierPanel({ state }: ClassifierPanelProps) {
         saturation={120}
         elasticity={0}
         overLight
-        style={{ position: "absolute", top: "50%", left: "50%" }}
+        style={{ position: "relative", width: "100%" }}
       >
         <section className="side-panel classifier-panel" aria-labelledby="classifier-title">
           <header className="panel-header">

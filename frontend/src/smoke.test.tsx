@@ -116,6 +116,18 @@ describe("App", () => {
       "aria-hidden",
       "true",
     );
+    const upload = screen.getByRole("region", { name: "Upload and analyze" });
+    const results = screen.getByRole("region", { name: "Analysis results" });
+    expect(upload.compareDocumentPosition(results)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(results).toHaveAttribute("tabindex", "-1");
+    expect(
+      results.querySelector('[data-testid="classifier-glass"]'),
+    ).toBeInTheDocument();
+    expect(
+      results.querySelector('[data-testid="assistant-glass"]'),
+    ).toBeInTheDocument();
   });
 
   it("binds reset, analyze, and Qwen actions to useDemo", async () => {
@@ -226,10 +238,11 @@ describe("App", () => {
     expect(styles).not.toMatch(/display:\s*contents/);
     expect(styles).not.toMatch(/grid-row\s*:/);
     expect(styles).toMatch(
-      /@media \(max-width: 760px\) \{[\s\S]*?\.workspace-grid \{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\);/,
+      /@media \(max-width: 760px\) \{[\s\S]*?\.results-grid \{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\);/,
     );
+    expect(styles).toMatch(/\.results-grid[\s\S]*?align-items:\s*start/);
     expect(styles).toMatch(
-      /@media \(max-width: 760px\) \{[\s\S]*?\.result-rail \{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\);[\s\S]*?grid-template-rows:\s*auto;/,
+      /\.results-grid \.panel-state-body\s*\{[\s\S]*?overflow:\s*visible/,
     );
     expect(styles).toMatch(/min-height:\s*44px/);
     expect(styles).toMatch(/:focus-visible/);

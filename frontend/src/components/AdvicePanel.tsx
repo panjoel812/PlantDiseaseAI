@@ -59,7 +59,7 @@ export function AdvicePanel({
         saturation={118}
         elasticity={0}
         overLight
-        style={{ position: "absolute", top: "50%", left: "50%" }}
+        style={{ position: "relative", width: "100%" }}
       >
         <section className="side-panel advice-panel" aria-labelledby="advice-title">
           <header className="panel-header">
