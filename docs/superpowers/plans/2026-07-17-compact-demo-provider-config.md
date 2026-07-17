@@ -22,6 +22,13 @@
 - Existing research claims and safety boundaries remain unchanged.
 - Local paper/PPT working files stay excluded from commits.
 
+## Completion disposition
+
+- **Tasks 1–7 — IMPLEMENTED:** shipped in `afca2d5` and published to public `main`. This includes structured Qwen observations with an auditable raw-response disclosure, locked process-memory provider credentials, configure/clear API routes, transient React data flow, the provider configuration sheet, compact viewport geometry, restored ambient leaves, and complete reciprocal English/Chinese public guides.
+- **Task 8, Steps 1–4 — NOT RUN IN THE FINAL PASS:** the user explicitly requested a one-pass documentation closeout without another server start, browser inspection, automated test run, or release-manifest rebuild. These steps are waived for this pass, not reported as passing. The existing QA and `week8-rc1` manifest remain historical evidence for their recorded commits.
+- **Task 8, Step 5 — COMPLETE:** implementation and documentation closeout were committed and pushed to public `main`.
+- This disposition closes the implementation plan without inventing verification evidence. The unchecked boxes below preserve the original executable procedure for any future independent rerun.
+
 ---
 
 ### Task 1: Normalize Qwen into structured visual observations

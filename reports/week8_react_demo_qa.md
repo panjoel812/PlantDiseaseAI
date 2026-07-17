@@ -2,11 +2,19 @@
 
 Date: 2026-07-17 (Asia/Shanghai)
 
+## Compact configurable-demo closeout
+
+Implementation commit: `afca2d5` (published to public `main`).
+
+The delivered follow-up adds bounded morphology-only Qwen prompts, concise structured observation rows with the original model response behind a closed disclosure, temporary OpenAI/Claude/Gemini configuration held only in FastAPI process memory, configure/clear controls directly in the website, compact viewport-derived desktop geometry, and fixed ambient leaf/dew decoration with reduced-motion and reduced-transparency fallbacks. The full English and Chinese public guides are reciprocal and document the local, Apple Container, and Docker paths.
+
+Per the user's explicit final-pass instruction, the API/Vite servers, 1440×900 and 1920×1080 browser geometries, 390×844 mobile geometry, automated suites, and release-manifest generator were **not rerun** during this documentation closeout. No new PASS claim is made for those checks. The QA below is retained as the previously executed baseline for its stated commits and viewports; `reports/release/week8_rc1_manifest.json` likewise remains the historical manifest for its embedded source commit rather than being relabeled without fresh hashes.
+
 Implementation commits: `c1e6b44`, `a51dfbe`, `083603c`, and `331950b`.
 
 Target flow: React page loads the supplied field image → one real MPS classifier pass returns the complete 38-class distribution → the service aggregates crop probabilities → the UI shows only conditions within the selected crop, Grad-CAM, research warnings, and the optional-Qwen panel.
 
-## Current A+ verification
+## Previously executed A+ baseline
 
 | Check | Result | Evidence |
 |---|---|---|
@@ -24,7 +32,7 @@ Target flow: React page loads the supplied field image → one real MPS classifi
 | Console health | PASS | Browser error/warn log was empty after initial render, classification, pointer movement and responsive resize. |
 | Reduced motion browser emulation | NOT AVAILABLE | Browser controller did not expose media-feature emulation; the CSS branch is enforced by the frontend smoke contract. |
 
-Current verification commands:
+Previously executed verification commands:
 
 ```bash
 cd frontend
@@ -36,7 +44,7 @@ cd ..
 # 41 passed, one third-party Starlette deprecation warning
 ```
 
-## Current concept fidelity ledger
+## Previous concept fidelity ledger
 
 1. Mist-white, pale-blue and tender-green gradient matches the accepted reference palette.
 2. Large optical headline and restrained SF-style typography preserve the Apple-like information hierarchy.
@@ -47,7 +55,7 @@ cd ..
 7. Bottom leaf/dew forms are code-native, non-interactive and slower than task motion, with a reduced-motion fallback.
 8. The classifier scrolls internally at shorter viewports so the outer image/result geometry remains stable; this is an intentional deviation from the taller static concept.
 
-Current representative screenshot: `reports/figures/week8_react_demo_desktop.png`.
+Previous representative screenshot: `reports/figures/week8_react_demo_desktop.png`.
 
 ## Remaining limitations
 

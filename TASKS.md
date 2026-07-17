@@ -447,6 +447,8 @@
 
 > 交互助手补充（2026-07-17）：React Demo 已将本地 Qwen 视觉证据与手动选择的 OpenAI / Claude / Gemini 管理建议分离。Qwen 域外视觉观察、三供应商原生 HTTP 适配、FastAPI 契约、密钥不出服务端和 React 稳定切换均由自动测试覆盖；付费云端真实回答因未提供用户凭据而未实测。证据：`src/plantdisease/vlm/cloud_advice.py`、`tests/vlm/test_cloud_advice.py`、`tests/test_demo_api.py`、`frontend/src/components/AssistantPanel.tsx`、`.env.example`、`README.md`。
 
+> 紧凑可配置 Demo 收尾（2026-07-17）：`afca2d5` 已加入 Qwen 结构化视觉观察与原始回答折叠区、仅驻留 FastAPI 进程内存的三供应商临时密钥配置/清除、网站内配置面板、视口派生的紧凑桌面布局、固定叶片/露珠环境装饰，以及互相链接的完整英文与中文公开指南；实现已发布到公开 `main`。按用户明确要求，本次文档收尾不再启动服务、不重跑浏览器 QA、自动测试或 release manifest，因此这些项目在本轮记录为 `not_run`，不新增通过声明；既有 QA 与 manifest 仍只代表各自记录的提交。证据：`docs/superpowers/plans/2026-07-17-compact-demo-provider-config.md`、`reports/week8_react_demo_qa.md`、`README.md`、`README.zh-CN.md`。
+
 #### 研发任务
 
 - [x] 冻结候选发布版本，记录代码版本、依赖版本、数据版本和模型 checkpoint 校验信息。证据：`reports/release/week8_rc1_manifest.json`。
