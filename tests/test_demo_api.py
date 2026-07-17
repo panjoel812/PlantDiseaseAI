@@ -25,6 +25,12 @@ from plantdisease.serving.service import (
 )
 from plantdisease.vlm.assistant import AssistantResponse, ClassifierContext
 from plantdisease.vlm.backends import QWEN3_VL_MODEL_ID, MockVLMBackend
+from plantdisease.vlm.cloud_advice import (
+    AdviceContext,
+    CloudAdviceError,
+    CloudProviderStatus,
+    ManagementAdvice,
+)
 from plantdisease.vlm.interactive import (
     EVIDENCE_BOUNDARY,
     InteractiveQwenResult,
@@ -115,7 +121,9 @@ class FakeQwenService:
         ask_error: QwenUnavailableError | None = None,
     ) -> None:
         self.runtime_status = status or _qwen_status(ready=True)
-        self.result = result or _qwen_result(raw_answer="diseased")
+        self.result = result or _qwen_result(
+            raw_answer="Elongated tan-brown spots with dark margins are visible."
+        )
         self.ask_error = ask_error
         self.status_calls = 0
         self.ask_calls: list[tuple[bytes, str, ClassifierContext | None]] = []
@@ -134,6 +142,50 @@ class FakeQwenService:
         if self.ask_error is not None:
             raise self.ask_error
         return self.result
+
+
+class FakeAdviceService:
+    def __init__(
+        self,
+        *,
+        ask_error: CloudAdviceError | None = None,
+    ) -> None:
+        self.ask_error = ask_error
+        self.ask_calls: list[tuple[str, str, AdviceContext]] = []
+        self.secret = "server-only-secret"
+
+    def statuses(self) -> list[CloudProviderStatus]:
+        return [
+            CloudProviderStatus("openai", "OpenAI", True, "gpt-test", "Ready"),
+            CloudProviderStatus(
+                "anthropic", "Claude", True, "claude-test", "Ready"
+            ),
+            CloudProviderStatus(
+                "gemini",
+                "Gemini",
+                False,
+                "gemini-test",
+                "Set GEMINI_API_KEY on the API server.",
+            ),
+        ]
+
+    def ask(
+        self,
+        provider: str,
+        question: str,
+        context: AdviceContext,
+    ) -> ManagementAdvice:
+        self.ask_calls.append((provider, question, context))
+        if self.ask_error is not None:
+            raise self.ask_error
+        return ManagementAdvice(
+            provider="anthropic",
+            model_id="claude-test",
+            message="Monitor spread and consult local extension before treatment.",
+            action="educational_guidance",
+            refused=False,
+            sources=["classifier-crop:Grape", "qwen:visual-evidence"],
+        )
 
 
 def _qwen_status(*, ready: bool) -> QwenRuntimeStatus:
@@ -155,17 +207,14 @@ def _qwen_result(*, raw_answer: str | None) -> InteractiveQwenResult:
             message=(
                 "This request is outside the verified scope."
                 if refused
-                else "Educational summary only; this is not a professional diagnosis."
+                else raw_answer or ""
             ),
-            action="refuse_high_risk" if refused else "educational_summary",
+            action="refuse_high_risk" if refused else "visual_evidence",
             refused=refused,
             reasons=["High risk and out of scope."] if refused else [],
             sources=[]
             if refused
-            else [
-                "classifier:Corn_(maize)___Northern_Leaf_Blight",
-                f"vqa:{QWEN3_VL_MODEL_ID}",
-            ],
+            else [f"vqa:{QWEN3_VL_MODEL_ID}"],
         ),
         model_id=QWEN3_VL_MODEL_ID,
     )
@@ -495,7 +544,7 @@ def test_qwen_ask_serializes_generated_answer_and_classifier_context(
         "/api/qwen/ask",
         files={"image": ("leaf.jpeg", FIELD_BYTES, "image/jpeg")},
         data={
-            "question": "Is this leaf healthy?",
+            "question": "What spots, colors, and shapes are visible?",
             "classifier_top_class_name": "Corn_(maize)___Northern_Leaf_Blight",
             "classifier_confidence": "0.91",
             "classifier_warnings": DOMAIN_WARNING,
@@ -504,23 +553,20 @@ def test_qwen_ask_serializes_generated_answer_and_classifier_context(
 
     assert response.status_code == 200
     assert response.json() == {
-        "raw_answer": "diseased",
-        "message": "Educational summary only; this is not a professional diagnosis.",
-        "action": "educational_summary",
+        "raw_answer": "Elongated tan-brown spots with dark margins are visible.",
+        "message": "Elongated tan-brown spots with dark margins are visible.",
+        "action": "visual_evidence",
         "refused": False,
         "reasons": [],
-        "sources": [
-            "classifier:Corn_(maize)___Northern_Leaf_Blight",
-            f"vqa:{QWEN3_VL_MODEL_ID}",
-        ],
+        "sources": [f"vqa:{QWEN3_VL_MODEL_ID}"],
         "model_id": QWEN3_VL_MODEL_ID,
-        "scope": "exploratory_smoke",
+        "scope": "visual_evidence_only",
         "evidence_boundary": EVIDENCE_BOUNDARY,
     }
     assert service.ask_calls == [
         (
             FIELD_BYTES,
-            "Is this leaf healthy?",
+            "What spots, colors, and shapes are visible?",
             ClassifierContext(
                 top_class_name="Corn_(maize)___Northern_Leaf_Blight",
                 confidence=0.91,
@@ -552,7 +598,7 @@ def test_qwen_ask_returns_status_payload_when_runtime_is_unavailable() -> None:
     response = TestClient(create_app(qwen_provider=lambda: service)).post(
         "/api/qwen/ask",
         files={"image": ("leaf.jpeg", FIELD_BYTES, "image/jpeg")},
-        data={"question": "Is this leaf healthy?"},
+        data={"question": "What spots, colors, and shapes are visible?"},
     )
 
     assert response.status_code == 503
@@ -620,7 +666,7 @@ def test_qwen_ask_translates_lazy_mlx_setup_failure_to_503() -> None:
     response = TestClient(create_app(qwen_provider=lambda: service)).post(
         "/api/qwen/ask",
         files={"image": ("leaf.jpeg", FIELD_BYTES, "image/jpeg")},
-        data={"question": "Is this leaf healthy?"},
+        data={"question": "What spots, colors, and shapes are visible?"},
     )
 
     assert response.status_code == 503
@@ -652,8 +698,9 @@ def test_qwen_ask_rejects_invalid_input_before_service_call(
 
 
 def test_qwen_ask_validates_question_length_after_trimming() -> None:
-    accepted_question = "x" * 500
-    accepted_backend = MockVLMBackend({accepted_question: "diseased"})
+    prefix = "What visible spots, colors, shapes, and margins are present? "
+    accepted_question = prefix + "x" * (500 - len(prefix))
+    accepted_backend = MockVLMBackend({accepted_question: "Visible evidence."})
     accepted_service = InteractiveQwenService(
         backend=accepted_backend,
         status_probe=lambda model_id: _qwen_status(ready=True),
@@ -697,7 +744,7 @@ def test_qwen_ask_rejects_partial_classifier_context() -> None:
         "/api/qwen/ask",
         files={"image": ("leaf.jpeg", FIELD_BYTES, "image/jpeg")},
         data={
-            "question": "Is this leaf healthy?",
+            "question": "What spots, colors, and shapes are visible?",
             "classifier_top_class_name": "Corn_(maize)___Northern_Leaf_Blight",
         },
     )
@@ -715,3 +762,158 @@ def test_qwen_ask_endpoint_is_sync_for_threadpool_execution() -> None:
     )
 
     assert inspect.iscoroutinefunction(route.endpoint) is False
+
+
+def test_advice_provider_status_is_non_secret_and_preserves_manual_order() -> None:
+    service = FakeAdviceService()
+    response = TestClient(
+        create_app(
+            qwen_provider=lambda: FakeQwenService(),
+            advice_provider=lambda: service,
+        )
+    ).get("/api/advice/providers")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "providers": [
+            {
+                "provider": "openai",
+                "display_name": "OpenAI",
+                "configured": True,
+                "model_id": "gpt-test",
+                "detail": "Ready",
+            },
+            {
+                "provider": "anthropic",
+                "display_name": "Claude",
+                "configured": True,
+                "model_id": "claude-test",
+                "detail": "Ready",
+            },
+            {
+                "provider": "gemini",
+                "display_name": "Gemini",
+                "configured": False,
+                "model_id": "gemini-test",
+                "detail": "Set GEMINI_API_KEY on the API server.",
+            },
+        ]
+    }
+    assert service.secret not in response.text
+
+
+def test_advice_ask_routes_only_to_explicit_provider_with_qwen_evidence() -> None:
+    service = FakeAdviceService()
+    response = TestClient(
+        create_app(
+            qwen_provider=lambda: FakeQwenService(),
+            advice_provider=lambda: service,
+        )
+    ).post(
+        "/api/advice/ask",
+        json={
+            "provider": "anthropic",
+            "question": "What management steps should I consider?",
+            "selected_crop": "Grape",
+            "crop_probability": 0.82,
+            "selected_condition": "Black rot",
+            "condition_probability": 0.64,
+            "warnings": ["Out-of-domain field image."],
+            "visual_observation": "Circular tan spots with dark margins are visible.",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "provider": "anthropic",
+        "model_id": "claude-test",
+        "message": "Monitor spread and consult local extension before treatment.",
+        "action": "educational_guidance",
+        "refused": False,
+        "reasons": [],
+        "sources": ["classifier-crop:Grape", "qwen:visual-evidence"],
+        "scope": "educational_management_guidance",
+        "evidence_boundary": (
+            "Educational, conditional management guidance only; not a verified "
+            "diagnosis or pesticide prescription. Follow registered labels and local "
+            "regulations."
+        ),
+    }
+    assert len(service.ask_calls) == 1
+    provider, question, context = service.ask_calls[0]
+    assert provider == "anthropic"
+    assert question == "What management steps should I consider?"
+    assert context.selected_crop == "Grape"
+    assert context.visual_observation == (
+        "Circular tan spots with dark margins are visible."
+    )
+
+
+def test_advice_ask_rejects_unknown_provider_before_service_call() -> None:
+    service = FakeAdviceService()
+    response = TestClient(
+        create_app(
+            qwen_provider=lambda: FakeQwenService(),
+            advice_provider=lambda: service,
+        )
+    ).post(
+        "/api/advice/ask",
+        json={
+            "provider": "automatic",
+            "question": "What next?",
+            "selected_crop": "Grape",
+            "crop_probability": 0.82,
+            "selected_condition": "Black rot",
+            "condition_probability": 0.64,
+        },
+    )
+
+    assert response.status_code == 422
+    assert service.ask_calls == []
+
+
+def test_advice_ask_returns_sanitized_provider_failure() -> None:
+    service = FakeAdviceService(
+        ask_error=CloudAdviceError(
+            "Claude authentication failed.",
+            status_code=502,
+        )
+    )
+    response = TestClient(
+        create_app(
+            qwen_provider=lambda: FakeQwenService(),
+            advice_provider=lambda: service,
+        )
+    ).post(
+        "/api/advice/ask",
+        json={
+            "provider": "anthropic",
+            "question": "What next?",
+            "selected_crop": "Grape",
+            "crop_probability": 0.82,
+            "selected_condition": "Black rot",
+            "condition_probability": 0.64,
+        },
+    )
+
+    assert response.status_code == 502
+    assert response.json() == {"detail": "Claude authentication failed."}
+    assert service.secret not in response.text
+
+
+def test_advice_endpoints_are_sync_for_threadpool_execution() -> None:
+    app = create_app(
+        qwen_provider=lambda: FakeQwenService(),
+        advice_provider=lambda: FakeAdviceService(),
+    )
+    routes = {
+        route.path: route
+        for route in app.routes
+        if getattr(route, "path", None) in {
+            "/api/advice/providers",
+            "/api/advice/ask",
+        }
+    }
+
+    assert inspect.iscoroutinefunction(routes["/api/advice/providers"].endpoint) is False
+    assert inspect.iscoroutinefunction(routes["/api/advice/ask"].endpoint) is False

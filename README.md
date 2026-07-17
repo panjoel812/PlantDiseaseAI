@@ -360,6 +360,16 @@ docker stop plantdisease-ai
 returns the verified `ready=false` unavailable state. Browser and API requests
 never download Qwen weights.
 
+The assistant now has two deliberately separate modes:
+
+- **Visual evidence:** local Qwen3-VL describes only visible spots, colors,
+  shapes, margins, textures, and distributions. Diagnosis, treatment, pesticide
+  dose, and regulatory questions are blocked before generation.
+- **Management guidance:** the user manually chooses OpenAI, Claude, or Gemini.
+  The selected cloud provider receives uncertainty-preserving classifier context
+  and optional Qwen observations. There is **no automatic fallback** between
+  providers.
+
 The current implementation requires Apple Silicon macOS with MLX/Metal and
 locally cached `mlx-community/Qwen3-VL-4B-Instruct-4bit` weights. Install and
 download only after explicitly accepting that optional runtime and storage:
@@ -375,6 +385,32 @@ experiment is only a 5-image/15-question smoke: choice and few-shot choice
 scored 11/15, while the fine-grained condition subset scored 1/5. It is not a
 complete VQA evaluation, human audit, or professional diagnosis. No LoRA/QLoRA
 training was completed.
+
+Cloud keys stay in the FastAPI server environment and are never returned to the
+browser, stored in React state, or placed in `localStorage`. Configure only the
+providers you intend to use; the complete blank template is `.env.example`:
+
+```bash
+export OPENAI_API_KEY="your-server-side-key"
+export OPENAI_MODEL="gpt-5.4-mini"
+
+export ANTHROPIC_API_KEY="your-server-side-key"
+export ANTHROPIC_MODEL="claude-sonnet-5"
+
+export GEMINI_API_KEY="your-server-side-key"
+export GEMINI_MODEL="gemini-3.5-flash"
+```
+
+The browser reads non-secret status from `/api/advice/providers` and submits the
+manual choice to `/api/advice/ask`. Do not use `VITE_*_API_KEY` variables because
+Vite would embed them in browser code. Cloud calls require network access, valid
+provider credentials, and may incur cost. Automated tests use injected local
+transports; no paid provider response is claimed as live-tested here.
+
+General, conditional management options are allowed. Exact pesticide products,
+doses, concentrations, dilution ratios, re-entry intervals, and pre-harvest
+intervals are blocked locally and redirected to registered labels and local
+plant-health professionals.
 
 ## Reproducibility and evidence
 

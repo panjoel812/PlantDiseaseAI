@@ -8,18 +8,26 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Annotated, Protocol
+from typing import Annotated, Literal, Protocol
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from PIL import Image
+from pydantic import BaseModel, Field
 
 from plantdisease.serving.cache import get_cached_service
 from plantdisease.serving.images import InputValidationError, decode_rgb_image
 from plantdisease.serving.service import InferenceResult, InferenceServiceError
 from plantdisease.vlm.assistant import ClassifierContext
+from plantdisease.vlm.cloud_advice import (
+    AdviceContext,
+    CloudAdviceError,
+    CloudProviderStatus,
+    ManagementAdvice,
+    get_cloud_advice_service,
+)
 from plantdisease.vlm.interactive import (
     InteractiveQwenResult,
     QwenRuntimeStatus,
@@ -84,6 +92,38 @@ class QwenProvider(Protocol):
     def __call__(self) -> QwenService: ...
 
 
+class AdviceService(Protocol):
+    """Manually routed cloud advice interface required by the HTTP adapter."""
+
+    def statuses(self) -> list[CloudProviderStatus]: ...
+
+    def ask(
+        self,
+        provider: str,
+        question: str,
+        context: AdviceContext,
+    ) -> ManagementAdvice: ...
+
+
+class AdviceProvider(Protocol):
+    """Construct or retrieve the process-wide cloud advice service."""
+
+    def __call__(self) -> AdviceService: ...
+
+
+class AdviceRequest(BaseModel):
+    """Bounded, non-secret evidence sent from the React demo."""
+
+    provider: Literal["openai", "anthropic", "gemini"]
+    question: str = Field(min_length=1, max_length=2_000)
+    selected_crop: str = Field(min_length=1, max_length=160)
+    crop_probability: float = Field(ge=0.0, le=1.0)
+    selected_condition: str = Field(min_length=1, max_length=240)
+    condition_probability: float = Field(ge=0.0, le=1.0)
+    warnings: list[str] = Field(default_factory=list, max_length=20)
+    visual_observation: str | None = Field(default=None, max_length=4_000)
+
+
 @dataclass(frozen=True)
 class DemoSettings:
     """Local classifier API configuration."""
@@ -100,6 +140,7 @@ def create_app(
     *,
     service_provider: ServiceProvider = get_cached_service,
     qwen_provider: QwenProvider = get_qwen_service,
+    advice_provider: AdviceProvider = get_cloud_advice_service,
 ) -> FastAPI:
     """Build the classifier API without loading model weights."""
     resolved = settings or DemoSettings()
@@ -108,6 +149,7 @@ def create_app(
     app.state.settings = resolved
     app.state.service_provider = service_provider
     app.state.qwen_provider = qwen_provider
+    app.state.advice_provider = advice_provider
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(cors_origins),
@@ -127,6 +169,16 @@ def _register_routes(app: FastAPI) -> None:
     @app.get("/api/qwen/status")
     def qwen_status() -> dict[str, object]:
         return _serialize_qwen_status(_get_qwen_status(app))
+
+    @app.get("/api/advice/providers")
+    def advice_providers() -> dict[str, object]:
+        service = _get_advice_service(app)
+        return {
+            "providers": [
+                _serialize_advice_provider_status(status)
+                for status in service.statuses()
+            ]
+        }
 
     @app.get("/api/example", response_class=FileResponse)
     def example() -> FileResponse:
@@ -220,6 +272,33 @@ def _register_routes(app: FastAPI) -> None:
             )
         return _serialize_qwen_result(result)
 
+    @app.post("/api/advice/ask")
+    def ask_advice(request: AdviceRequest) -> dict[str, object]:
+        service = _get_advice_service(app)
+        try:
+            context = AdviceContext(
+                selected_crop=request.selected_crop.strip(),
+                crop_probability=request.crop_probability,
+                selected_condition=request.selected_condition.strip(),
+                condition_probability=request.condition_probability,
+                warnings=tuple(warning.strip() for warning in request.warnings),
+                visual_observation=(
+                    request.visual_observation.strip()
+                    if request.visual_observation
+                    else None
+                ),
+            )
+            result = service.ask(
+                request.provider,
+                request.question.strip(),
+                context,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except CloudAdviceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+        return _serialize_management_advice(result)
+
 
 def _health_payload(
     settings: DemoSettings,
@@ -246,6 +325,11 @@ def _get_qwen_service(app: FastAPI) -> QwenService:
 
 def _get_qwen_status(app: FastAPI) -> QwenRuntimeStatus:
     return _get_qwen_service(app).status()
+
+
+def _get_advice_service(app: FastAPI) -> AdviceService:
+    provider: AdviceProvider = app.state.advice_provider
+    return provider()
 
 
 def _build_classifier_context(
@@ -291,6 +375,32 @@ def _serialize_qwen_result(result: InteractiveQwenResult) -> dict[str, object]:
         "reasons": list(response.reasons),
         "sources": list(response.sources),
         "model_id": result.model_id,
+        "scope": result.scope,
+        "evidence_boundary": result.evidence_boundary,
+    }
+
+
+def _serialize_advice_provider_status(
+    status: CloudProviderStatus,
+) -> dict[str, object]:
+    return {
+        "provider": status.provider,
+        "display_name": status.display_name,
+        "configured": status.configured,
+        "model_id": status.model_id,
+        "detail": status.detail,
+    }
+
+
+def _serialize_management_advice(result: ManagementAdvice) -> dict[str, object]:
+    return {
+        "provider": result.provider,
+        "model_id": result.model_id,
+        "message": result.message,
+        "action": result.action,
+        "refused": result.refused,
+        "reasons": list(result.reasons),
+        "sources": list(result.sources),
         "scope": result.scope,
         "evidence_boundary": result.evidence_boundary,
     }
@@ -414,6 +524,7 @@ def _png_data_url(image: Image.Image) -> str:
 app = create_app()
 
 __all__: Sequence[str] = [
+    "AdviceProvider",
     "DEFAULT_CHECKPOINT",
     "DemoSettings",
     "QwenProvider",

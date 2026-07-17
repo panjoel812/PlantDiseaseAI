@@ -45,6 +45,36 @@ function demoState(): DemoState {
       },
       error: null,
     },
+    adviceProviders: {
+      status: "success",
+      data: {
+        providers: [
+          {
+            provider: "openai",
+            display_name: "OpenAI",
+            configured: false,
+            model_id: "gpt-5.4-mini",
+            detail: "Set OPENAI_API_KEY on the API server.",
+          },
+          {
+            provider: "anthropic",
+            display_name: "Claude",
+            configured: false,
+            model_id: "claude-sonnet-5",
+            detail: "Set ANTHROPIC_API_KEY on the API server.",
+          },
+          {
+            provider: "gemini",
+            display_name: "Gemini",
+            configured: false,
+            model_id: "gemini-3.5-flash",
+            detail: "Set GEMINI_API_KEY on the API server.",
+          },
+        ],
+      },
+      error: null,
+    },
+    advice: { status: "idle", data: null, error: null },
     selectedFile: new File(["example"], "field_corn_leaf.jpeg", {
       type: "image/jpeg",
     }),
@@ -52,6 +82,7 @@ function demoState(): DemoState {
     selectFile: vi.fn(),
     classify: vi.fn().mockResolvedValue(undefined),
     ask: vi.fn().mockResolvedValue(undefined),
+    askAdvice: vi.fn().mockResolvedValue(undefined),
     refreshQwenRuntime: vi.fn().mockResolvedValue(undefined),
     reset: vi.fn(),
   };
@@ -148,7 +179,7 @@ describe("App", () => {
     rerender(<App />);
     await user.click(screen.getByRole("button", { name: /ask qwen/i }));
     expect(demo.ask).toHaveBeenCalledWith(
-      "What visual symptoms are visible?",
+      "What spots, colors, shapes, margins, textures, and distributions are visible?",
     );
   });
 

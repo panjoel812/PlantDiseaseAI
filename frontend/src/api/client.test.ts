@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   askQwen,
+  askForAdvice,
   classifyImage,
+  fetchAdviceProviders,
   fetchExampleImage,
   fetchHealth,
   fetchQwenStatus,
 } from "./client";
-import type { ClassificationResult } from "./types";
+import type { ClassificationResult, QwenAnswer } from "./types";
 
 const file = new File(["leaf"], "leaf.jpeg", { type: "image/jpeg" });
 
@@ -279,6 +281,78 @@ describe("API client", () => {
     expect(example).toBeInstanceOf(File);
     expect(example.name).toBe("field_corn_leaf.jpeg");
     expect(example.type).toBe("image/jpeg");
+  });
+
+  it("loads non-secret cloud provider status with an abort signal", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        providers: [
+          {
+            provider: "openai",
+            display_name: "OpenAI",
+            configured: true,
+            model_id: "gpt-test",
+            detail: "Ready",
+          },
+        ],
+      }),
+    );
+    const controller = new AbortController();
+
+    await fetchAdviceProviders(controller.signal);
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/advice/providers", {
+      signal: controller.signal,
+    });
+  });
+
+  it("sends only the manually selected provider and structured evidence", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        provider: "anthropic",
+        model_id: "claude-test",
+        message: "Conditional guidance.",
+        action: "educational_guidance",
+        refused: false,
+        reasons: [],
+        sources: [],
+        scope: "educational_management_guidance",
+        evidence_boundary: "Educational only.",
+      }),
+    );
+    const visualEvidence: QwenAnswer = {
+      raw_answer: "Circular tan spots with dark margins are visible.",
+      message: "Circular tan spots with dark margins are visible.",
+      action: "visual_evidence",
+      refused: false,
+      reasons: [],
+      sources: ["qwen:local"],
+      model_id: "qwen-local",
+      scope: "visual_evidence_only",
+      evidence_boundary: "Visual evidence only.",
+    };
+
+    await askForAdvice(
+      "anthropic",
+      "What management steps should I consider?",
+      classification(),
+      visualEvidence,
+    );
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/advice/ask");
+    expect(init?.method).toBe("POST");
+    expect(init?.headers).toEqual({ "Content-Type": "application/json" });
+    expect(JSON.parse(String(init?.body))).toEqual({
+      provider: "anthropic",
+      question: "What management steps should I consider?",
+      selected_crop: "Corn",
+      crop_probability: 0.96,
+      selected_condition: "Northern Leaf Blight",
+      condition_probability: 0.91,
+      warnings: ["Educational demo only.", "Field generalization is unknown."],
+      visual_observation: "Circular tan spots with dark margins are visible.",
+    });
   });
 
   it("forwards abort signals to classifier and Qwen POST requests", async () => {

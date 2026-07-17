@@ -3,14 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiError,
+  askForAdvice,
   askQwen,
   classifyImage,
+  fetchAdviceProviders,
   fetchExampleImage,
   fetchQwenStatus,
 } from "../api/client";
 import type {
+  AdviceProvidersResponse,
   ClassificationResult,
   ClassifyOptions,
+  ManagementAdvice,
   QwenAnswer,
   QwenStatus,
 } from "../api/types";
@@ -20,8 +24,10 @@ vi.mock("../api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api/client")>();
   return {
     ...actual,
+    askForAdvice: vi.fn(),
     askQwen: vi.fn(),
     classifyImage: vi.fn(),
+    fetchAdviceProviders: vi.fn(),
     fetchExampleImage: vi.fn(),
     fetchQwenStatus: vi.fn(),
   };
@@ -120,6 +126,48 @@ function qwenStatus(ready = true): QwenStatus {
   };
 }
 
+function adviceProviders(): AdviceProvidersResponse {
+  return {
+    providers: [
+      {
+        provider: "openai",
+        display_name: "OpenAI",
+        configured: true,
+        model_id: "gpt-test",
+        detail: "Ready",
+      },
+      {
+        provider: "anthropic",
+        display_name: "Claude",
+        configured: true,
+        model_id: "claude-test",
+        detail: "Ready",
+      },
+      {
+        provider: "gemini",
+        display_name: "Gemini",
+        configured: false,
+        model_id: "gemini-test",
+        detail: "Set GEMINI_API_KEY on the API server.",
+      },
+    ],
+  };
+}
+
+function managementAdvice(): ManagementAdvice {
+  return {
+    provider: "anthropic",
+    model_id: "claude-test",
+    message: "Conditional management guidance.",
+    action: "educational_guidance",
+    refused: false,
+    reasons: [],
+    sources: ["classifier-crop:Corn"],
+    scope: "educational_management_guidance",
+    evidence_boundary: "Educational only.",
+  };
+}
+
 const classifyOptions: ClassifyOptions = {
   topK: 5,
   includeGradcam: true,
@@ -146,6 +194,7 @@ describe("useDemo", () => {
       () => new Promise<File>(() => undefined),
     );
     vi.mocked(fetchQwenStatus).mockResolvedValue(qwenStatus());
+    vi.mocked(fetchAdviceProviders).mockResolvedValue(adviceProviders());
   });
 
   afterEach(() => {
@@ -163,6 +212,52 @@ describe("useDemo", () => {
     expect(vi.mocked(fetchQwenStatus).mock.calls[0][0]).toBeInstanceOf(
       AbortSignal,
     );
+  });
+
+  it("loads cloud provider status on mount without exposing keys", async () => {
+    const { result } = renderHook(() => useDemo());
+
+    await waitFor(() => expect(result.current.adviceProviders.status).toBe("success"));
+    expect(result.current.adviceProviders.data).toEqual(adviceProviders());
+    expect(fetchAdviceProviders).toHaveBeenCalledOnce();
+    expect(vi.mocked(fetchAdviceProviders).mock.calls[0][0]).toBeInstanceOf(
+      AbortSignal,
+    );
+  });
+
+  it("routes management guidance to only the manually selected provider", async () => {
+    const currentClassification = classification();
+    const visualEvidence = qwenAnswer(
+      "Elongated tan-brown spots with dark margins are visible.",
+    );
+    vi.mocked(classifyImage).mockResolvedValue(currentClassification);
+    vi.mocked(askQwen).mockResolvedValue(visualEvidence);
+    vi.mocked(askForAdvice).mockResolvedValue(managementAdvice());
+    const file = new File(["leaf"], "leaf.jpeg", { type: "image/jpeg" });
+    const { result } = renderHook(() => useDemo());
+
+    act(() => result.current.selectFile(file));
+    await act(async () => result.current.classify(classifyOptions));
+    await act(async () => result.current.ask("What spots and colors are visible?"));
+    await act(async () =>
+      result.current.askAdvice(
+        "anthropic",
+        "What management steps should I consider?",
+      ),
+    );
+
+    expect(askForAdvice).toHaveBeenCalledWith(
+      "anthropic",
+      "What management steps should I consider?",
+      currentClassification,
+      visualEvidence,
+      expect.any(AbortSignal),
+    );
+    expect(result.current.advice).toEqual({
+      status: "success",
+      data: managementAdvice(),
+      error: null,
+    });
   });
 
   it("retries the Qwen runtime probe after local setup changes", async () => {

@@ -445,6 +445,8 @@
 
 > 当前状态（2026-07-17）：Week 8 本地 release candidate `week8-rc1` 已完成。历史仓库外锁定环境通过 226 tests、Ruff、`ty`、claim/link audit、synthetic smoke、package build 与 CLI help；冻结 checkpoint 指标重算、Top-5、MPS Demo、24 样本 Grad-CAM atlas 和 Apple `container` linux/arm64 health probe 均有记录。当前交付 manifest 只记录刷新源码的环境、锁文件、checkpoint、claims 与 Git 跟踪交付物哈希，并把未在该提交复跑的 clean/package/local/container 通道明确标为 `not_run`。最终实验报告、模型卡、数据卡、中英文 12 页论文、20 页 PPTX/Keynote 答辩材料、简历证据和导师摘要均已审计。official split 的 227 个重叠 `leaf_id`、single-seed、田间验证、完整人工 VQA 审计与 LoRA/QLoRA 等未完成项保持显式；未创建 tag、未发布远程 release。GitHub 分支/PR 仅发布源码与小型交付物，不代表模型部署。证据：`reports/week8_reproducibility.md`、`reports/release/week8_rc1_manifest.json`、`docs/release/week8_release_checklist.md`、`docs/artifact-index.md`。
 
+> 交互助手补充（2026-07-17）：React Demo 已将本地 Qwen 视觉证据与手动选择的 OpenAI / Claude / Gemini 管理建议分离。Qwen 域外视觉观察、三供应商原生 HTTP 适配、FastAPI 契约、密钥不出服务端和 React 稳定切换均由自动测试覆盖；付费云端真实回答因未提供用户凭据而未实测。证据：`src/plantdisease/vlm/cloud_advice.py`、`tests/vlm/test_cloud_advice.py`、`tests/test_demo_api.py`、`frontend/src/components/AssistantPanel.tsx`、`.env.example`、`README.md`。
+
 #### 研发任务
 
 - [x] 冻结候选发布版本，记录代码版本、依赖版本、数据版本和模型 checkpoint 校验信息。证据：`reports/release/week8_rc1_manifest.json`。

@@ -26,6 +26,46 @@ _HIGH_RISK_TERMS = (
     "spray",
 )
 _OUT_OF_SCOPE_WARNING_TERMS = ("non-leaf", "out-of-domain", "outside", "unknown")
+_VISUAL_EVIDENCE_TERMS = (
+    "appearance",
+    "color",
+    "colour",
+    "discoloration",
+    "distribution",
+    "edge",
+    "lesion",
+    "margin",
+    "morphology",
+    "pattern",
+    "shape",
+    "spot",
+    "texture",
+    "visible",
+    "斑",
+    "颜色",
+    "形态",
+    "形状",
+    "边缘",
+    "纹理",
+    "分布",
+    "可见",
+)
+_NON_VISUAL_REQUEST_TERMS = (
+    "cure",
+    "diagnos",
+    "disease",
+    "healthy",
+    "manage",
+    "recommend",
+    "treat",
+    "what is this",
+    "病害",
+    "诊断",
+    "治疗",
+    "防治",
+    "用药",
+    "健康",
+)
 
 
 @dataclass(frozen=True)
@@ -46,6 +86,17 @@ class AssistantResponse:
     refused: bool
     reasons: list[str] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
+
+
+def is_visual_evidence_question(question: str) -> bool:
+    """Return whether a question requests observation without diagnosis or advice."""
+
+    normalized = question.strip().casefold()
+    if not normalized or _contains_any(normalized, _NON_VISUAL_REQUEST_TERMS):
+        return False
+    if _contains_any(normalized, _HIGH_RISK_TERMS):
+        return False
+    return _contains_any(normalized, _VISUAL_EVIDENCE_TERMS)
 
 
 def build_assistant_response(

@@ -21,6 +21,7 @@ def test_react_demo_static_integration_contract() -> None:
     package = json.loads((FRONTEND / "package.json").read_text(encoding="utf-8"))
     source = _production_source()
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
 
     assert "liquid-glass-react" in package["dependencies"]
     assert 'from "liquid-glass-react"' in source
@@ -35,3 +36,20 @@ def test_react_demo_static_integration_contract() -> None:
     assert "11/15" in source
     assert "1/5" in source
     assert "no automatic download" in readme.lower()
+    for variable in (
+        "OPENAI_API_KEY",
+        "OPENAI_MODEL",
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_MODEL",
+        "GEMINI_API_KEY",
+        "GEMINI_MODEL",
+    ):
+        assert variable in env_example
+    assert "manual" in readme.lower()
+    assert "server" in readme.lower()
+    assert "automatic fallback" in readme.lower()
+    assert "/api/advice/providers" in source
+    assert "/api/advice/ask" in source
+    assert "Visual evidence" in source
+    assert "Management guidance" in source
+    assert "API_KEY" not in source

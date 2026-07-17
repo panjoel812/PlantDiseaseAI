@@ -1,8 +1,8 @@
 import { AmbientGarden } from "./components/AmbientGarden";
+import { AssistantPanel } from "./components/AssistantPanel";
 import { ClassifierPanel } from "./components/ClassifierPanel";
 import { Hero } from "./components/Hero";
 import { ImageWorkspace } from "./components/ImageWorkspace";
-import { QwenPanel } from "./components/QwenPanel";
 import { SafetyNotice } from "./components/SafetyNotice";
 import { useDemo } from "./hooks/useDemo";
 
@@ -26,16 +26,22 @@ export function App() {
           />
           <div className="result-rail">
             <ClassifierPanel state={demo.classification} />
-            <QwenPanel
-              enabled={
+            <AssistantPanel
+              classificationReady={demo.classification.status === "success"}
+              qwenEnabled={
                 demo.classification.status === "success" &&
                 demo.qwenRuntime.status === "success" &&
                 demo.qwenRuntime.data.ready
               }
-              runtime={demo.qwenRuntime}
-              state={demo.qwen}
-              onAsk={(question) => void demo.ask(question)}
-              onRetryRuntime={() => void demo.refreshQwenRuntime()}
+              qwenRuntime={demo.qwenRuntime}
+              qwenState={demo.qwen}
+              providers={demo.adviceProviders}
+              adviceState={demo.advice}
+              onAskQwen={(question) => void demo.ask(question)}
+              onRetryQwenRuntime={() => void demo.refreshQwenRuntime()}
+              onAskAdvice={(provider, question) =>
+                void demo.askAdvice(provider, question)
+              }
             />
           </div>
         </div>

@@ -1,7 +1,10 @@
 import type {
+  AdviceProviderId,
+  AdviceProvidersResponse,
   ClassificationResult,
   ClassifyOptions,
   DemoHealth,
+  ManagementAdvice,
   QwenAnswer,
   QwenStatus,
 } from "./types";
@@ -102,6 +105,12 @@ export function fetchQwenStatus(signal?: AbortSignal): Promise<QwenStatus> {
   return requestJson<QwenStatus>("/api/qwen/status", { signal });
 }
 
+export function fetchAdviceProviders(
+  signal?: AbortSignal,
+): Promise<AdviceProvidersResponse> {
+  return requestJson<AdviceProvidersResponse>("/api/advice/providers", { signal });
+}
+
 export async function fetchExampleImage(signal?: AbortSignal): Promise<File> {
   const response = await ensureOk(await fetch("/api/example", { signal }));
   const blob = await response.blob();
@@ -134,6 +143,44 @@ export function askQwen(
   return requestJson<QwenAnswer>("/api/qwen/ask", {
     method: "POST",
     body,
+    signal,
+  });
+}
+
+export function askForAdvice(
+  provider: AdviceProviderId,
+  question: string,
+  classification: ClassificationResult,
+  visualEvidence?: QwenAnswer,
+  signal?: AbortSignal,
+): Promise<ManagementAdvice> {
+  const crop = classification.hierarchy.crops.find(
+    (item) => item.plant === classification.hierarchy.selected_crop,
+  );
+  const condition = classification.hierarchy.conditions[0];
+  if (!crop || !condition) {
+    return Promise.reject(
+      new Error("Classification hierarchy is incomplete; analyze the image again."),
+    );
+  }
+  const visualObservation =
+    visualEvidence && !visualEvidence.refused
+      ? (visualEvidence.raw_answer ?? visualEvidence.message).trim()
+      : "";
+  const payload = {
+    provider,
+    question,
+    selected_crop: classification.hierarchy.selected_crop,
+    crop_probability: crop.probability,
+    selected_condition: condition.condition,
+    condition_probability: condition.joint_probability,
+    warnings: classification.warnings,
+    ...(visualObservation ? { visual_observation: visualObservation } : {}),
+  };
+  return requestJson<ManagementAdvice>("/api/advice/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
     signal,
   });
 }

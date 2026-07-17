@@ -1,7 +1,20 @@
 from plantdisease.vlm.assistant import (
     ClassifierContext,
     build_assistant_response,
+    is_visual_evidence_question,
 )
+
+
+def test_visual_evidence_policy_allows_morphology_without_diagnosis() -> None:
+    assert is_visual_evidence_question(
+        "What spots, colors, shapes, margins, textures, and distributions are visible?"
+    ) is True
+
+
+def test_visual_evidence_policy_rejects_diagnosis_and_treatment_requests() -> None:
+    assert is_visual_evidence_question("What disease is this?") is False
+    assert is_visual_evidence_question("How should I treat this plant?") is False
+    assert is_visual_evidence_question("Which fungicide should I spray?") is False
 
 
 def test_assistant_refuses_pesticide_dosage_requests() -> None:

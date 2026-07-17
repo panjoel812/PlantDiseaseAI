@@ -48,8 +48,11 @@ def _valid_context() -> ClassifierContext:
     )
 
 
-def test_interactive_qwen_uses_backend_answer_and_preserves_scope() -> None:
-    backend = MockVLMBackend({"Is this leaf healthy?": "diseased"})
+def test_interactive_qwen_describes_visual_evidence_for_out_of_domain_image() -> None:
+    question = "What spots, colors, shapes, margins, and distributions are visible?"
+    backend = MockVLMBackend(
+        {question: "Elongated tan-brown spots with darker margins are visible."}
+    )
     service = InteractiveQwenService(
         backend=backend,
         model_id=QWEN3_VL_MODEL_ID,
@@ -58,19 +61,24 @@ def test_interactive_qwen_uses_backend_answer_and_preserves_scope() -> None:
 
     result = service.ask(
         FIELD_BYTES,
-        "Is this leaf healthy?",
-        classifier_context=_valid_context(),
+        question,
+        classifier_context=ClassifierContext(
+            top_class_name="Corn_(maize)___Northern_Leaf_Blight",
+            confidence=0.21,
+            warnings=["Out-of-domain field image; low confidence prediction."],
+        ),
     )
 
-    assert result.raw_answer == "diseased"
+    assert result.raw_answer == (
+        "Elongated tan-brown spots with darker margins are visible."
+    )
     assert result.model_id == QWEN3_VL_MODEL_ID
-    assert result.scope == "exploratory_smoke"
+    assert result.scope == "visual_evidence_only"
     assert result.evidence_boundary == EVIDENCE_BOUNDARY
     assert result.assistant_response.refused is False
-    assert result.assistant_response.sources == [
-        "classifier:Corn_(maize)___Northern_Leaf_Blight",
-        f"vqa:{QWEN3_VL_MODEL_ID}",
-    ]
+    assert result.assistant_response.action == "visual_evidence"
+    assert result.assistant_response.message == result.raw_answer
+    assert result.assistant_response.sources == [f"vqa:{QWEN3_VL_MODEL_ID}"]
     assert len(backend.calls) == 1
 
 
@@ -245,7 +253,7 @@ def test_mlx_setup_error_changes_status_to_unavailable_without_fallback() -> Non
     with pytest.raises(QwenUnavailableError, match="MLX load failed"):
         service.ask(
             FIELD_BYTES,
-            "Is this leaf healthy?",
+            "What visible spots, colors, and shapes are present?",
             classifier_context=_valid_context(),
         )
 
@@ -255,7 +263,8 @@ def test_mlx_setup_error_changes_status_to_unavailable_without_fallback() -> Non
 
 
 def test_interactive_service_blocks_backend_when_runtime_is_not_ready() -> None:
-    backend = MockVLMBackend({"Is this leaf healthy?": "fabricated fallback"})
+    question = "What visible spots, colors, and shapes are present?"
+    backend = MockVLMBackend({question: "fabricated fallback"})
 
     def unavailable_status(model_id: str) -> QwenRuntimeStatus:
         return QwenRuntimeStatus(
@@ -275,7 +284,7 @@ def test_interactive_service_blocks_backend_when_runtime_is_not_ready() -> None:
     with pytest.raises(QwenUnavailableError, match="no automatic download"):
         service.ask(
             FIELD_BYTES,
-            "Is this leaf healthy?",
+            question,
             classifier_context=_valid_context(),
         )
 
@@ -319,14 +328,14 @@ def test_lazy_setup_failure_is_latched_before_next_waiting_generation() -> None:
         first = executor.submit(
             service.ask,
             FIELD_BYTES,
-            "Is this leaf healthy?",
+            "What visible spots, colors, and shapes are present?",
             _valid_context(),
         )
         assert backend_entered.wait(timeout=2)
         second = executor.submit(
             service.ask,
             FIELD_BYTES,
-            "Is this leaf healthy?",
+            "What visible spots, colors, and shapes are present?",
             _valid_context(),
         )
         assert second_precheck_complete.wait(timeout=2)
@@ -365,7 +374,7 @@ def test_generation_is_serialized_for_shared_backend() -> None:
             executor.submit(
                 service.ask,
                 FIELD_BYTES,
-                "Is this leaf healthy?",
+                "What visible spots, colors, and shapes are present?",
                 _valid_context(),
             )
             for _ in range(2)

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import type { FormEvent } from "react";
 import LiquidGlass from "liquid-glass-react";
 
 import type { FeatureState, QwenAnswer, QwenStatus } from "../api/types";
@@ -11,7 +11,8 @@ interface QwenPanelProps {
   onRetryRuntime(): void;
 }
 
-const DEFAULT_QUESTION = "What visual symptoms are visible?";
+const DEFAULT_QUESTION =
+  "What spots, colors, shapes, margins, textures, and distributions are visible?";
 
 function ChatIcon() {
   return (
@@ -38,7 +39,7 @@ export function QwenPanel({
   onAsk,
   onRetryRuntime,
 }: QwenPanelProps) {
-  const [question, setQuestion] = useState(DEFAULT_QUESTION);
+  const question = DEFAULT_QUESTION;
   const isLoading = state.status === "loading";
   const runtimeReady = runtime.status === "success" && runtime.data.ready;
   const showSetup = runtime.status === "success" && !runtime.data.ready;
@@ -65,8 +66,8 @@ export function QwenPanel({
           <header className="panel-header">
             <span className="panel-icon"><ChatIcon /></span>
             <div>
-              <h2 id="qwen-title">Ask Qwen</h2>
-              <p>Optional local Qwen3-VL</p>
+              <h2 id="qwen-title">Visual evidence</h2>
+              <p>Optional local Qwen3-VL · morphology only</p>
             </div>
           </header>
 
@@ -125,13 +126,13 @@ export function QwenPanel({
 
           {enabled && runtimeReady ? (
             <form className="qwen-form" onSubmit={handleSubmit}>
-              <label htmlFor="qwen-question">Question for Qwen</label>
+              <label htmlFor="qwen-question">Visual evidence prompt</label>
               <input
                 id="qwen-question"
                 type="text"
                 value={question}
                 disabled={isLoading}
-                onChange={(event) => setQuestion(event.currentTarget.value)}
+                readOnly
               />
               <button
                 className="button primary-button qwen-submit"
@@ -139,7 +140,7 @@ export function QwenPanel({
                 disabled={isLoading || question.trim().length === 0}
               >
                 <ChatIcon />
-                {isLoading ? "Asking Qwen…" : "Ask Qwen"}
+                {isLoading ? "Inspecting image…" : "Ask Qwen for visual evidence"}
               </button>
             </form>
           ) : !showSetup ? (
@@ -149,12 +150,12 @@ export function QwenPanel({
               disabled
             >
               <ChatIcon />
-              Ask Qwen
+              Ask Qwen for visual evidence
             </button>
           ) : null}
 
           {isLoading ? (
-            <p className="qwen-live" role="status">Asking Qwen…</p>
+            <p className="qwen-live" role="status">Inspecting visible evidence…</p>
           ) : state.status === "error" ? (
             <div className="qwen-response error-message" role="alert">
               <strong>Qwen unavailable</strong>
@@ -165,7 +166,7 @@ export function QwenPanel({
               className={state.data.refused ? "qwen-response refusal" : "qwen-response"}
               role="status"
             >
-              <strong>{state.data.refused ? "Request refused" : "Exploratory answer"}</strong>
+              <strong>{state.data.refused ? "Request refused" : "Visible evidence"}</strong>
               <p>{state.data.message}</p>
               {state.data.reasons.map((reason) => (
                 <p key={reason}>{reason}</p>

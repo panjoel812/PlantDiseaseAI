@@ -36,6 +36,17 @@ htmlcov/
 
 # LaTeX build side files
 paper/out/*.aux
+paper/out/*.bbl
+paper/out/*.blg
 paper/out/*.log
 paper/out/*.out
 paper/out/missfont.log
+
+# Local-only research and presentation working files
+# Published source artifacts that are already tracked remain tracked; these rules
+# prevent new private deck revisions and editable working files from being added.
+/docs/presentation/*.key
+/docs/presentation/*.pptx
+/docs/presentation/*.pptx.inspect.ndjson
+/docs/presentation/*_deck/
+/private/

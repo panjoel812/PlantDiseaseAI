@@ -85,6 +85,32 @@ export interface QwenAnswer {
   evidence_boundary: string;
 }
 
+export type AdviceProviderId = "openai" | "anthropic" | "gemini";
+
+export interface AdviceProviderStatus {
+  provider: AdviceProviderId;
+  display_name: string;
+  configured: boolean;
+  model_id: string;
+  detail: string;
+}
+
+export interface AdviceProvidersResponse {
+  providers: AdviceProviderStatus[];
+}
+
+export interface ManagementAdvice {
+  provider: AdviceProviderId;
+  model_id: string;
+  message: string;
+  action: string;
+  refused: boolean;
+  reasons: string[];
+  sources: string[];
+  scope: string;
+  evidence_boundary: string;
+}
+
 export interface ClassifierStatus {
   ready: boolean;
   checkpoint: string;

@@ -4,11 +4,14 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type {
+  AdviceProvidersResponse,
   ClassificationResult,
   FeatureState,
+  ManagementAdvice,
   QwenAnswer,
   QwenStatus,
 } from "../api/types";
+import { AssistantPanel } from "./AssistantPanel";
 import { ClassifierPanel } from "./ClassifierPanel";
 import { ImageWorkspace } from "./ImageWorkspace";
 import { QwenPanel } from "./QwenPanel";
@@ -171,6 +174,71 @@ describe("focused Liquid Glass surfaces", () => {
     expect(screen.getByTestId("qwen-glass")).toContainElement(
       screen.getAllByTestId("liquid-glass")[2],
     );
+  });
+});
+
+describe("AssistantPanel", () => {
+  it("keeps one glass stage while manually switching to a configured provider", async () => {
+    const user = userEvent.setup();
+    const onAskAdvice = vi.fn();
+    const providers: FeatureState<AdviceProvidersResponse> = {
+      status: "success",
+      data: {
+        providers: [
+          {
+            provider: "openai",
+            display_name: "OpenAI",
+            configured: true,
+            model_id: "gpt-test",
+            detail: "Ready",
+          },
+          {
+            provider: "anthropic",
+            display_name: "Claude",
+            configured: true,
+            model_id: "claude-test",
+            detail: "Ready",
+          },
+          {
+            provider: "gemini",
+            display_name: "Gemini",
+            configured: false,
+            model_id: "gemini-test",
+            detail: "Set GEMINI_API_KEY on the API server.",
+          },
+        ],
+      },
+      error: null,
+    };
+    render(
+      <AssistantPanel
+        classificationReady
+        qwenEnabled
+        qwenRuntime={readyQwenRuntime()}
+        qwenState={idle<QwenAnswer>()}
+        providers={providers}
+        adviceState={idle<ManagementAdvice>()}
+        onAskQwen={vi.fn()}
+        onRetryQwenRuntime={vi.fn()}
+        onAskAdvice={onAskAdvice}
+      />,
+    );
+
+    expect(screen.getByTestId("assistant-glass")).toBeVisible();
+    expect(screen.getByRole("tab", { name: /visual evidence/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await user.click(screen.getByRole("tab", { name: /management guidance/i }));
+    expect(screen.getByRole("radio", { name: /gemini/i })).toBeDisabled();
+    await user.click(screen.getByRole("radio", { name: /claude/i }));
+    await user.click(screen.getByRole("button", { name: /ask for guidance/i }));
+
+    expect(onAskAdvice).toHaveBeenCalledWith(
+      "anthropic",
+      "What management steps should I consider while the diagnosis remains uncertain?",
+    );
+    expect(screen.getAllByTestId("liquid-glass")).toHaveLength(1);
   });
 });
 
@@ -410,7 +478,7 @@ describe("QwenPanel", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: /ask qwen/i })).toBeVisible();
+    expect(screen.getByRole("heading", { name: /visual evidence/i })).toBeVisible();
     expect(screen.getByText(/optional local qwen3-vl/i)).toBeVisible();
     expect(screen.getByText(/available after classification/i)).toBeVisible();
     expect(
@@ -432,10 +500,15 @@ describe("QwenPanel", () => {
       />,
     );
 
-    const question = screen.getByRole("textbox", { name: /question for qwen/i });
-    expect(question).toHaveValue("What visual symptoms are visible?");
+    const question = screen.getByRole("textbox", { name: /visual evidence prompt/i });
+    expect(question).toHaveValue(
+      "What spots, colors, shapes, margins, textures, and distributions are visible?",
+    );
+    expect(question).toHaveAttribute("readonly");
     await user.click(screen.getByRole("button", { name: /ask qwen/i }));
-    expect(onAsk).toHaveBeenCalledWith("What visual symptoms are visible?");
+    expect(onAsk).toHaveBeenCalledWith(
+      "What spots, colors, shapes, margins, textures, and distributions are visible?",
+    );
   });
 
   it("announces loading, unavailable, answers, and refusals in its own panel", () => {
@@ -449,7 +522,7 @@ describe("QwenPanel", () => {
       />,
     );
     expect(screen.getAllByRole("status")).toHaveLength(1);
-    expect(screen.getByRole("status")).toHaveTextContent(/asking qwen/i);
+    expect(screen.getByRole("status")).toHaveTextContent(/inspecting visible evidence/i);
     expect(screen.getByRole("status").closest("[aria-live]")).toBeNull();
 
     rerender(
@@ -534,7 +607,7 @@ describe("QwenPanel", () => {
       screen.queryByRole("button", { name: /ask qwen/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("textbox", { name: /question for qwen/i }),
+      screen.queryByRole("textbox", { name: /visual evidence prompt/i }),
     ).not.toBeInTheDocument();
   });
 

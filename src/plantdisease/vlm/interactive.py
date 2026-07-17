@@ -15,6 +15,7 @@ from plantdisease.vlm.assistant import (
     AssistantResponse,
     ClassifierContext,
     build_assistant_response,
+    is_visual_evidence_question,
 )
 from plantdisease.vlm.backends import (
     QWEN3_VL_MODEL_ID,
@@ -25,8 +26,8 @@ from plantdisease.vlm.backends import (
 
 MAX_QUESTION_CHARACTERS = 500
 EVIDENCE_BOUNDARY = (
-    "Fixed smoke: choice/few-shot 11/15; fine-grained condition 1/5; "
-    "not a professional diagnosis."
+    "Local Qwen visual evidence only; no diagnosis or treatment. Fixed smoke: "
+    "choice/few-shot 11/15; fine-grained condition 1/5."
 )
 
 _REGULATORY_PATTERN = re.compile(
@@ -55,7 +56,7 @@ class InteractiveQwenResult:
     raw_answer: str | None
     assistant_response: AssistantResponse
     model_id: str
-    scope: str = "exploratory_smoke"
+    scope: str = "visual_evidence_only"
     evidence_boundary: str = EVIDENCE_BOUNDARY
 
 
@@ -205,11 +206,12 @@ class InteractiveQwenService:
                     self._failed_status = failed_status
                 raise QwenUnavailableError(failed_status) from exc
 
-        wrapped = build_assistant_response(
-            normalized_question,
-            classifier_context=context,
-            vqa_answer=raw_answer,
-            answer_source=self.model_id,
+        wrapped = AssistantResponse(
+            message=raw_answer,
+            action="visual_evidence",
+            refused=False,
+            reasons=[],
+            sources=[f"vqa:{self.model_id}"],
         )
         return InteractiveQwenResult(
             raw_answer=raw_answer,
@@ -222,18 +224,38 @@ def _build_preflight_response(
     question: str,
     context: ClassifierContext,
 ) -> AssistantResponse:
-    response = build_assistant_response(question, classifier_context=context)
-    if response.refused or not _contains_regulatory_term(question):
-        return response
+    bounded_response = build_assistant_response(question, classifier_context=context)
+    if bounded_response.action == "refuse_high_risk":
+        return bounded_response
+    if _contains_regulatory_term(question):
+        return AssistantResponse(
+            message=(
+                "I cannot interpret pesticide or agricultural regulations. Please "
+                "consult a local plant-health professional or agricultural extension "
+                "office and follow the applicable local rules."
+            ),
+            action="refuse_high_risk",
+            refused=True,
+            reasons=["Regulatory instructions are high risk and out of scope."],
+            sources=[],
+        )
+    if not is_visual_evidence_question(question):
+        return AssistantResponse(
+            message=(
+                "Local Qwen is limited to visible evidence. Ask about spots, colors, "
+                "shapes, margins, textures, or distribution; use Management guidance "
+                "for diagnosis hypotheses or treatment questions."
+            ),
+            action="refuse_non_visual_question",
+            refused=True,
+            reasons=["The question is not limited to visible image evidence."],
+            sources=[],
+        )
     return AssistantResponse(
-        message=(
-            "I cannot interpret pesticide or agricultural regulations. Please consult "
-            "a local plant-health professional or agricultural extension office and "
-            "follow the applicable local rules."
-        ),
-        action="refuse_high_risk",
-        refused=True,
-        reasons=["Regulatory instructions are high risk and out of scope."],
+        message="Visual evidence request accepted.",
+        action="allow_visual_evidence",
+        refused=False,
+        reasons=[],
         sources=[],
     )
 
