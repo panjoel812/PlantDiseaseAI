@@ -81,7 +81,7 @@ export function ImageWorkspace({
         displacementScale={30}
         blurAmount={0.08}
         saturation={125}
-        elasticity={0.08}
+        elasticity={0}
         style={{ position: "absolute", top: "50%", left: "50%" }}
       >
         <section

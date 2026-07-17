@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -53,19 +53,47 @@ function classificationResult(): ClassificationResult {
     predictions: [
       {
         class_index: 0,
-        class_name: "Corn___Northern_Leaf_Blight",
-        probability: 0.72,
+        class_name: "Apple___Black_rot",
+        probability: 0.34,
       },
       {
         class_index: 1,
-        class_name: "Corn___Common_Rust",
-        probability: 0.18,
+        class_name: "Grape___Black_rot",
+        probability: 0.21,
       },
     ],
+    hierarchy: {
+      method: "single_model_taxonomy_aggregation_v1",
+      selected_crop: "Apple",
+      selected_class_name: "Apple___Black_rot",
+      crops: [
+        { plant: "Apple", probability: 0.5 },
+        { plant: "Grape", probability: 0.36 },
+        { plant: "Tomato", probability: 0.14 },
+      ],
+      conditions: [
+        {
+          class_index: 0,
+          class_name: "Apple___Black_rot",
+          plant: "Apple",
+          condition: "Black rot",
+          joint_probability: 0.34,
+          conditional_probability: 0.68,
+        },
+        {
+          class_index: 2,
+          class_name: "Apple___healthy",
+          plant: "Apple",
+          condition: "healthy",
+          joint_probability: 0.16,
+          conditional_probability: 0.32,
+        },
+      ],
+    },
     knowledge: {
-      class_name: "Corn___Northern_Leaf_Blight",
-      plant: "Corn",
-      condition: "Northern Leaf Blight",
+      class_name: "Apple___Black_rot",
+      plant: "Apple",
+      condition: "Black rot",
       is_healthy: false,
       symptoms: "Illustrative symptoms.",
       educational_note: "Educational summary only.",
@@ -88,7 +116,7 @@ function classificationResult(): ClassificationResult {
     ],
     gradcam: {
       target_class_index: 0,
-      target_class_name: "Corn___Northern_Leaf_Blight",
+      target_class_name: "Apple___Black_rot",
       heatmap_data_url: "data:image/png;base64,heatmap",
       overlay_data_url: "data:image/png;base64,overlay",
     },
@@ -295,9 +323,10 @@ describe("ClassifierPanel", () => {
     expect(screen.getByRole("heading", { name: /classifier/i })).toBeVisible();
     expect(screen.getByText(/ready to analyze/i)).toBeVisible();
     expect(screen.getByText(/top-5 predictions and grad-cam/i)).toBeVisible();
+    expect(screen.getByTestId("classifier-state-body")).toBeVisible();
   });
 
-  it("renders real predictions, Grad-CAM assets, timings, and warnings", async () => {
+  it("renders crop-first conditions, Grad-CAM assets, timings, and warnings", async () => {
     const user = userEvent.setup();
     render(
       <ClassifierPanel
@@ -310,10 +339,19 @@ describe("ClassifierPanel", () => {
     );
 
     expect(screen.getByText(/model prediction.*not ground truth/i)).toBeVisible();
-    expect(screen.getAllByText(/northern leaf blight/i)).toHaveLength(2);
-    expect(screen.getByText("72.0%")).toBeVisible();
-    expect(screen.getByRole("progressbar", { name: /northern leaf blight/i }))
-      .toHaveAttribute("aria-valuenow", "72");
+    expect(screen.getByText(/detected crop/i)).toBeVisible();
+    expect(screen.getByText("Apple")).toBeVisible();
+    expect(screen.getByText(/crop confidence/i)).toBeVisible();
+    expect(screen.getByText(/hierarchical view from one/i)).toBeVisible();
+    const conditions = screen.getByRole("list", {
+      name: /conditions within apple/i,
+    });
+    expect(within(conditions).getAllByText(/black rot/i)).toHaveLength(1);
+    expect(within(conditions).queryByText(/grape/i)).not.toBeInTheDocument();
+    expect(screen.getByText("68.0%")).toBeVisible();
+    expect(screen.getByRole("progressbar", { name: /black rot/i }))
+      .toHaveAttribute("aria-valuenow", "68");
+    expect(screen.getByTestId("classifier-state-body")).toBeVisible();
     expect(screen.getByRole("img", { name: /grad-cam heatmap/i })).toHaveAttribute(
       "src",
       "data:image/png;base64,heatmap",
@@ -341,6 +379,7 @@ describe("ClassifierPanel", () => {
         state={{ status: "loading", data: null, error: null }}
       />,
     );
+    expect(screen.getByTestId("classifier-state-body")).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent(/analyzing leaf/i);
 
     rerender(
@@ -352,6 +391,7 @@ describe("ClassifierPanel", () => {
         }}
       />,
     );
+    expect(screen.getByTestId("classifier-state-body")).toBeVisible();
     expect(screen.getByRole("alert")).toHaveTextContent(
       /checkpoint unavailable/i,
     );

@@ -51,6 +51,10 @@ function formatClassName(value: string): string {
   return condition.replaceAll("_", " ");
 }
 
+function formatPercent(value: number): string {
+  return `${(Math.max(0, Math.min(1, value)) * 100).toFixed(1)}%`;
+}
+
 function ClassifierContent({ state }: ClassifierPanelProps) {
   const [showOverlay, setShowOverlay] = useState(false);
 
@@ -85,6 +89,8 @@ function ClassifierContent({ state }: ClassifierPanelProps) {
   }
 
   const result = state.data;
+  const hierarchy = result.hierarchy;
+  const selectedCrop = hierarchy.crops[0];
   const gradcam = result.gradcam;
   const gradcamSource = showOverlay
     ? gradcam?.overlay_data_url
@@ -103,24 +109,47 @@ function ClassifierContent({ state }: ClassifierPanelProps) {
           </div>
         </div>
       ) : null}
-      <p className="result-label">Top-5 predictions (PlantVillage taxonomy)</p>
-      <ol className="prediction-list">
-        {result.predictions.map((prediction) => {
+      <div className="crop-summary">
+        <span className="eyebrow">Detected crop</span>
+        <div className="crop-primary">
+          <strong>{hierarchy.selected_crop}</strong>
+          <span>{formatPercent(selectedCrop?.probability ?? 0)}</span>
+        </div>
+        <span className="crop-confidence-label">Crop confidence</span>
+        {hierarchy.crops.length > 1 ? (
+          <div className="crop-alternatives" aria-label="Alternative crops">
+            {hierarchy.crops.slice(1, 3).map((crop) => (
+              <span key={crop.plant}>
+                {crop.plant} {formatPercent(crop.probability)}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <p className="hierarchy-method">
+        Hierarchical view from one PlantVillage closed-set model
+      </p>
+      <p className="result-label">Conditions within {hierarchy.selected_crop}</p>
+      <ol
+        className="condition-list"
+        aria-label={`Conditions within ${hierarchy.selected_crop}`}
+      >
+        {hierarchy.conditions.slice(0, 5).map((condition) => {
           const percentage = Math.max(
             0,
-            Math.min(100, prediction.probability * 100),
+            Math.min(100, condition.conditional_probability * 100),
           );
-          const name = formatClassName(prediction.class_name);
           return (
-            <li key={`${prediction.class_index}-${prediction.class_name}`}>
-              <span className="prediction-name">{name}</span>
+            <li key={`${condition.class_index}-${condition.class_name}`}>
+              <span className="condition-name">{condition.condition}</span>
               <span
                 className="probability-track"
                 role="progressbar"
-                aria-label={`${name} probability`}
+                aria-label={`${condition.condition} within ${condition.plant} probability`}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(percentage)}
+                title={`Joint class probability ${formatPercent(condition.joint_probability)}`}
               >
                 <span style={{ width: `${percentage}%` }} />
               </span>
@@ -133,7 +162,7 @@ function ClassifierContent({ state }: ClassifierPanelProps) {
       {gradcam && gradcamSource ? (
         <div className="gradcam-block">
           <p>
-            Grad-CAM (class: {formatClassName(gradcam.target_class_name)})
+            Grad-CAM ({hierarchy.selected_crop} · {formatClassName(gradcam.target_class_name)})
           </p>
           <div className="gradcam-media">
             <img
@@ -175,7 +204,7 @@ export function ClassifierPanel({ state }: ClassifierPanelProps) {
         displacementScale={24}
         blurAmount={0.08}
         saturation={120}
-        elasticity={0.06}
+        elasticity={0}
         overLight
         style={{ position: "absolute", top: "50%", left: "50%" }}
       >
@@ -184,7 +213,12 @@ export function ClassifierPanel({ state }: ClassifierPanelProps) {
             <span className="panel-icon"><NetworkIcon /></span>
             <h2 id="classifier-title">Classifier</h2>
           </header>
-          <ClassifierContent state={state} />
+          <div
+            className="panel-state-body classifier-state-body"
+            data-testid="classifier-state-body"
+          >
+            <ClassifierContent state={state} />
+          </div>
         </section>
       </LiquidGlass>
     </div>

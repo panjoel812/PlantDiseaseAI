@@ -99,6 +99,22 @@ describe("App", () => {
         status: "success",
         data: {
           predictions: [],
+          hierarchy: {
+            method: "single_model_taxonomy_aggregation_v1",
+            selected_crop: "Corn",
+            selected_class_name: "Corn___healthy",
+            crops: [{ plant: "Corn", probability: 1 }],
+            conditions: [
+              {
+                class_index: 0,
+                class_name: "Corn___healthy",
+                plant: "Corn",
+                condition: "healthy",
+                joint_probability: 1,
+                conditional_probability: 1,
+              },
+            ],
+          },
           knowledge: {
             class_name: "",
             plant: "",

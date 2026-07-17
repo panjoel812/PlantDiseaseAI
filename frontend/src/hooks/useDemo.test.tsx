@@ -54,6 +54,22 @@ function deferred<T>(): Deferred<T> {
 function classification(className = "Corn___Northern_Leaf_Blight"): ClassificationResult {
   return {
     predictions: [{ class_index: 2, class_name: className, probability: 0.91 }],
+    hierarchy: {
+      method: "single_model_taxonomy_aggregation_v1",
+      selected_crop: "Corn",
+      selected_class_name: className,
+      crops: [{ plant: "Corn", probability: 0.96 }],
+      conditions: [
+        {
+          class_index: 2,
+          class_name: className,
+          plant: "Corn",
+          condition: "Northern Leaf Blight",
+          joint_probability: 0.91,
+          conditional_probability: 0.9479166667,
+        },
+      ],
+    },
     knowledge: {
       class_name: className,
       plant: "Corn",

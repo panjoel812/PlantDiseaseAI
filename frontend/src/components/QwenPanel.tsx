@@ -57,7 +57,7 @@ export function QwenPanel({
         displacementScale={22}
         blurAmount={0.07}
         saturation={118}
-        elasticity={0.05}
+        elasticity={0}
         overLight
         style={{ position: "absolute", top: "50%", left: "50%" }}
       >
@@ -69,6 +69,11 @@ export function QwenPanel({
               <p>Optional local Qwen3-VL</p>
             </div>
           </header>
+
+          <div
+            className="panel-state-body qwen-state-body"
+            data-testid="qwen-state-body"
+          >
 
           {showSetup ? (
             <div className="qwen-setup" role="status">
@@ -168,6 +173,7 @@ export function QwenPanel({
               <p className="evidence-boundary">{state.data.evidence_boundary}</p>
             </div>
           ) : null}
+          </div>
         </section>
       </LiquidGlass>
     </div>
