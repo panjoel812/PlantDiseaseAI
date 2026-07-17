@@ -52,8 +52,9 @@ def test_interactive_qwen_describes_visual_evidence_for_out_of_domain_image() ->
     question = "What spots, colors, shapes, margins, and distributions are visible?"
     expected_prompt = (
         "Inspect only visible pixels. Do not diagnose disease or recommend treatment.\n"
-        "Return at most six short, complete observations about spots, colors, shapes,\n"
-        "margins, textures, and distribution. Do not add an introduction.\n\n"
+        "Return at most six complete observations, one per line, using only these labels:\n"
+        "Spots, Colors, Shapes, Margins, Textures, Distribution. Keep each line under\n"
+        "18 words. Do not add an introduction, Markdown, or unfinished text.\n\n"
         f"Question: {question}"
     )
     backend = MockVLMBackend(

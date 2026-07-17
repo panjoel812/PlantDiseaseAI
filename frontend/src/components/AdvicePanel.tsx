@@ -7,19 +7,12 @@ import type {
   FeatureState,
   ManagementAdvice,
 } from "../api/types";
-import { ProviderConfigSheet } from "./ProviderConfigSheet";
 
 interface AdvicePanelProps {
   enabled: boolean;
   providers: FeatureState<AdviceProvidersResponse>;
   state: FeatureState<ManagementAdvice>;
   onAsk(provider: AdviceProviderId, question: string): void;
-  onConfigureProvider(
-    provider: AdviceProviderId,
-    apiKey: string,
-    modelId?: string,
-  ): Promise<void>;
-  onClearProvider(provider: AdviceProviderId): Promise<void>;
 }
 
 const DEFAULT_ADVICE_QUESTION =
@@ -38,12 +31,9 @@ export function AdvicePanel({
   providers,
   state,
   onAsk,
-  onConfigureProvider,
-  onClearProvider,
 }: AdvicePanelProps) {
   const [provider, setProvider] = useState<AdviceProviderId>("openai");
   const [question, setQuestion] = useState(DEFAULT_ADVICE_QUESTION);
-  const [configOpen, setConfigOpen] = useState(false);
   const isLoading = state.status === "loading";
   const selectedProvider =
     providers.status === "success"
@@ -78,13 +68,6 @@ export function AdvicePanel({
               <h2 id="advice-title">Management guidance</h2>
               <p>Optional cloud AI · manually selected</p>
             </div>
-            <button
-              className="provider-config-trigger"
-              type="button"
-              onClick={() => setConfigOpen(true)}
-            >
-              Configure
-            </button>
           </header>
 
           <div className="panel-state-body advice-state-body">
@@ -165,14 +148,6 @@ export function AdvicePanel({
               </div>
             ) : null}
           </div>
-          {configOpen && providers.status === "success" ? (
-            <ProviderConfigSheet
-              providers={providers.data.providers}
-              onConfigure={onConfigureProvider}
-              onClear={onClearProvider}
-              onClose={() => setConfigOpen(false)}
-            />
-          ) : null}
         </section>
       </LiquidGlass>
     </div>

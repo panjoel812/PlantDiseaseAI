@@ -34,10 +34,20 @@ EVIDENCE_BOUNDARY = (
 )
 _VISUAL_PREFIX = (
     "Inspect only visible pixels. Do not diagnose disease or recommend treatment.\n"
-    "Return at most six short, complete observations about spots, colors, shapes,\n"
-    "margins, textures, and distribution. Do not add an introduction.\n\n"
+    "Return at most six complete observations, one per line, using only these labels:\n"
+    "Spots, Colors, Shapes, Margins, Textures, Distribution. Keep each line under\n"
+    "18 words. Do not add an introduction, Markdown, or unfinished text.\n\n"
     "Question: "
 )
+
+_VISUAL_LABELS = {
+    "spots": "Spots",
+    "colors": "Colors",
+    "shapes": "Shapes",
+    "margins": "Margins",
+    "textures": "Textures",
+    "distribution": "Distribution",
+}
 
 _REGULATORY_PATTERN = re.compile(
     r"\b(?:legal|illegal|permitted|approved|regulations?|regulatory)\b"
@@ -244,20 +254,39 @@ def _build_visual_prompt(question: str) -> str:
 def _normalize_visual_observations(raw_answer: str) -> tuple[str, ...]:
     """Convert common VLM prose/Markdown into bounded, deduplicated rows."""
 
-    normalized = re.sub(r"\*\*([^*]+)\*\*", r"\n\1", raw_answer)
+    normalized = re.sub(r"\*\*([^*]+)\*\*", r"\n\1\n", raw_answer)
+    normalized = normalized.replace("**", "")
+    normalized = re.sub(r"\s+[-•]\s+", "\n", normalized)
+    normalized = re.sub(r"(?<=[.!?])\s+(?=[A-Z])", "\n", normalized)
     observations: list[str] = []
     seen: set[str] = set()
+    active_label: str | None = None
     for fragment in normalized.splitlines():
         item = re.sub(r"^[\s*#•\-\d.)]+", "", fragment).strip()
-        if re.match(r"(?i)^based on (?:the )?(?:image|provided image)", item):
+        if not item:
             continue
-        item = re.sub(
-            r"^([A-Za-z][\w /-]{1,32}:)\s*[-•]\s*",
-            r"\1 ",
+        heading = re.fullmatch(r"([A-Za-z]+)\s*:\s*", item)
+        if heading and heading.group(1).casefold() in _VISUAL_LABELS:
+            active_label = _VISUAL_LABELS[heading.group(1).casefold()]
+            continue
+        labeled = re.match(r"^([A-Za-z]+)\s*:\s*(.+)$", item)
+        if labeled and labeled.group(1).casefold() in _VISUAL_LABELS:
+            active_label = _VISUAL_LABELS[labeled.group(1).casefold()]
+            item = labeled.group(2).strip()
+        if re.match(
+            r"(?i)^(?:based on|here (?:is|are)|the image (?:shows|provided))",
             item,
-        )
+        ):
+            continue
         item = re.sub(r"\s+", " ", item).strip()
         if not item or re.fullmatch(r"[A-Za-z][\w /-]{1,32}:", item):
+            continue
+        if active_label and not item.casefold().startswith(f"{active_label.casefold()}:"):
+            item = f"{active_label}: {item}"
+        if re.search(
+            r"(?i)\b(?:a|an|and|are|in|is|of|on|or|the|to|with)$",
+            item.rstrip(" ,;:-"),
+        ):
             continue
         if len(item) > MAX_VISUAL_OBSERVATION_CHARACTERS:
             item = textwrap.shorten(

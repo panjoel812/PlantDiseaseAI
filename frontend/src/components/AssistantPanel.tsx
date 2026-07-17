@@ -9,6 +9,7 @@ import type {
   QwenStatus,
 } from "../api/types";
 import { AdvicePanel } from "./AdvicePanel";
+import { ProviderConfigSheet } from "./ProviderConfigSheet";
 import { QwenPanel } from "./QwenPanel";
 
 interface AssistantPanelProps {
@@ -45,25 +46,37 @@ export function AssistantPanel({
   onClearProvider,
 }: AssistantPanelProps) {
   const [mode, setMode] = useState<AssistantMode>("visual");
+  const [configOpen, setConfigOpen] = useState(false);
+  const canConfigure = providers.status === "success";
 
   return (
     <div className="assistant-switcher" data-testid="assistant-glass">
       <div className="assistant-tabs" role="tablist" aria-label="AI assistance mode">
+        <div className="assistant-mode-tabs">
+          <button
+            role="tab"
+            type="button"
+            aria-selected={mode === "visual"}
+            onClick={() => setMode("visual")}
+          >
+            Visual evidence
+          </button>
+          <button
+            role="tab"
+            type="button"
+            aria-selected={mode === "guidance"}
+            onClick={() => setMode("guidance")}
+          >
+            Management guidance
+          </button>
+        </div>
         <button
-          role="tab"
+          className="assistant-config-button"
           type="button"
-          aria-selected={mode === "visual"}
-          onClick={() => setMode("visual")}
+          disabled={!canConfigure}
+          onClick={() => setConfigOpen(true)}
         >
-          Visual evidence
-        </button>
-        <button
-          role="tab"
-          type="button"
-          aria-selected={mode === "guidance"}
-          onClick={() => setMode("guidance")}
-        >
-          Management guidance
+          API setup
         </button>
       </div>
       <div className="assistant-tab-panel" role="tabpanel">
@@ -81,11 +94,17 @@ export function AssistantPanel({
             providers={providers}
             state={adviceState}
             onAsk={onAskAdvice}
-            onConfigureProvider={onConfigureProvider}
-            onClearProvider={onClearProvider}
           />
         )}
       </div>
+      {configOpen && providers.status === "success" ? (
+        <ProviderConfigSheet
+          providers={providers.data.providers}
+          onConfigure={onConfigureProvider}
+          onClear={onClearProvider}
+          onClose={() => setConfigOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

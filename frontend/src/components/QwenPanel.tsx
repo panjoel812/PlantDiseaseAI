@@ -43,6 +43,12 @@ export function QwenPanel({
   const isLoading = state.status === "loading";
   const runtimeReady = runtime.status === "success" && runtime.data.ready;
   const showSetup = runtime.status === "success" && !runtime.data.ready;
+  const completeObservations =
+    state.status === "success"
+      ? state.data.observations.filter((observation) =>
+          /[.!?…]$/.test(observation.trim()),
+        )
+      : [];
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -167,12 +173,14 @@ export function QwenPanel({
               role="status"
             >
               <strong>{state.data.refused ? "Request refused" : "Visible evidence"}</strong>
-              {!state.data.refused && state.data.observations.length > 0 ? (
+              {!state.data.refused && completeObservations.length > 0 ? (
                 <ul className="observation-list">
-                  {state.data.observations.map((observation) => (
+                  {completeObservations.map((observation) => (
                     <li key={observation}>{observation}</li>
                   ))}
                 </ul>
+              ) : !state.data.refused ? (
+                <p>Qwen did not return complete visual observations. Ask again.</p>
               ) : (
                 <p>{state.data.message}</p>
               )}
@@ -181,7 +189,7 @@ export function QwenPanel({
               ))}
               {state.data.raw_answer ? (
                 <details className="raw-response">
-                  <summary>Raw response</summary>
+                  <summary>Research audit · raw response</summary>
                   <p>{state.data.raw_answer}</p>
                 </details>
               ) : null}
