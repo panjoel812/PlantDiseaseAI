@@ -11,6 +11,11 @@ from PIL import Image
 
 from app.api import DemoSettings, create_app
 from plantdisease.inference import Prediction
+from plantdisease.serving.hierarchy import (
+    ConditionPrediction,
+    CropPrediction,
+    TaxonomyHierarchy,
+)
 from plantdisease.serving.knowledge import DiseaseKnowledge
 from plantdisease.serving.service import (
     GradCAMImages,
@@ -44,12 +49,30 @@ class FakeService:
         include_gradcam: bool = True,
     ) -> InferenceResult:
         self.calls.append((image_bytes, top_k, include_gradcam))
+        probabilities = [0.50, 0.20, 0.12, 0.10, 0.08]
         predictions = [
-            Prediction(index, f"Corn___class_{index}", 0.50 - index * 0.05)
-            for index in range(5)
+            Prediction(index, f"Corn___class_{index}", probability)
+            for index, probability in enumerate(probabilities)
         ]
         return InferenceResult(
             predictions=predictions[:top_k],
+            hierarchy=TaxonomyHierarchy(
+                method="single_model_taxonomy_aggregation_v1",
+                selected_crop="Corn",
+                selected_class_name="Corn___class_0",
+                crops=[CropPrediction(plant="Corn", probability=1.0)],
+                conditions=[
+                    ConditionPrediction(
+                        class_index=prediction.class_index,
+                        class_name=prediction.class_name,
+                        plant="Corn",
+                        condition=f"class {prediction.class_index}",
+                        joint_probability=prediction.probability,
+                        conditional_probability=prediction.probability,
+                    )
+                    for prediction in predictions
+                ],
+            ),
             knowledge=DiseaseKnowledge(
                 class_name="Corn___class_0",
                 plant="Corn",
@@ -259,6 +282,16 @@ def test_classify_serializes_top5_gradcam_and_boundaries(
         "class_index": 0,
         "class_name": "Corn___class_0",
         "probability": 0.5,
+    }
+    assert payload["hierarchy"]["method"] == "single_model_taxonomy_aggregation_v1"
+    assert payload["hierarchy"]["selected_crop"] == "Corn"
+    assert payload["hierarchy"]["conditions"][0] == {
+        "class_index": 0,
+        "class_name": "Corn___class_0",
+        "plant": "Corn",
+        "condition": "class 0",
+        "joint_probability": 0.5,
+        "conditional_probability": 0.5,
     }
     assert payload["knowledge"]["plant"] == "Corn"
     assert payload["timings"]["total_ms"] == 6.0

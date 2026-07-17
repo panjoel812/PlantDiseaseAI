@@ -119,10 +119,14 @@ export function askQwen(
   const body = new FormData();
   body.append("image", file);
   body.append("question", question);
-  const topPrediction = classification?.predictions[0];
-  if (topPrediction) {
-    body.append("classifier_top_class_name", topPrediction.class_name);
-    body.append("classifier_confidence", String(topPrediction.probability));
+  const selectedCondition = classification?.hierarchy.conditions[0];
+  const fallbackPrediction = classification?.predictions[0];
+  const className = selectedCondition?.class_name ?? fallbackPrediction?.class_name;
+  const confidence =
+    selectedCondition?.joint_probability ?? fallbackPrediction?.probability;
+  if (className !== undefined && confidence !== undefined) {
+    body.append("classifier_top_class_name", className);
+    body.append("classifier_confidence", String(confidence));
     for (const warning of classification.warnings) {
       body.append("classifier_warnings", warning);
     }

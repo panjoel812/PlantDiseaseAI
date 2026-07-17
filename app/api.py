@@ -356,6 +356,29 @@ def _serialize_result(result: InferenceResult) -> dict[str, object]:
             }
             for prediction in result.predictions
         ],
+        "hierarchy": {
+            "method": result.hierarchy.method,
+            "selected_crop": result.hierarchy.selected_crop,
+            "selected_class_name": result.hierarchy.selected_class_name,
+            "crops": [
+                {
+                    "plant": crop.plant,
+                    "probability": crop.probability,
+                }
+                for crop in result.hierarchy.crops
+            ],
+            "conditions": [
+                {
+                    "class_index": condition.class_index,
+                    "class_name": condition.class_name,
+                    "plant": condition.plant,
+                    "condition": condition.condition,
+                    "joint_probability": condition.joint_probability,
+                    "conditional_probability": condition.conditional_probability,
+                }
+                for condition in result.hierarchy.conditions
+            ],
+        },
         "knowledge": {
             "class_name": result.knowledge.class_name,
             "plant": result.knowledge.plant,

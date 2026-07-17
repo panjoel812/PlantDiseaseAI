@@ -4,6 +4,28 @@ export interface Prediction {
   probability: number;
 }
 
+export interface CropPrediction {
+  plant: string;
+  probability: number;
+}
+
+export interface ConditionPrediction {
+  class_index: number;
+  class_name: string;
+  plant: string;
+  condition: string;
+  joint_probability: number;
+  conditional_probability: number;
+}
+
+export interface TaxonomyHierarchy {
+  method: "single_model_taxonomy_aggregation_v1";
+  selected_crop: string;
+  selected_class_name: string;
+  crops: CropPrediction[];
+  conditions: ConditionPrediction[];
+}
+
 export interface DiseaseKnowledge {
   class_name: string;
   plant: string;
@@ -29,6 +51,7 @@ export interface GradCamPayload {
 
 export interface ClassificationResult {
   predictions: Prediction[];
+  hierarchy: TaxonomyHierarchy;
   knowledge: DiseaseKnowledge;
   model_name: string;
   checkpoint_path: string;

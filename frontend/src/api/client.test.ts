@@ -28,6 +28,25 @@ function classification(): ClassificationResult {
         probability: 0.91,
       },
     ],
+    hierarchy: {
+      method: "single_model_taxonomy_aggregation_v1",
+      selected_crop: "Corn",
+      selected_class_name: "Corn___Northern_Leaf_Blight",
+      crops: [
+        { plant: "Corn", probability: 0.96 },
+        { plant: "Tomato", probability: 0.04 },
+      ],
+      conditions: [
+        {
+          class_index: 7,
+          class_name: "Corn___Northern_Leaf_Blight",
+          plant: "Corn",
+          condition: "Northern Leaf Blight",
+          joint_probability: 0.91,
+          conditional_probability: 0.9479166667,
+        },
+      ],
+    },
     knowledge: {
       class_name: "Corn___Northern_Leaf_Blight",
       plant: "Corn",
@@ -109,7 +128,23 @@ describe("API client", () => {
       }),
     );
 
-    await askQwen(file, "What symptoms are visible?", classification());
+    const hierarchicalClassification = classification();
+    hierarchicalClassification.hierarchy.selected_class_name =
+      "Corn___Common_Rust";
+    hierarchicalClassification.hierarchy.conditions[0] = {
+      class_index: 8,
+      class_name: "Corn___Common_Rust",
+      plant: "Corn",
+      condition: "Common Rust",
+      joint_probability: 0.63,
+      conditional_probability: 0.65625,
+    };
+
+    await askQwen(
+      file,
+      "What symptoms are visible?",
+      hierarchicalClassification,
+    );
 
     const [url, init] = fetchMock.mock.calls[0];
     const body = init?.body as FormData;
@@ -118,9 +153,9 @@ describe("API client", () => {
     expect(body.get("image")).toBe(file);
     expect(body.get("question")).toBe("What symptoms are visible?");
     expect(body.get("classifier_top_class_name")).toBe(
-      "Corn___Northern_Leaf_Blight",
+      "Corn___Common_Rust",
     );
-    expect(body.get("classifier_confidence")).toBe("0.91");
+    expect(body.get("classifier_confidence")).toBe("0.63");
     expect(body.getAll("classifier_warnings")).toEqual([
       "Educational demo only.",
       "Field generalization is unknown.",
@@ -129,7 +164,12 @@ describe("API client", () => {
 
   it("omits partial classifier context when no prediction is available", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ refused: true }));
-    const withoutPrediction = { ...classification(), predictions: [] };
+    const current = classification();
+    const withoutPrediction = {
+      ...current,
+      predictions: [],
+      hierarchy: { ...current.hierarchy, conditions: [] },
+    };
 
     await askQwen(file, "What can you safely say?", withoutPrediction);
 
