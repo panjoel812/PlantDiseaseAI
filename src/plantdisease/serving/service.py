@@ -18,15 +18,15 @@ from plantdisease.explainability.layers import resolve_target_layer
 from plantdisease.explainability.visualization import heatmap_to_image, overlay_heatmap
 from plantdisease.inference import Prediction, predict_topk
 from plantdisease.models.checkpoint import load_checkpoint
+from plantdisease.serving.hierarchy import (
+    TaxonomyHierarchy,
+    build_taxonomy_hierarchy,
+)
 from plantdisease.serving.images import (
     DEFAULT_MAX_PIXELS,
     DEFAULT_MAX_UPLOAD_BYTES,
     InputValidationError,
     decode_rgb_image,
-)
-from plantdisease.serving.hierarchy import (
-    TaxonomyHierarchy,
-    build_taxonomy_hierarchy,
 )
 from plantdisease.serving.knowledge import DiseaseKnowledge, lookup_disease_knowledge
 
