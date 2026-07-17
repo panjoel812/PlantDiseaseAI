@@ -858,7 +858,7 @@
     "pytorch": "2.13.0",
     "uv_lock_sha256": "33e04fbb717b48c3e23a2fd63edd159bb127c67fbf84647e22e135be420476b9"
   },
-  "generated_at_utc": "2026-07-17T07:36:08.978738Z",
+  "generated_at_utc": "2026-07-17T07:40:41.518777Z",
   "lane_evidence": {},
   "lanes": {
     "claims": "passed",
@@ -870,5 +870,5 @@
   },
   "release_commit": null,
   "schema_version": 1,
-  "source_commit": "f32334a635ff60942d0b7c7df8b4771399d87110"
+  "source_commit": "bc5edecda055d40c1eb075c77326fb42549eea13"
 }
