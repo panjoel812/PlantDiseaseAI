@@ -120,7 +120,14 @@ def test_public_readme_keeps_model_and_research_boundaries() -> None:
 
 def test_chinese_entry_is_present_and_links_to_canonical_guide() -> None:
     text = README_ZH.read_text(encoding="utf-8")
+    english = README.read_text(encoding="utf-8")
     assert "[English](README.md) | [简体中文](README.zh-CN.md)" in text
+    assert "[简体中文](README.zh-CN.md)" in english
+    assert len(text) >= 12_000
+    assert "process memory" in english
+    assert "进程内存" in text
+    assert "Management guidance → Configure" in english
+    assert "Raw response" in text
     assert "完整英文运行指南" in text
     assert "docs/tutorials/README.md" in text
     assert "paper/out/plantdisease_ai_zh.pdf" in text

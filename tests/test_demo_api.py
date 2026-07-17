@@ -152,6 +152,8 @@ class FakeAdviceService:
     ) -> None:
         self.ask_error = ask_error
         self.ask_calls: list[tuple[str, str, AdviceContext]] = []
+        self.configure_calls: list[tuple[str, str, str | None]] = []
+        self.clear_calls: list[str] = []
         self.secret = "server-only-secret"
 
     def statuses(self) -> list[CloudProviderStatus]:
@@ -187,6 +189,19 @@ class FakeAdviceService:
             sources=["classifier-crop:Grape", "qwen:visual-evidence"],
         )
 
+    def configure(
+        self,
+        provider: str,
+        api_key: str,
+        model_id: str | None = None,
+    ) -> CloudProviderStatus:
+        self.configure_calls.append((provider, api_key, model_id))
+        return CloudProviderStatus(provider, "OpenAI", True, model_id or "gpt-test", "Ready")
+
+    def clear(self, provider: str) -> CloudProviderStatus:
+        self.clear_calls.append(provider)
+        return CloudProviderStatus(provider, "OpenAI", False, "gpt-test", "Not configured")
+
 
 def _qwen_status(*, ready: bool) -> QwenRuntimeStatus:
     return QwenRuntimeStatus(
@@ -203,6 +218,7 @@ def _qwen_result(*, raw_answer: str | None) -> InteractiveQwenResult:
     refused = raw_answer is None
     return InteractiveQwenResult(
         raw_answer=raw_answer,
+        observations=() if refused else (raw_answer or "",),
         assistant_response=AssistantResponse(
             message=(
                 "This request is outside the verified scope."
@@ -554,6 +570,9 @@ def test_qwen_ask_serializes_generated_answer_and_classifier_context(
     assert response.status_code == 200
     assert response.json() == {
         "raw_answer": "Elongated tan-brown spots with dark margins are visible.",
+        "observations": [
+            "Elongated tan-brown spots with dark margins are visible."
+        ],
         "message": "Elongated tan-brown spots with dark margins are visible.",
         "action": "visual_evidence",
         "refused": False,
@@ -700,7 +719,13 @@ def test_qwen_ask_rejects_invalid_input_before_service_call(
 def test_qwen_ask_validates_question_length_after_trimming() -> None:
     prefix = "What visible spots, colors, shapes, and margins are present? "
     accepted_question = prefix + "x" * (500 - len(prefix))
-    accepted_backend = MockVLMBackend({accepted_question: "Visible evidence."})
+    accepted_prompt = (
+        "Inspect only visible pixels. Do not diagnose disease or recommend treatment.\n"
+        "Return at most six short, complete observations about spots, colors, shapes,\n"
+        "margins, textures, and distribution. Do not add an introduction.\n\n"
+        f"Question: {accepted_question}"
+    )
+    accepted_backend = MockVLMBackend({accepted_prompt: "Visible evidence."})
     accepted_service = InteractiveQwenService(
         backend=accepted_backend,
         status_probe=lambda model_id: _qwen_status(ready=True),
@@ -733,7 +758,7 @@ def test_qwen_ask_validates_question_length_after_trimming() -> None:
     )
 
     assert accepted.status_code == 200
-    assert accepted_backend.calls[0][1] == accepted_question
+    assert accepted_backend.calls[0][1] == accepted_prompt
     assert rejected.status_code == 422
     assert rejected_backend.calls == []
 
@@ -800,6 +825,39 @@ def test_advice_provider_status_is_non_secret_and_preserves_manual_order() -> No
         ]
     }
     assert service.secret not in response.text
+
+
+def test_advice_provider_can_be_configured_and_cleared_without_key_echo() -> None:
+    service = FakeAdviceService()
+    client = TestClient(create_app(advice_provider=lambda: service))
+
+    configured = client.post(
+        "/api/advice/providers/openai/configure",
+        json={"api_key": "sk-browser-secret", "model_id": "gpt-runtime"},
+    )
+    cleared = client.delete("/api/advice/providers/openai/configure")
+
+    assert configured.status_code == 200
+    assert configured.json()["configured"] is True
+    assert configured.json()["model_id"] == "gpt-runtime"
+    assert "sk-browser-secret" not in configured.text
+    assert service.configure_calls == [
+        ("openai", "sk-browser-secret", "gpt-runtime")
+    ]
+    assert cleared.status_code == 200
+    assert "sk-browser-secret" not in cleared.text
+    assert service.clear_calls == ["openai"]
+
+
+def test_blank_provider_configuration_is_rejected_before_mutation() -> None:
+    service = FakeAdviceService()
+    response = TestClient(create_app(advice_provider=lambda: service)).post(
+        "/api/advice/providers/openai/configure",
+        json={"api_key": "   "},
+    )
+
+    assert response.status_code == 422
+    assert service.configure_calls == []
 
 
 def test_advice_ask_routes_only_to_explicit_provider_with_qwen_evidence() -> None:

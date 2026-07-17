@@ -4,12 +4,15 @@ import {
   askForAdvice,
   askQwen,
   classifyImage,
+  clearAdviceProvider,
+  configureAdviceProvider,
   fetchAdviceProviders,
   fetchExampleImage,
   fetchQwenStatus,
 } from "../api/client";
 import type {
   AdviceProviderId,
+  AdviceProviderStatus,
   AdviceProvidersResponse,
   ClassificationResult,
   ClassifyOptions,
@@ -76,6 +79,12 @@ export interface DemoState {
   classify(options: ClassifyOptions): Promise<void>;
   ask(question: string): Promise<void>;
   askAdvice(provider: AdviceProviderId, question: string): Promise<void>;
+  configureProvider(
+    provider: AdviceProviderId,
+    apiKey: string,
+    modelId?: string,
+  ): Promise<void>;
+  clearProvider(provider: AdviceProviderId): Promise<void>;
   refreshQwenRuntime(): Promise<void>;
   reset(): void;
 }
@@ -115,6 +124,8 @@ export function useDemo(): DemoState {
   const classificationControllerRef = useRef<AbortController | null>(null);
   const qwenControllerRef = useRef<AbortController | null>(null);
   const adviceControllerRef = useRef<AbortController | null>(null);
+  const providerConfigControllerRef = useRef<AbortController | null>(null);
+  const adviceProvidersRef = useRef<AdviceProvidersResponse | null>(null);
 
   const replacePreview = useCallback((url: string | null) => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
@@ -164,6 +175,7 @@ export function useDemo(): DemoState {
           return;
         }
         dispatchAdviceProviders({ type: "success", data: providers });
+        adviceProvidersRef.current = providers;
       })
       .catch((error: unknown) => {
         if (
@@ -207,6 +219,7 @@ export function useDemo(): DemoState {
       classificationControllerRef.current?.abort();
       qwenControllerRef.current?.abort();
       adviceControllerRef.current?.abort();
+      providerConfigControllerRef.current?.abort();
       if (previewUrlRef.current) {
         URL.revokeObjectURL(previewUrlRef.current);
         previewUrlRef.current = null;
@@ -365,6 +378,75 @@ export function useDemo(): DemoState {
     [],
   );
 
+  const updateProviderStatus = useCallback((status: AdviceProviderStatus) => {
+    const current = adviceProvidersRef.current ?? { providers: [] };
+    const exists = current.providers.some(
+      (item) => item.provider === status.provider,
+    );
+    const next = {
+      providers: exists
+        ? current.providers.map((item) =>
+            item.provider === status.provider ? status : item,
+          )
+        : [...current.providers, status],
+    };
+    adviceProvidersRef.current = next;
+    dispatchAdviceProviders({ type: "success", data: next });
+  }, []);
+
+  const configureProvider = useCallback(
+    async (
+      provider: AdviceProviderId,
+      apiKey: string,
+      modelId?: string,
+    ) => {
+      providerConfigControllerRef.current?.abort();
+      const controller = new AbortController();
+      providerConfigControllerRef.current = controller;
+      try {
+        const status = await configureAdviceProvider(
+          provider,
+          apiKey,
+          modelId,
+          controller.signal,
+        );
+        if (
+          !controller.signal.aborted &&
+          providerConfigControllerRef.current === controller
+        ) {
+          updateProviderStatus(status);
+        }
+      } finally {
+        if (providerConfigControllerRef.current === controller) {
+          providerConfigControllerRef.current = null;
+        }
+      }
+    },
+    [updateProviderStatus],
+  );
+
+  const clearProvider = useCallback(
+    async (provider: AdviceProviderId) => {
+      providerConfigControllerRef.current?.abort();
+      const controller = new AbortController();
+      providerConfigControllerRef.current = controller;
+      try {
+        const status = await clearAdviceProvider(provider, controller.signal);
+        if (
+          !controller.signal.aborted &&
+          providerConfigControllerRef.current === controller
+        ) {
+          updateProviderStatus(status);
+        }
+      } finally {
+        if (providerConfigControllerRef.current === controller) {
+          providerConfigControllerRef.current = null;
+        }
+      }
+    },
+    [updateProviderStatus],
+  );
+
   const reset = useCallback(() => {
     exampleControllerRef.current?.abort();
     exampleControllerRef.current = null;
@@ -374,6 +456,8 @@ export function useDemo(): DemoState {
     qwenControllerRef.current = null;
     adviceControllerRef.current?.abort();
     adviceControllerRef.current = null;
+    providerConfigControllerRef.current?.abort();
+    providerConfigControllerRef.current = null;
     classificationResultRef.current = undefined;
     qwenResultRef.current = undefined;
     selectedFileRef.current = null;
@@ -396,6 +480,8 @@ export function useDemo(): DemoState {
     classify,
     ask,
     askAdvice,
+    configureProvider,
+    clearProvider,
     refreshQwenRuntime,
     reset,
   };

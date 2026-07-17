@@ -258,9 +258,11 @@ detector and not evidence of unknown-crop or field generalization.
 
 The interface keeps `liquid-glass-react` for restrained material edges and
 highlights. Large photo/result surfaces disable refraction deformation, use
-stable grid geometry, and keep classifier/Qwen state changes from shifting the
-main layout. Bottom leaf and dew decorations are CSS-only, ignore pointer input,
-and stop under `prefers-reduced-motion`.
+stable viewport-derived grid geometry, and keep classifier/Qwen state changes
+from shifting the main layout. At 1440×900 and 1920×1080 the core desktop demo
+is designed to fit one viewport; mobile keeps normal vertical scrolling. Bottom
+leaf and dew decorations stay visible in the initial viewport, are CSS-only,
+ignore pointer input, and stop under `prefers-reduced-motion`.
 
 ## Streamlit demo
 
@@ -364,7 +366,9 @@ The assistant now has two deliberately separate modes:
 
 - **Visual evidence:** local Qwen3-VL describes only visible spots, colors,
   shapes, margins, textures, and distributions. Diagnosis, treatment, pesticide
-  dose, and regulatory questions are blocked before generation.
+  dose, and regulatory questions are blocked before generation. The API returns
+  up to six normalized observation rows; the original model text remains
+  available in the closed **Raw response** disclosure for audit.
 - **Management guidance:** the user manually chooses OpenAI, Claude, or Gemini.
   The selected cloud provider receives uncertainty-preserving classifier context
   and optional Qwen observations. There is **no automatic fallback** between
@@ -386,9 +390,17 @@ scored 11/15, while the fine-grained condition subset scored 1/5. It is not a
 complete VQA evaluation, human audit, or professional diagnosis. No LoRA/QLoRA
 training was completed.
 
-Cloud keys stay in the FastAPI server environment and are never returned to the
-browser, stored in React state, or placed in `localStorage`. Configure only the
-providers you intend to use; the complete blank template is `.env.example`:
+For the local demo, open **Management guidance → Configure** and paste a key for
+exactly the provider you intend to use. The password field is cleared after the
+request. The key is sent to
+`POST /api/advice/providers/{provider}/configure`, stored only in locked
+FastAPI **process memory**, never returned, and removed by **Clear** or an API
+restart. It is never placed in `localStorage`, `sessionStorage`, cookies, URLs,
+or Git. A runtime value overrides the matching environment variable only for
+that running process; no provider call occurs during configuration.
+
+Environment variables remain the recommended server/deployment path; the
+complete blank template is `.env.example`:
 
 ```bash
 export OPENAI_API_KEY="your-server-side-key"
@@ -406,6 +418,10 @@ manual choice to `/api/advice/ask`. Do not use `VITE_*_API_KEY` variables becaus
 Vite would embed them in browser code. Cloud calls require network access, valid
 provider credentials, and may incur cost. Automated tests use injected local
 transports; no paid provider response is claimed as live-tested here.
+
+The website configuration surface is intended for localhost. If the API is
+exposed beyond the machine, use HTTPS, authentication, and a proper server-side
+secret manager instead of sending credentials over an untrusted connection.
 
 General, conditional management options are allowed. Exact pesticide products,
 doses, concentrations, dilution ratios, re-entry intervals, and pre-harvest

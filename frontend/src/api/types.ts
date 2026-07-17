@@ -75,6 +75,7 @@ export interface QwenStatus {
 
 export interface QwenAnswer {
   raw_answer: string | null;
+  observations: string[];
   message: string;
   action: string;
   refused: boolean;

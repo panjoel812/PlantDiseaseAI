@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import urllib.error
 import urllib.request
 from collections.abc import Mapping, Sequence
@@ -21,6 +22,8 @@ ADVICE_BOUNDARY = (
 MAX_ADVICE_QUESTION_CHARACTERS = 2_000
 DEFAULT_TIMEOUT_SECONDS = 30.0
 MAX_RESPONSE_BYTES = 65_536
+MAX_API_KEY_CHARACTERS = 8_192
+MAX_MODEL_ID_CHARACTERS = 200
 
 _SYSTEM_INSTRUCTION = """You are an educational plant-health guidance assistant.
 Separate visible evidence, classifier hypotheses, and management options. The supplied
@@ -185,6 +188,12 @@ class _ProviderConfig:
     default_model: str
 
 
+@dataclass(frozen=True)
+class _RuntimeCredential:
+    api_key: str
+    model_id: str | None
+
+
 _PROVIDER_CONFIGS = (
     _ProviderConfig("openai", "OpenAI", "OPENAI_API_KEY", "OPENAI_MODEL", "gpt-5.4-mini"),
     _ProviderConfig(
@@ -215,11 +224,40 @@ class CloudAdviceService:
     ) -> None:
         self._transport = transport or UrllibJsonTransport()
         self._environ = os.environ if environ is None else environ
+        self._credential_lock = threading.RLock()
+        self._runtime_credentials: dict[CloudProvider, _RuntimeCredential] = {}
 
     def statuses(self) -> list[CloudProviderStatus]:
         """Return stable non-secret configuration status in UI order."""
 
         return [self._status(config) for config in _PROVIDER_CONFIGS]
+
+    def configure(
+        self,
+        provider: str,
+        api_key: str,
+        model_id: str | None = None,
+    ) -> CloudProviderStatus:
+        """Set one process-memory credential without making a provider call."""
+
+        config = _lookup_provider(provider)
+        key = api_key.strip()
+        model = model_id.strip() if model_id else None
+        if not key or len(key) > MAX_API_KEY_CHARACTERS:
+            raise ValueError("api_key must be non-empty and at most 8192 characters")
+        if model is not None and len(model) > MAX_MODEL_ID_CHARACTERS:
+            raise ValueError("model_id must be at most 200 characters")
+        with self._credential_lock:
+            self._runtime_credentials[config.provider] = _RuntimeCredential(key, model)
+        return self._status(config)
+
+    def clear(self, provider: str) -> CloudProviderStatus:
+        """Remove one runtime override and reveal the environment-backed status."""
+
+        config = _lookup_provider(provider)
+        with self._credential_lock:
+            self._runtime_credentials.pop(config.provider, None)
+        return self._status(config)
 
     def ask(
         self,
@@ -238,16 +276,16 @@ class CloudAdviceService:
                 "question must be at most "
                 f"{MAX_ADVICE_QUESTION_CHARACTERS} characters"
             )
-        status = self._status(config)
-        if not status.configured:
+        api_key, model_id = self._credentials(config)
+        if not api_key:
             raise CloudAdviceError(
-                f"{status.display_name} is not configured on this server.",
+                f"{config.display_name} is not configured on this server.",
                 status_code=503,
             )
         if _contains_precise_chemical_request(normalized_question):
             return ManagementAdvice(
                 provider=config.provider,
-                model_id=status.model_id,
+                model_id=model_id,
                 message=(
                     "I can discuss general management options, but I cannot select a "
                     "pesticide product or provide a dose, dilution, mixing ratio, or "
@@ -261,13 +299,12 @@ class CloudAdviceService:
                 sources=["local:safety-boundary"],
             )
 
-        api_key = self._environ[config.key_name].strip()
         prompt = _build_user_prompt(normalized_question, context)
         try:
             response = self._request(
                 config=config,
                 api_key=api_key,
-                model_id=status.model_id,
+                model_id=model_id,
                 prompt=prompt,
             )
             message = _extract_text(config.provider, response)
@@ -275,7 +312,7 @@ class CloudAdviceService:
             raise _sanitized_upstream_error(config, exc) from exc
         return ManagementAdvice(
             provider=config.provider,
-            model_id=status.model_id,
+            model_id=model_id,
             message=message,
             action="educational_guidance",
             refused=False,
@@ -284,10 +321,7 @@ class CloudAdviceService:
         )
 
     def _status(self, config: _ProviderConfig) -> CloudProviderStatus:
-        api_key = self._environ.get(config.key_name, "").strip()
-        model_id = self._environ.get(config.model_name, config.default_model).strip()
-        if not model_id:
-            model_id = config.default_model
+        api_key, model_id = self._credentials(config)
         configured = bool(api_key)
         detail = "Ready" if configured else f"Set {config.key_name} on the API server."
         return CloudProviderStatus(
@@ -297,6 +331,18 @@ class CloudAdviceService:
             model_id=model_id,
             detail=detail,
         )
+
+    def _credentials(self, config: _ProviderConfig) -> tuple[str, str]:
+        with self._credential_lock:
+            runtime = self._runtime_credentials.get(config.provider)
+        environment_model = self._environ.get(
+            config.model_name,
+            config.default_model,
+        ).strip()
+        fallback_model = environment_model or config.default_model
+        if runtime is not None:
+            return runtime.api_key, runtime.model_id or fallback_model
+        return self._environ.get(config.key_name, "").strip(), fallback_model
 
     def _request(
         self,

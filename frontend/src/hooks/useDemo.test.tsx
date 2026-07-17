@@ -104,6 +104,7 @@ function classification(className = "Corn___Northern_Leaf_Blight"): Classificati
 function qwenAnswer(message: string): QwenAnswer {
   return {
     raw_answer: "diseased",
+    observations: [message],
     message,
     action: "educational_summary",
     refused: false,

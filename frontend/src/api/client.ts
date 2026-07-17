@@ -1,5 +1,6 @@
 import type {
   AdviceProviderId,
+  AdviceProviderStatus,
   AdviceProvidersResponse,
   ClassificationResult,
   ClassifyOptions,
@@ -111,6 +112,36 @@ export function fetchAdviceProviders(
   return requestJson<AdviceProvidersResponse>("/api/advice/providers", { signal });
 }
 
+export function configureAdviceProvider(
+  provider: AdviceProviderId,
+  apiKey: string,
+  modelId?: string,
+  signal?: AbortSignal,
+): Promise<AdviceProviderStatus> {
+  return requestJson<AdviceProviderStatus>(
+    `/api/advice/providers/${provider}/configure`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: apiKey,
+        ...(modelId?.trim() ? { model_id: modelId.trim() } : {}),
+      }),
+      signal,
+    },
+  );
+}
+
+export function clearAdviceProvider(
+  provider: AdviceProviderId,
+  signal?: AbortSignal,
+): Promise<AdviceProviderStatus> {
+  return requestJson<AdviceProviderStatus>(
+    `/api/advice/providers/${provider}/configure`,
+    { method: "DELETE", signal },
+  );
+}
+
 export async function fetchExampleImage(signal?: AbortSignal): Promise<File> {
   const response = await ensureOk(await fetch("/api/example", { signal }));
   const blob = await response.blob();
@@ -165,7 +196,7 @@ export function askForAdvice(
   }
   const visualObservation =
     visualEvidence && !visualEvidence.refused
-      ? (visualEvidence.raw_answer ?? visualEvidence.message).trim()
+      ? (visualEvidence.observations.join(" ") || visualEvidence.message).trim()
       : "";
   const payload = {
     provider,

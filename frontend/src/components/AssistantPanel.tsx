@@ -21,6 +21,12 @@ interface AssistantPanelProps {
   onAskQwen(question: string): void;
   onRetryQwenRuntime(): void;
   onAskAdvice(provider: AdviceProviderId, question: string): void;
+  onConfigureProvider(
+    provider: AdviceProviderId,
+    apiKey: string,
+    modelId?: string,
+  ): Promise<void>;
+  onClearProvider(provider: AdviceProviderId): Promise<void>;
 }
 
 type AssistantMode = "visual" | "guidance";
@@ -35,6 +41,8 @@ export function AssistantPanel({
   onAskQwen,
   onRetryQwenRuntime,
   onAskAdvice,
+  onConfigureProvider,
+  onClearProvider,
 }: AssistantPanelProps) {
   const [mode, setMode] = useState<AssistantMode>("visual");
 
@@ -73,6 +81,8 @@ export function AssistantPanel({
             providers={providers}
             state={adviceState}
             onAsk={onAskAdvice}
+            onConfigureProvider={onConfigureProvider}
+            onClearProvider={onClearProvider}
           />
         )}
       </div>

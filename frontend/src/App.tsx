@@ -42,6 +42,8 @@ export function App() {
               onAskAdvice={(provider, question) =>
                 void demo.askAdvice(provider, question)
               }
+              onConfigureProvider={demo.configureProvider}
+              onClearProvider={demo.clearProvider}
             />
           </div>
         </div>

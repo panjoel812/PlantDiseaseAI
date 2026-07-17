@@ -22,10 +22,17 @@ def test_react_demo_static_integration_contract() -> None:
     source = _production_source()
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
+    styles = (FRONTEND / "src/styles.css").read_text(encoding="utf-8")
+    ambient_rule = styles.split(".ambient-garden", 1)[1].split("}", 1)[0]
 
     assert "liquid-glass-react" in package["dependencies"]
     assert 'from "liquid-glass-react"' in source
     assert "field_corn_leaf.jpeg" in source
+    assert "100dvh" in styles
+    assert "position: fixed" in ambient_rule
+    assert "prefers-reduced-motion" in styles
+    assert "prefers-reduced-transparency" in styles
+    assert source.count("elasticity={0}") >= 3
 
     assert "uv run python scripts/run_demo_api.py" in readme
     assert "npm run dev -- --host 127.0.0.1 --port 5173" in readme

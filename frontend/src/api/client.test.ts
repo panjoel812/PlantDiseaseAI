@@ -5,6 +5,8 @@ import {
   askQwen,
   askForAdvice,
   classifyImage,
+  clearAdviceProvider,
+  configureAdviceProvider,
   fetchAdviceProviders,
   fetchExampleImage,
   fetchHealth,
@@ -82,6 +84,43 @@ describe("API client", () => {
     vi.stubGlobal("fetch", fetchMock);
   });
 
+  it("configures and clears a provider without browser storage", async () => {
+    const storageSpy = vi.spyOn(Storage.prototype, "setItem");
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({
+        provider: "openai",
+        display_name: "OpenAI",
+        configured: true,
+        model_id: "gpt-runtime",
+        detail: "Ready",
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        provider: "openai",
+        display_name: "OpenAI",
+        configured: false,
+        model_id: "gpt-test",
+        detail: "Not configured",
+      }));
+
+    await configureAdviceProvider("openai", "sk-transient", "gpt-runtime");
+    await clearAdviceProvider("openai");
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/advice/providers/openai/configure",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ api_key: "sk-transient", model_id: "gpt-runtime" }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/advice/providers/openai/configure",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+    expect(storageSpy).not.toHaveBeenCalled();
+  });
+
   it("sends the selected image and exact Grad-CAM controls", async () => {
     fetchMock.mockResolvedValue(jsonResponse(classification()));
 
@@ -119,6 +158,7 @@ describe("API client", () => {
     fetchMock.mockResolvedValue(
       jsonResponse({
         raw_answer: "diseased",
+        observations: ["Visible lesions."],
         message: "Educational summary only.",
         action: "educational_summary",
         refused: false,
@@ -322,6 +362,7 @@ describe("API client", () => {
     );
     const visualEvidence: QwenAnswer = {
       raw_answer: "Circular tan spots with dark margins are visible.",
+      observations: ["Circular tan spots with dark margins are visible."],
       message: "Circular tan spots with dark margins are visible.",
       action: "visual_evidence",
       refused: false,

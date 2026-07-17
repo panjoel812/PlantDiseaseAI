@@ -15,7 +15,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from PIL import Image
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from plantdisease.serving.cache import get_cached_service
 from plantdisease.serving.images import InputValidationError, decode_rgb_image
@@ -97,6 +97,15 @@ class AdviceService(Protocol):
 
     def statuses(self) -> list[CloudProviderStatus]: ...
 
+    def configure(
+        self,
+        provider: str,
+        api_key: str,
+        model_id: str | None = None,
+    ) -> CloudProviderStatus: ...
+
+    def clear(self, provider: str) -> CloudProviderStatus: ...
+
     def ask(
         self,
         provider: str,
@@ -122,6 +131,21 @@ class AdviceRequest(BaseModel):
     condition_probability: float = Field(ge=0.0, le=1.0)
     warnings: list[str] = Field(default_factory=list, max_length=20)
     visual_observation: str | None = Field(default=None, max_length=4_000)
+
+
+class ProviderConfigureRequest(BaseModel):
+    """One temporary provider credential accepted only by the local API."""
+
+    api_key: str = Field(min_length=1, max_length=8_192)
+    model_id: str | None = Field(default=None, max_length=200)
+
+    @field_validator("api_key")
+    @classmethod
+    def validate_api_key(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("api_key must not be blank")
+        return normalized
 
 
 @dataclass(frozen=True)
@@ -154,7 +178,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=list(cors_origins),
         allow_credentials=False,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["*"],
     )
     _register_routes(app)
@@ -179,6 +203,29 @@ def _register_routes(app: FastAPI) -> None:
                 for status in service.statuses()
             ]
         }
+
+    @app.post("/api/advice/providers/{provider}/configure")
+    def configure_advice_provider(
+        provider: Literal["openai", "anthropic", "gemini"],
+        request: ProviderConfigureRequest,
+    ) -> dict[str, object]:
+        service = _get_advice_service(app)
+        try:
+            status = service.configure(provider, request.api_key, request.model_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return _serialize_advice_provider_status(status)
+
+    @app.delete("/api/advice/providers/{provider}/configure")
+    def clear_advice_provider(
+        provider: Literal["openai", "anthropic", "gemini"],
+    ) -> dict[str, object]:
+        service = _get_advice_service(app)
+        try:
+            status = service.clear(provider)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return _serialize_advice_provider_status(status)
 
     @app.get("/api/example", response_class=FileResponse)
     def example() -> FileResponse:
@@ -369,6 +416,7 @@ def _serialize_qwen_result(result: InteractiveQwenResult) -> dict[str, object]:
     response = result.assistant_response
     return {
         "raw_answer": result.raw_answer,
+        "observations": list(result.observations),
         "message": response.message,
         "action": response.action,
         "refused": response.refused,

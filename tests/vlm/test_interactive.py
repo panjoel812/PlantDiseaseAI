@@ -50,8 +50,21 @@ def _valid_context() -> ClassifierContext:
 
 def test_interactive_qwen_describes_visual_evidence_for_out_of_domain_image() -> None:
     question = "What spots, colors, shapes, margins, and distributions are visible?"
+    expected_prompt = (
+        "Inspect only visible pixels. Do not diagnose disease or recommend treatment.\n"
+        "Return at most six short, complete observations about spots, colors, shapes,\n"
+        "margins, textures, and distribution. Do not add an introduction.\n\n"
+        f"Question: {question}"
+    )
     backend = MockVLMBackend(
-        {question: "Elongated tan-brown spots with darker margins are visible."}
+        {
+            expected_prompt: (
+                "Based on the image, here is a detailed analysis:\n"
+                "**Spots:** - Elongated tan-brown spots are visible.\n"
+                "**Margins:** - Darker margins surround the spots.\n"
+                "**Spots:** - Elongated tan-brown spots are visible."
+            )
+        }
     )
     service = InteractiveQwenService(
         backend=backend,
@@ -70,16 +83,37 @@ def test_interactive_qwen_describes_visual_evidence_for_out_of_domain_image() ->
     )
 
     assert result.raw_answer == (
-        "Elongated tan-brown spots with darker margins are visible."
+        "Based on the image, here is a detailed analysis:\n"
+        "**Spots:** - Elongated tan-brown spots are visible.\n"
+        "**Margins:** - Darker margins surround the spots.\n"
+        "**Spots:** - Elongated tan-brown spots are visible."
+    )
+    assert result.observations == (
+        "Spots: Elongated tan-brown spots are visible.",
+        "Margins: Darker margins surround the spots.",
     )
     assert result.model_id == QWEN3_VL_MODEL_ID
     assert result.scope == "visual_evidence_only"
     assert result.evidence_boundary == EVIDENCE_BOUNDARY
     assert result.assistant_response.refused is False
     assert result.assistant_response.action == "visual_evidence"
-    assert result.assistant_response.message == result.raw_answer
+    assert result.assistant_response.message == " ".join(result.observations)
     assert result.assistant_response.sources == [f"vqa:{QWEN3_VL_MODEL_ID}"]
     assert len(backend.calls) == 1
+    assert backend.calls[0][1] == expected_prompt
+
+
+def test_visual_observations_are_bounded_and_deduplicated() -> None:
+    raw = "\n".join(
+        ["- Repeated visible spot.", "- Repeated visible spot."]
+        + [f"- Observation {index}: {'x' * 300}" for index in range(10)]
+    )
+
+    observations = interactive_module._normalize_visual_observations(raw)
+
+    assert len(observations) == 6
+    assert observations.count("Repeated visible spot.") == 1
+    assert all(len(item) <= 180 for item in observations)
 
 
 @pytest.mark.parametrize("question", ["", "   ", "x" * 501])
@@ -394,7 +428,7 @@ def test_get_qwen_service_is_cached_and_never_enables_download() -> None:
     assert first is second
     assert isinstance(first.backend, MLXVLMBackend)
     assert first.backend.allow_model_download is False
-    assert first.backend.max_tokens == 96
+    assert first.backend.max_tokens == 192
 
 
 def test_interactive_import_does_not_eagerly_import_mlx(

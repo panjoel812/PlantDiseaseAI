@@ -70,6 +70,44 @@ def test_provider_status_exposes_configuration_without_secrets() -> None:
     assert "sk-openai-secret" not in serialized
 
 
+def test_runtime_key_configures_without_echo_or_network() -> None:
+    transport = RecordingTransport([])
+    service = CloudAdviceService(transport=transport, environ={})
+
+    status = service.configure("openai", "sk-runtime-secret", "gpt-runtime")
+
+    assert status.configured is True
+    assert status.model_id == "gpt-runtime"
+    assert "sk-runtime-secret" not in repr(status)
+    assert "sk-runtime-secret" not in repr(service.statuses())
+    assert transport.calls == []
+
+
+def test_runtime_key_takes_precedence_then_clear_restores_environment() -> None:
+    service = CloudAdviceService(
+        transport=RecordingTransport([]),
+        environ={"OPENAI_API_KEY": "environment-key", "OPENAI_MODEL": "gpt-env"},
+    )
+
+    service.configure("openai", "runtime-key", "gpt-runtime")
+    assert service.statuses()[0].model_id == "gpt-runtime"
+    cleared = service.clear("openai")
+
+    assert cleared.configured is True
+    assert cleared.model_id == "gpt-env"
+    assert service.clear("openai") == cleared
+
+
+def test_invalid_runtime_key_does_not_mutate_existing_configuration() -> None:
+    service = CloudAdviceService(transport=RecordingTransport([]), environ={})
+    service.configure("openai", "valid-key")
+
+    with pytest.raises(ValueError, match="api_key"):
+        service.configure("openai", "   ")
+
+    assert service.statuses()[0].configured is True
+
+
 @pytest.mark.parametrize(
     ("provider", "environment", "response", "expected_url", "expected_text"),
     [

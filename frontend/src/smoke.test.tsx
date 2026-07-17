@@ -83,6 +83,8 @@ function demoState(): DemoState {
     classify: vi.fn().mockResolvedValue(undefined),
     ask: vi.fn().mockResolvedValue(undefined),
     askAdvice: vi.fn().mockResolvedValue(undefined),
+    configureProvider: vi.fn().mockResolvedValue(undefined),
+    clearProvider: vi.fn().mockResolvedValue(undefined),
     refreshQwenRuntime: vi.fn().mockResolvedValue(undefined),
     reset: vi.fn(),
   };

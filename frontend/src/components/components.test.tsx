@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type {
   AdviceProvidersResponse,
+  AdviceProviderStatus,
   ClassificationResult,
   FeatureState,
   ManagementAdvice,
@@ -15,6 +16,7 @@ import { AssistantPanel } from "./AssistantPanel";
 import { ClassifierPanel } from "./ClassifierPanel";
 import { ImageWorkspace } from "./ImageWorkspace";
 import { QwenPanel } from "./QwenPanel";
+import { ProviderConfigSheet } from "./ProviderConfigSheet";
 
 vi.mock("liquid-glass-react", () => ({
   default: ({
@@ -129,6 +131,7 @@ function classificationResult(): ClassificationResult {
 function qwenAnswer(overrides: Partial<QwenAnswer> = {}): QwenAnswer {
   return {
     raw_answer: "The image shows elongated lesions.",
+    observations: ["The image shows elongated lesions."],
     message: "The image shows elongated lesions.",
     action: "educational_summary",
     refused: false,
@@ -221,6 +224,8 @@ describe("AssistantPanel", () => {
         onAskQwen={vi.fn()}
         onRetryQwenRuntime={vi.fn()}
         onAskAdvice={onAskAdvice}
+        onConfigureProvider={vi.fn()}
+        onClearProvider={vi.fn()}
       />,
     );
 
@@ -550,7 +555,7 @@ describe("QwenPanel", () => {
     );
     expect(screen.getAllByRole("status")).toHaveLength(1);
     expect(screen.getByRole("status").closest("[aria-live]")).toBeNull();
-    expect(screen.getByText(/elongated lesions/i)).toBeVisible();
+    expect(screen.getAllByText(/elongated lesions/i)[0]).toBeVisible();
     expect(screen.getByText(/fixed smoke evidence only/i)).toBeVisible();
 
     rerender(
@@ -576,6 +581,34 @@ describe("QwenPanel", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByText(/cannot provide treatment instructions/i)).toBeVisible();
     expect(screen.getByText(/outside the bounded demo/i)).toBeVisible();
+  });
+
+  it("clears a temporary provider key after a successful save", async () => {
+    const user = userEvent.setup();
+    const onConfigure = vi.fn().mockResolvedValue(undefined);
+    const providers: AdviceProviderStatus[] = [{
+      provider: "openai",
+      display_name: "OpenAI",
+      configured: false,
+      model_id: "gpt-test",
+      detail: "Not configured",
+    }];
+    render(
+      <ProviderConfigSheet
+        providers={providers}
+        onConfigure={onConfigure}
+        onClear={vi.fn().mockResolvedValue(undefined)}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByLabelText(/openai api key/i);
+    expect(input).toHaveAttribute("type", "password");
+    await user.type(input, "sk-transient");
+    await user.click(screen.getByRole("button", { name: /save openai/i }));
+
+    expect(onConfigure).toHaveBeenCalledWith("openai", "sk-transient", "gpt-test");
+    expect(input).toHaveValue("");
   });
 
   it("shows the real local setup boundary and disables Qwen when weights are absent", () => {

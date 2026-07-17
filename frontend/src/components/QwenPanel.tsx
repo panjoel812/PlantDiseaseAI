@@ -167,10 +167,24 @@ export function QwenPanel({
               role="status"
             >
               <strong>{state.data.refused ? "Request refused" : "Visible evidence"}</strong>
-              <p>{state.data.message}</p>
+              {!state.data.refused && state.data.observations.length > 0 ? (
+                <ul className="observation-list">
+                  {state.data.observations.map((observation) => (
+                    <li key={observation}>{observation}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p>{state.data.message}</p>
+              )}
               {state.data.reasons.map((reason) => (
                 <p key={reason}>{reason}</p>
               ))}
+              {state.data.raw_answer ? (
+                <details className="raw-response">
+                  <summary>Raw response</summary>
+                  <p>{state.data.raw_answer}</p>
+                </details>
+              ) : null}
               <p className="evidence-boundary">{state.data.evidence_boundary}</p>
             </div>
           ) : null}

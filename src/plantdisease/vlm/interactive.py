@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import platform
 import re
+import textwrap
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -25,9 +26,17 @@ from plantdisease.vlm.backends import (
 )
 
 MAX_QUESTION_CHARACTERS = 500
+MAX_VISUAL_OBSERVATIONS = 6
+MAX_VISUAL_OBSERVATION_CHARACTERS = 180
 EVIDENCE_BOUNDARY = (
     "Local Qwen visual evidence only; no diagnosis or treatment. Fixed smoke: "
     "choice/few-shot 11/15; fine-grained condition 1/5."
+)
+_VISUAL_PREFIX = (
+    "Inspect only visible pixels. Do not diagnose disease or recommend treatment.\n"
+    "Return at most six short, complete observations about spots, colors, shapes,\n"
+    "margins, textures, and distribution. Do not add an introduction.\n\n"
+    "Question: "
 )
 
 _REGULATORY_PATTERN = re.compile(
@@ -56,6 +65,7 @@ class InteractiveQwenResult:
     raw_answer: str | None
     assistant_response: AssistantResponse
     model_id: str
+    observations: tuple[str, ...] = ()
     scope: str = "visual_evidence_only"
     evidence_boundary: str = EVIDENCE_BOUNDARY
 
@@ -199,15 +209,19 @@ class InteractiveQwenService:
             if not runtime_status.ready:
                 raise QwenUnavailableError(runtime_status)
             try:
-                raw_answer = self.backend.generate(image, normalized_question)
+                raw_answer = self.backend.generate(
+                    image,
+                    _build_visual_prompt(normalized_question),
+                )
             except VLMSetupError as exc:
                 failed_status = replace(runtime_status, ready=False, detail=str(exc))
                 with self._status_lock:
                     self._failed_status = failed_status
                 raise QwenUnavailableError(failed_status) from exc
 
+        observations = _normalize_visual_observations(raw_answer)
         wrapped = AssistantResponse(
-            message=raw_answer,
+            message=" ".join(observations),
             action="visual_evidence",
             refused=False,
             reasons=[],
@@ -217,7 +231,51 @@ class InteractiveQwenService:
             raw_answer=raw_answer,
             assistant_response=wrapped,
             model_id=self.model_id,
+            observations=observations,
         )
+
+
+def _build_visual_prompt(question: str) -> str:
+    """Constrain the local model to concise, visible morphology only."""
+
+    return _VISUAL_PREFIX + question.strip()
+
+
+def _normalize_visual_observations(raw_answer: str) -> tuple[str, ...]:
+    """Convert common VLM prose/Markdown into bounded, deduplicated rows."""
+
+    normalized = re.sub(r"\*\*([^*]+)\*\*", r"\n\1", raw_answer)
+    observations: list[str] = []
+    seen: set[str] = set()
+    for fragment in normalized.splitlines():
+        item = re.sub(r"^[\s*#•\-\d.)]+", "", fragment).strip()
+        if re.match(r"(?i)^based on (?:the )?(?:image|provided image)", item):
+            continue
+        item = re.sub(
+            r"^([A-Za-z][\w /-]{1,32}:)\s*[-•]\s*",
+            r"\1 ",
+            item,
+        )
+        item = re.sub(r"\s+", " ", item).strip()
+        if not item or re.fullmatch(r"[A-Za-z][\w /-]{1,32}:", item):
+            continue
+        if len(item) > MAX_VISUAL_OBSERVATION_CHARACTERS:
+            item = textwrap.shorten(
+                item,
+                width=MAX_VISUAL_OBSERVATION_CHARACTERS,
+                placeholder="…",
+            )
+        item = item.rstrip(" ,;:-")
+        if item and item[-1] not in ".!?…":
+            item += "."
+        key = item.casefold()
+        if not item or key in seen:
+            continue
+        seen.add(key)
+        observations.append(item)
+        if len(observations) == MAX_VISUAL_OBSERVATIONS:
+            break
+    return tuple(observations or ("No concise visual observation was returned.",))
 
 
 def _build_preflight_response(
@@ -269,7 +327,7 @@ def get_qwen_service() -> InteractiveQwenService:
     """Return the process-wide, download-disabled local Qwen service."""
 
     return InteractiveQwenService(
-        backend=MLXVLMBackend(allow_model_download=False, max_tokens=96),
+        backend=MLXVLMBackend(allow_model_download=False, max_tokens=192),
         model_id=QWEN3_VL_MODEL_ID,
     )
 
