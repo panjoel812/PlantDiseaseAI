@@ -150,7 +150,7 @@ export async function fetchExampleImage(signal?: AbortSignal): Promise<File> {
   });
 }
 
-export function askQwen(
+export async function askQwen(
   file: File,
   question: string,
   classification?: ClassificationResult,
@@ -171,11 +171,20 @@ export function askQwen(
       body.append("classifier_warnings", warning);
     }
   }
-  return requestJson<QwenAnswer>("/api/qwen/ask", {
+  const answer = await requestJson<QwenAnswer>("/api/qwen/ask", {
     method: "POST",
     body,
     signal,
   });
+  return {
+    ...answer,
+    observations: Array.isArray(answer.observations)
+      ? answer.observations.filter(
+          (observation): observation is string =>
+            typeof observation === "string" && observation.trim().length > 0,
+        )
+      : [],
+  };
 }
 
 export function askForAdvice(

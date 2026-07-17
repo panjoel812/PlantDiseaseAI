@@ -44,7 +44,7 @@ export function QwenPanel({
   const runtimeReady = runtime.status === "success" && runtime.data.ready;
   const showSetup = runtime.status === "success" && !runtime.data.ready;
   const completeObservations =
-    state.status === "success"
+    state.status === "success" && Array.isArray(state.data.observations)
       ? state.data.observations.filter((observation) =>
           /[.!?…]$/.test(observation.trim()),
         )
