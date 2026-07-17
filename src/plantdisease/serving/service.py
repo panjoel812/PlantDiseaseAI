@@ -24,6 +24,10 @@ from plantdisease.serving.images import (
     InputValidationError,
     decode_rgb_image,
 )
+from plantdisease.serving.hierarchy import (
+    TaxonomyHierarchy,
+    build_taxonomy_hierarchy,
+)
 from plantdisease.serving.knowledge import DiseaseKnowledge, lookup_disease_knowledge
 
 DEFAULT_CONFIDENCE_WARNING_THRESHOLD = 0.80
@@ -63,6 +67,7 @@ class GradCAMImages:
 @dataclass(frozen=True)
 class InferenceResult:
     predictions: list[Prediction]
+    hierarchy: TaxonomyHierarchy
     knowledge: DiseaseKnowledge
     model_name: str
     checkpoint_path: str
@@ -157,19 +162,33 @@ class InferenceService:
             preprocess_ms = _elapsed_ms(step_started)
 
             step_started = time.perf_counter()
-            predictions = predict_topk(self.model, tensor, self.class_names, k=top_k)
+            all_predictions = predict_topk(
+                self.model,
+                tensor,
+                self.class_names,
+                k=len(self.class_names),
+            )
+            hierarchy = build_taxonomy_hierarchy(all_predictions)
+            predictions = all_predictions[: min(top_k, len(all_predictions))]
+            selected_condition = hierarchy.conditions[0]
+            selected_prediction = Prediction(
+                class_index=selected_condition.class_index,
+                class_name=selected_condition.class_name,
+                probability=selected_condition.joint_probability,
+            )
             prediction_ms = _elapsed_ms(step_started)
 
             gradcam = None
             if include_gradcam:
                 step_started = time.perf_counter()
-                gradcam = self._generate_gradcam(image, tensor, predictions[0])
+                gradcam = self._generate_gradcam(image, tensor, selected_prediction)
                 gradcam_ms = _elapsed_ms(step_started)
 
-            warnings = self._warnings(predictions[0])
+            warnings = self._warnings(selected_prediction)
             return InferenceResult(
                 predictions=predictions,
-                knowledge=lookup_disease_knowledge(predictions[0].class_name),
+                hierarchy=hierarchy,
+                knowledge=lookup_disease_knowledge(selected_prediction.class_name),
                 model_name=self.model_name,
                 checkpoint_path=str(self.checkpoint_path),
                 checkpoint_id=self.checkpoint_id,

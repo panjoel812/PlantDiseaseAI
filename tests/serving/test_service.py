@@ -37,6 +37,17 @@ class BadShapeModel(nn.Module):
         return torch.ones(inputs.shape[0])
 
 
+class HierarchicalModel(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.logits = nn.Parameter(torch.log(torch.tensor([0.34, 0.15, 0.16, 0.21, 0.14])))
+        self.forward_calls = 0
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        self.forward_calls += 1
+        return self.logits.unsqueeze(0).expand(inputs.shape[0], -1)
+
+
 def _image_bytes(size: tuple[int, int] = (40, 40)) -> bytes:
     buffer = BytesIO()
     Image.new("RGB", size, (64, 128, 32)).save(buffer, format="PNG")
@@ -68,6 +79,23 @@ def _service(
     )
 
 
+def _hierarchy_service(model: HierarchicalModel) -> InferenceService:
+    return InferenceService(
+        model=model,
+        class_names=[
+            "Apple___Black_rot",
+            "Grape___Black_rot",
+            "Apple___healthy",
+            "Grape___Leaf_blight",
+            "Tomato___healthy",
+        ],
+        config={"model_name": "hierarchical", "image_size": 32},
+        checkpoint_path=Path("outputs/example/checkpoint.pt"),
+        device=torch.device("cpu"),
+        checkpoint_id="hierarchical-checkpoint",
+    )
+
+
 def test_predict_returns_top5_metadata_timings_and_safety_warnings() -> None:
     result = _service().predict(_image_bytes(), top_k=5, include_gradcam=False)
 
@@ -85,6 +113,25 @@ def test_predict_returns_top5_metadata_timings_and_safety_warnings() -> None:
     assert result.timings.total_ms >= result.timings.prediction_ms >= 0.0
     assert any("educational" in warning.lower() for warning in result.warnings)
     assert any("PlantVillage" in warning for warning in result.warnings)
+
+
+def test_predict_derives_crop_first_hierarchy_from_one_model_forward() -> None:
+    model = HierarchicalModel()
+
+    result = _hierarchy_service(model).predict(
+        _image_bytes(), top_k=3, include_gradcam=False
+    )
+
+    assert model.forward_calls == 1
+    assert len(result.predictions) == 3
+    assert result.predictions[0].class_name == "Apple___Black_rot"
+    assert result.hierarchy.selected_crop == "Apple"
+    assert result.hierarchy.selected_class_name == "Apple___Black_rot"
+    assert [item.condition for item in result.hierarchy.conditions] == [
+        "Black rot",
+        "healthy",
+    ]
+    assert result.knowledge.plant == "Apple"
 
 
 def test_predict_rejects_invalid_empty_and_oversized_inputs() -> None:
