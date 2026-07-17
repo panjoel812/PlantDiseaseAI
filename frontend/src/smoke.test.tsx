@@ -79,6 +79,10 @@ describe("App", () => {
     expect(screen.getByText(/choice.*11\/15/i)).toBeVisible();
     expect(screen.getByText(/condition.*1\/5/i)).toBeVisible();
     expect(screen.getAllByTestId("liquid-glass")).toHaveLength(3);
+    expect(screen.getByTestId("ambient-garden")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
   });
 
   it("binds reset, analyze, and Qwen actions to useDemo", async () => {
@@ -177,6 +181,9 @@ describe("App", () => {
   });
 
   it("defines responsive and accessibility material fallbacks", () => {
+    expect(styles).not.toMatch(/--page-graphite|#191a18/i);
+    expect(styles).toMatch(/\.ambient-garden\s*\{[\s\S]*?pointer-events:\s*none/);
+    expect(styles).toMatch(/\.ambient-shape/);
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?animation-duration: 0\.01ms !important;[\s\S]*?transition-duration: 0\.01ms !important;/,
     );
@@ -194,12 +201,19 @@ describe("App", () => {
     expect(styles).toMatch(/min-height:\s*44px/);
     expect(styles).toMatch(/:focus-visible/);
     expect(styles).toMatch(
-      /\.side-panel\s*\{[^}]*background:\s*rgb\(248 247 242 \/ 86%\)/s,
+      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.ambient-shape[\s\S]*?animation:\s*none !important;/,
+    );
+    expect(styles).toMatch(
+      /\.side-panel\s*\{[^}]*background:\s*rgb\(255 255 255 \/ 68%\)/s,
+    );
+    expect(styles).toMatch(/\.side-panel\s*\{[^}]*backdrop-filter:\s*blur\(24px\)/s);
+    expect(styles).toMatch(
+      /\.glass-surface \.glass__warp\s*\{[^}]*filter:\s*none !important/s,
     );
   });
 
   it("uses distinct readable amber ink for small warning text", () => {
-    expect(styles).toMatch(/--amber-ink:\s*#5a3408;/);
+    expect(styles).toMatch(/--amber-ink:\s*#70400b;/);
     expect(styles).toMatch(
       /\.safety-title \{[\s\S]*?color:\s*var\(--amber-ink\);/,
     );

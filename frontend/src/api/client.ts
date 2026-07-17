@@ -127,7 +127,7 @@ export function askQwen(
   if (className !== undefined && confidence !== undefined) {
     body.append("classifier_top_class_name", className);
     body.append("classifier_confidence", String(confidence));
-    for (const warning of classification.warnings) {
+    for (const warning of classification?.warnings ?? []) {
       body.append("classifier_warnings", warning);
     }
   }

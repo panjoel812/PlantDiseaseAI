@@ -1,3 +1,4 @@
+import { AmbientGarden } from "./components/AmbientGarden";
 import { ClassifierPanel } from "./components/ClassifierPanel";
 import { Hero } from "./components/Hero";
 import { ImageWorkspace } from "./components/ImageWorkspace";
@@ -10,6 +11,7 @@ export function App() {
 
   return (
     <main className="page-shell">
+      <AmbientGarden />
       <Hero onReset={demo.reset}>
         <div className="workspace-grid">
           <ImageWorkspace
