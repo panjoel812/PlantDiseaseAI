@@ -248,6 +248,20 @@ Open `http://127.0.0.1:5173/`. The bundled field image has no verified ground
 truth and is out-of-domain relative to the controlled evaluation. Its visible
 output is a model prediction, not field-accuracy evidence.
 
+The result view is crop-first, but this does **not** claim two separately
+trained models. The service runs the existing 38-class PlantVillage classifier
+once, sums the complete joint distribution by crop, selects the highest-mass
+crop, and then renormalizes only that crop's conditions. This prevents labels
+such as Apple `Black rot` and Grape `Black rot` from appearing together without
+crop context. It is closed-set taxonomy aggregation, not an independent crop
+detector and not evidence of unknown-crop or field generalization.
+
+The interface keeps `liquid-glass-react` for restrained material edges and
+highlights. Large photo/result surfaces disable refraction deformation, use
+stable grid geometry, and keep classifier/Qwen state changes from shifting the
+main layout. Bottom leaf and dew decorations are CSS-only, ignore pointer input,
+and stop under `prefers-reduced-motion`.
+
 ## Streamlit demo
 
 Run the same serving layer in one local Streamlit process:

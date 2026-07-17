@@ -289,8 +289,8 @@
 - [x] 编写 Apple `Containerfile`、`.dockerignore` 和健康检查；默认使用 CPU 可运行配置。证据：`Containerfile`、`.dockerignore`、`tests/test_container_config.py`、`reports/week5_demo_engineering.md`。
 - [x] 使用固定示例图片完成本地与容器内的端到端验证。本地证据：`outputs/plantvillage/week5_demo/local_e2e.json`；容器内证据：`outputs/plantvillage/week5_demo/container_e2e.json`、`reports/week5_demo_engineering.md`。
 - [x] 记录镜像大小、冷启动时间、内存占用和单图推理延迟。证据：`reports/week5_demo_engineering.md`；冷启动为单次日志观测，内存为 `container stats --no-stream` 采样。
-- [x] 完善 README：功能、架构、安装、训练、评估、推理、Demo、Apple container、结果和局限。证据：`README.md`、`reports/week5_demo_engineering.md`。
-- [x] 创建演示截图或短 GIF，但不得展示未经真实运行的指标。证据：`reports/figures/week5_streamlit_demo.jpg`。
+- [x] 完善 README：功能、架构、安装、训练、评估、推理、Demo、Apple container、结果和局限。React 作物优先聚合语义与未实测 Windows/Linux Docker 兼容路径已补充。证据：`README.md`、`reports/week5_demo_engineering.md`、`reports/week8_react_demo_qa.md`。
+- [x] 创建演示截图或短 GIF，但不得展示未经真实运行的指标。证据：`reports/figures/week5_streamlit_demo.jpg`、`reports/figures/week8_react_demo_desktop.png`。
 
 #### 必须交付物
 
@@ -465,7 +465,7 @@
 
 - [x] 干净环境复现记录和完整验证报告。证据：`reports/week8_reproducibility.md`。
 - [x] 最终实验报告、模型卡、数据卡和成果索引。证据：`reports/final_experiment_report.md`、`reports/model_card.md`、`reports/data_card.md`、`docs/artifact-index.md`。
-- [x] 经证据审计的 README、博客、PPT、Demo 和 Apple container。证据：`reports/release/week8_claim_evidence.json`、`reports/week8_presentation_qa.md`、`reports/week8_reproducibility.md`。
+- [x] 经证据审计的 README、博客、PPT、Demo 和 Apple container。React A+ 改版补充作物优先聚合测试、浏览器几何与交互证据。证据：`reports/release/week8_claim_evidence.json`、`reports/week8_presentation_qa.md`、`reports/week8_reproducibility.md`、`reports/week8_react_demo_qa.md`。
 - [x] 简历条目、导师沟通摘要和后续研究路线。证据：`docs/resume/week8_resume_evidence.md`、`docs/mentor/week8_mentor_summary.md`。
 - [x] 发布检查清单和明确的未完成项列表。证据：`docs/release/week8_release_checklist.md`。
 

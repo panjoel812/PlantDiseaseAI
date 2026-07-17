@@ -1,4 +1,64 @@
-# Week 8 React Demo Browser QA
+# Week 8 React Demo A+ Redesign QA (current)
+
+Date: 2026-07-17 (Asia/Shanghai)
+
+Implementation commits: `c1e6b44`, `a51dfbe`, `083603c`, and `331950b`.
+
+Target flow: React page loads the supplied field image → one real MPS classifier pass returns the complete 38-class distribution → the service aggregates crop probabilities → the UI shows only conditions within the selected crop, Grad-CAM, research warnings, and the optional-Qwen panel.
+
+## Current A+ verification
+
+| Check | Result | Evidence |
+|---|---|---|
+| Page identity and meaningful render | PASS | URL `http://127.0.0.1:5173/`; title `PlantDiseaseAI Research Demo`; hero, supplied image, classifier, Qwen and research-boundary regions present. |
+| Crop-first hierarchy | PASS | Supplied field image rendered `Corn (maize)` crop probability `87.9%`; conditions were restricted to four Corn classes. Python test uses Apple/Grape `Black rot` inputs and proves only the selected crop's conditions survive. |
+| One-model semantics | PASS | `single_model_taxonomy_aggregation_v1` consumes the full probability vector from one `predict_topk` call; README explicitly states this is not a second crop detector. |
+| No duplicate same-name disease rows | PASS | React fixture contains Apple and Grape `Black rot`; rendered selected-Apple condition list contains one `Black rot` plus Apple healthy only. |
+| Real classifier and Grad-CAM interaction | PASS | Clicking **Analyze leaf** changed the action to **Analyze again**, rendered crop and condition results, and produced a non-null Grad-CAM heatmap; final observed total was `27.7 ms`, a functional sample rather than a benchmark. |
+| Desktop layout | PASS | `1280 × 720`; `scrollWidth == clientWidth == 1280`; no framework overlay or console warning/error. |
+| Mobile geometry | PASS | `390 × 844`; root `scrollWidth == clientWidth == 390`; image/classifier/Qwen stack widths `367.61 px`; no console warning/error. The controller's DPR screenshot crop was not promoted as a current artifact, so the DOM/geometry evidence is the claim. |
+| Mouse stability | PASS | Before/after pointer movement across image and classifier, image stage remained `802.47 × 672 px` and classifier remained `391.45 × 426.40 px` at identical coordinates. |
+| Light Liquid Glass material | PASS | Three production surfaces still render `liquid-glass-react`; large-card refraction filter resolves to `none`, while bright edges, translucency, blur and highlights remain. |
+| Ambient decoration | PASS | Bottom leaf/dew layer is `aria-hidden`, `pointer-events:none`, and CSS-animated; reduced-motion contract disables animation and transforms. |
+| Stable states | PASS | Desktop workspace has a fixed height and fixed result-rail rows; classifier/Qwen bodies have dedicated scrollable state containers, preventing layout jumps. |
+| Console health | PASS | Browser error/warn log was empty after initial render, classification, pointer movement and responsive resize. |
+| Reduced motion browser emulation | NOT AVAILABLE | Browser controller did not expose media-feature emulation; the CSS branch is enforced by the frontend smoke contract. |
+
+Current verification commands:
+
+```bash
+cd frontend
+npm test -- --run       # 47 passed
+npm run lint            # passed
+npm run build           # passed
+cd ..
+.venv/bin/pytest -q tests/serving/test_hierarchy.py tests/serving/test_service.py tests/test_demo_api.py
+# 41 passed, one third-party Starlette deprecation warning
+```
+
+## Current concept fidelity ledger
+
+1. Mist-white, pale-blue and tender-green gradient matches the accepted reference palette.
+2. Large optical headline and restrained SF-style typography preserve the Apple-like information hierarchy.
+3. The supplied photo remains the dominant floating card; no generated substitute is used.
+4. Crop-first result hierarchy, bright thin right panels and broad low-opacity shadows match the reference material language.
+5. `liquid-glass-react` remains in all three surfaces but is intentionally restrained to non-deforming material/highlight behavior.
+6. Existing upload/analyze controls remain over the photo; the concept's invented left-side “Photography tips” rail was intentionally not implemented.
+7. Bottom leaf/dew forms are code-native, non-interactive and slower than task motion, with a reduced-motion fallback.
+8. The classifier scrolls internally at shorter viewports so the outer image/result geometry remains stable; this is an intentional deviation from the taller static concept.
+
+Current representative screenshot: `reports/figures/week8_react_demo_desktop.png`.
+
+## Remaining limitations
+
+- The field image is outside the verified PlantVillage distribution and has no validated label.
+- Crop-first aggregation is still a closed-set view of one 38-class model, not a separately trained crop detector.
+- Native OS file chooser completion remains a manual check; file selection and drag/drop are covered by component tests.
+- Qwen full inference was not rerun in this redesign QA because the optional weights were not required for the classifier/UI change.
+
+---
+
+## Historical QA before the A+ redesign (superseded visual evidence)
 
 Date: 2026-07-16–17 (Asia/Shanghai)
 
