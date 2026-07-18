@@ -19,7 +19,11 @@ export interface ConditionPrediction {
 }
 
 export interface TaxonomyHierarchy {
-  method: "crop_first_rejection_v2" | "independent_crop_then_disease_v3";
+  method:
+    | "crop_first_rejection_v2"
+    | "independent_crop_then_disease_v3"
+    | "local_catalog_then_disease_v4"
+    | "external_species_then_disease_v4";
   selected_crop: string;
   selected_class_name: string | null;
   crops: CropPrediction[];
@@ -29,7 +33,11 @@ export interface TaxonomyHierarchy {
   confidence_threshold: number;
   margin_threshold: number;
   decision_reason: string;
-  crop_source?: "joint_disease_distribution" | "independent_mobilenet_v2_crop_checkpoint";
+  crop_source?:
+    | "joint_disease_distribution"
+    | "independent_mobilenet_v2_crop_checkpoint"
+    | "local_leaf114_checkpoint"
+    | "plantnet_api";
   disease_confident?: boolean;
   disease_confidence?: number;
   disease_margin?: number;
@@ -98,6 +106,20 @@ export interface LesionAnalysis {
   overlay_data_url: string;
 }
 
+export interface LesionFocusEvidence {
+  method: "opencv_healthy_veto_roi_ensemble_v1";
+  applied: boolean;
+  selected_crop: string;
+  reason: string;
+  lesion_coverage_percent: number;
+  healthy_coverage_threshold: number;
+  lesion_count: number;
+  roi_count: number;
+  full_healthy_probability: number;
+  focused_predictions: Prediction[];
+  evidence_boundary: string;
+}
+
 export interface LeafShapeFeatures {
   area_pixels: number;
   coverage_percent: number;
@@ -109,14 +131,63 @@ export interface LeafShapeFeatures {
   component_dominance: number;
 }
 
+export interface TargetPoint {
+  x: number;
+  y: number;
+}
+
+export interface LeafPurityEvidence {
+  accepted: boolean;
+  coverage_percent: number;
+  border_touch_ratio: number;
+  fragment_count: number;
+  click_contained: boolean | null;
+  probable_foreground_retention: number | null;
+  principal_axis_aspect_ratio: number;
+  axis_band_retention: number | null;
+  coverage_range: [number, number];
+  max_border_touch_ratio: number;
+  min_probable_foreground_retention: number;
+  min_axis_band_retention: number;
+  reason: string;
+}
+
 export interface LeafIsolation {
-  method: "opencv_exg_single_leaf_v1";
+  method: "opencv_target_leaf_v2";
+  selection_mode: "automatic" | "click_grabcut";
+  target_point: TargetPoint | null;
+  purity: LeafPurityEvidence;
   accepted: boolean;
   reason: string;
   image_size: [number, number];
   bounding_box: [number, number, number, number] | null;
   shape: LeafShapeFeatures | null;
   cutout_data_url: string | null;
+}
+
+export interface LeafSelectionRequired {
+  code: "leaf_selection_required";
+  message: string;
+  leaf_isolation: LeafIsolation;
+}
+
+export interface CornAbioticEvidence {
+  method: "opencv_corn_midrib_stress_v1";
+  status: "suspected_abiotic_nutrient_stress" | "unknown_visible_stress";
+  suspected: boolean;
+  abnormal_coverage_percent: number;
+  central_axis_share: number;
+  longitudinal_continuity: number;
+  bilateral_similarity: number;
+  off_axis_lesion_coverage_percent: number;
+  abnormal_coverage_threshold: number;
+  central_axis_share_threshold: number;
+  longitudinal_continuity_threshold: number;
+  bilateral_similarity_threshold: number;
+  off_axis_lesion_coverage_threshold: number;
+  reason: string;
+  evidence_boundary: string;
+  overlay_data_url: string;
 }
 
 export interface PlantNoveltyEvidence {
@@ -133,18 +204,52 @@ export interface PlantNoveltyEvidence {
   evidence_boundary: string;
 }
 
+export interface PlantSpeciesPrediction {
+  scientific_name: string;
+  common_name: string | null;
+  family: string | null;
+  genus: string | null;
+  score: number;
+  routed_plant: string | null;
+}
+
+export interface PlantIdentityEvidence {
+  provider: "plantnet";
+  method: "plantnet_leaf_species_v2";
+  model_version: string | null;
+  remaining_requests: number | null;
+  predictions: PlantSpeciesPrediction[];
+  evidence_boundary: string;
+}
+
+export interface PlantIdentityStatus {
+  provider: "plantnet";
+  display_name: string;
+  configured: boolean;
+  scope: string;
+  detail: string;
+}
+
 export interface ClassificationResult {
   predictions: Prediction[];
   hierarchy: TaxonomyHierarchy;
   knowledge: DiseaseKnowledge | null;
   leaf_isolation?: LeafIsolation | null;
   plant_novelty?: PlantNoveltyEvidence | null;
+  plant_identity?: PlantIdentityEvidence | null;
   lesion_analysis: LesionAnalysis | null;
+  lesion_focus?: LesionFocusEvidence | null;
+  abiotic_evidence?: CornAbioticEvidence | null;
   model_name: string;
   checkpoint_path: string;
   checkpoint_id: string;
   image_size: number;
   input_size: [number, number];
+  disease_input_method:
+    | "original_image_v1"
+    | "opencv_isolated_leaf_neutral_background_v1"
+    | "opencv_isolated_leaf_plus_lesion_rois_v2";
+  disease_input_size: [number, number] | null;
   target_layer_name: string | null;
   timings: TimingBreakdown;
   warnings: string[];
@@ -220,6 +325,7 @@ export interface DemoHealth {
     index: string | null;
     detail: string;
   };
+  plant_identity?: PlantIdentityStatus;
   qwen: QwenStatus;
 }
 
@@ -228,6 +334,7 @@ export interface ClassifyOptions {
   includeGradcam: boolean;
   device?: "auto" | "cpu" | "cuda" | "mps";
   targetLayer?: string;
+  targetPoint?: TargetPoint;
 }
 
 export type FeatureState<T> =

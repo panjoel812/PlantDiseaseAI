@@ -27,14 +27,18 @@ class CropClassifier:
     image_size: int
     checkpoint_path: Path
     input_preprocessing: str | None = None
+    identity_source: str = "independent_mobilenet_v2_crop_checkpoint"
 
     @classmethod
     def from_checkpoint(
         cls, checkpoint_path: Path, device: torch.device
     ) -> CropClassifier:
         model, class_names, config = load_checkpoint(checkpoint_path, device)
-        if config.get("task") != "crop_classification":
-            raise ValueError("crop checkpoint must declare task=crop_classification")
+        task = config.get("task")
+        if task not in {"crop_classification", "plant_species_classification"}:
+            raise ValueError(
+                "crop checkpoint must declare a supported plant identity task"
+            )
         return cls(
             model=model,
             class_names=class_names,
@@ -44,6 +48,11 @@ class CropClassifier:
                 str(config["input_preprocessing"])
                 if config.get("input_preprocessing")
                 else None
+            ),
+            identity_source=(
+                "local_leaf114_checkpoint"
+                if task == "plant_species_classification"
+                else "independent_mobilenet_v2_crop_checkpoint"
             ),
         )
 

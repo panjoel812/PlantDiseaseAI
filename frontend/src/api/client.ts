@@ -6,8 +6,10 @@ import type {
   ClassifyOptions,
   DemoHealth,
   ManagementAdvice,
+  PlantIdentityStatus,
   QwenAnswer,
   QwenStatus,
+  LeafSelectionRequired,
 } from "./types";
 
 export class ApiError extends Error {
@@ -18,6 +20,16 @@ export class ApiError extends Error {
     super(detail);
     this.name = "ApiError";
     this.status = status;
+    this.detail = detail;
+  }
+}
+
+export class LeafSelectionRequiredError extends Error {
+  readonly detail: LeafSelectionRequired;
+
+  constructor(detail: LeafSelectionRequired) {
+    super(detail.message);
+    this.name = "LeafSelectionRequiredError";
     this.detail = detail;
   }
 }
@@ -91,11 +103,32 @@ export async function classifyImage(
   body.append("include_gradcam", String(options.includeGradcam));
   if (options.device) body.append("device", options.device);
   if (options.targetLayer) body.append("target_layer", options.targetLayer);
-  return requestJson<ClassificationResult>("/api/classify", {
+  if (options.targetPoint) {
+    body.append("target_x", String(options.targetPoint.x));
+    body.append("target_y", String(options.targetPoint.y));
+  }
+  const response = await fetch("/api/classify", {
     method: "POST",
     body,
     signal,
   });
+  if (response.status === 409) {
+    const payload: unknown = await response.json();
+    if (
+      isRecord(payload) &&
+      isRecord(payload.detail) &&
+      payload.detail.code === "leaf_selection_required" &&
+      typeof payload.detail.message === "string" &&
+      isRecord(payload.detail.leaf_isolation)
+    ) {
+      throw new LeafSelectionRequiredError(
+        payload.detail as unknown as LeafSelectionRequired,
+      );
+    }
+    throw new ApiError(409, "Leaf selection is required");
+  }
+  await ensureOk(response);
+  return (await response.json()) as ClassificationResult;
 }
 
 export function fetchHealth(signal?: AbortSignal): Promise<DemoHealth> {
@@ -140,6 +173,33 @@ export function clearAdviceProvider(
     `/api/advice/providers/${provider}/configure`,
     { method: "DELETE", signal },
   );
+}
+
+export function fetchPlantIdentityStatus(
+  signal?: AbortSignal,
+): Promise<PlantIdentityStatus> {
+  return requestJson<PlantIdentityStatus>("/api/plant-identity/status", { signal });
+}
+
+export function configurePlantIdentity(
+  apiKey: string,
+  signal?: AbortSignal,
+): Promise<PlantIdentityStatus> {
+  return requestJson<PlantIdentityStatus>("/api/plant-identity/configure", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ api_key: apiKey }),
+    signal,
+  });
+}
+
+export function clearPlantIdentity(
+  signal?: AbortSignal,
+): Promise<PlantIdentityStatus> {
+  return requestJson<PlantIdentityStatus>("/api/plant-identity/configure", {
+    method: "DELETE",
+    signal,
+  });
 }
 
 export async function fetchExampleImage(signal?: AbortSignal): Promise<File> {

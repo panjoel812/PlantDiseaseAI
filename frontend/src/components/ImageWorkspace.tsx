@@ -1,15 +1,35 @@
-import { useState, type DragEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
 import LiquidGlass from "liquid-glass-react";
 
-import type { FeatureState } from "../api/types";
+import type {
+  FeatureState,
+  LeafSelectionRequired,
+  TargetPoint,
+} from "../api/types";
+import { coverPointToNormalizedImage } from "../lib/imageCoordinates";
 
 interface ImageWorkspaceProps {
   previewUrl: string | null;
   selectedFileName: string | null;
   hasImage: boolean;
   classificationStatus: FeatureState<unknown>["status"];
+  targetPoint?: TargetPoint | null;
+  leafSelection?: LeafSelectionRequired | null;
+  targetSelectionActive?: boolean;
   onSelectFile(file: File): void;
   onAnalyze(): void;
+  onTargetPointChange?(point: TargetPoint): void;
+}
+
+function clampCoordinate(value: number): number {
+  return Math.min(1, Math.max(0, Number(value.toFixed(2))));
 }
 
 function UploadIcon() {
@@ -47,10 +67,16 @@ export function ImageWorkspace({
   selectedFileName,
   hasImage,
   classificationStatus,
+  targetPoint = null,
+  leafSelection = null,
+  targetSelectionActive = false,
   onSelectFile,
   onAnalyze,
+  onTargetPointChange,
 }: ImageWorkspaceProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const selectionPromptRef = useRef<HTMLDivElement>(null);
   const isLoading = classificationStatus === "loading";
   const analyzed = classificationStatus === "success";
   const imageTitle = selectedFileName
@@ -65,9 +91,39 @@ export function ImageWorkspace({
     : "";
   const actionLabel = isLoading
     ? "Analyzing leaf…"
+    : targetSelectionActive && !targetPoint
+      ? "Select a leaf first"
+      : targetSelectionActive
+        ? "Analyze selected leaf"
     : analyzed
       ? "Analyze again"
       : "Analyze leaf";
+  const updateFromPointer = (event: PointerEvent<HTMLImageElement>) => {
+    if (!targetSelectionActive || !onTargetPointChange) return;
+    const image = imageRef.current;
+    if (!image) return;
+    const point = coverPointToNormalizedImage(
+      event,
+      image.getBoundingClientRect(),
+      { width: image.naturalWidth, height: image.naturalHeight },
+    );
+    if (point) onTargetPointChange(point);
+  };
+  const moveCrosshair = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (!targetPoint || !onTargetPointChange) return;
+    const next = { ...targetPoint };
+    if (event.key === "ArrowLeft") next.x = clampCoordinate(next.x - 0.01);
+    else if (event.key === "ArrowRight") next.x = clampCoordinate(next.x + 0.01);
+    else if (event.key === "ArrowUp") next.y = clampCoordinate(next.y - 0.01);
+    else if (event.key === "ArrowDown") next.y = clampCoordinate(next.y + 0.01);
+    else return;
+    event.preventDefault();
+    onTargetPointChange(next);
+  };
+
+  useEffect(() => {
+    if (targetSelectionActive) selectionPromptRef.current?.focus();
+  }, [targetSelectionActive]);
 
   return (
     <div
@@ -103,9 +159,11 @@ export function ImageWorkspace({
         >
           {previewUrl && imageTitle ? (
             <img
-              className="field-image"
+              ref={imageRef}
+              className={`field-image ${targetSelectionActive ? "is-targetable" : ""}`}
               src={previewUrl}
               alt={imageAlt}
+              onPointerDown={updateFromPointer}
             />
           ) : (
             <div className="image-placeholder" aria-hidden="true" />
@@ -116,6 +174,40 @@ export function ImageWorkspace({
               <h2>{imageTitle}</h2>
               <p>No verified ground truth · out-of-domain example</p>
             </div>
+          ) : null}
+
+          {targetSelectionActive ? (
+            <div
+              ref={selectionPromptRef}
+              className="target-selection-prompt"
+              role="status"
+              tabIndex={-1}
+            >
+              <strong>Select one clear leaf</strong>
+              <span>
+                {leafSelection?.message ??
+                  "Click near the centre of the leaf you want to analyze."}
+              </span>
+              <button
+                type="button"
+                onClick={() => onTargetPointChange?.({ x: 0.5, y: 0.5 })}
+              >
+                Use image centre
+              </button>
+            </div>
+          ) : null}
+
+          {targetSelectionActive && targetPoint ? (
+            <button
+              className="target-crosshair"
+              data-testid="target-crosshair"
+              type="button"
+              aria-label="Selected target leaf"
+              style={{ left: `${targetPoint.x * 100}%`, top: `${targetPoint.y * 100}%` }}
+              onKeyDown={moveCrosshair}
+            >
+              <span aria-hidden="true" />
+            </button>
           ) : null}
 
           <div className="image-actions">
@@ -136,7 +228,11 @@ export function ImageWorkspace({
             <button
               className="button primary-button"
               type="button"
-              disabled={!hasImage || isLoading}
+              disabled={
+                !hasImage ||
+                isLoading ||
+                (targetSelectionActive && !targetPoint)
+              }
               onClick={onAnalyze}
             >
               <AnalyzeIcon again={analyzed} />

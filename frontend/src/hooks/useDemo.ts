@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 
 import {
+  LeafSelectionRequiredError,
   askForAdvice,
   askQwen,
   classifyImage,
   clearAdviceProvider,
+  clearPlantIdentity,
   configureAdviceProvider,
+  configurePlantIdentity,
   fetchAdviceProviders,
   fetchExampleImage,
+  fetchPlantIdentityStatus,
   fetchQwenStatus,
 } from "../api/client";
 import type {
@@ -18,8 +22,11 @@ import type {
   ClassifyOptions,
   FeatureState,
   ManagementAdvice,
+  PlantIdentityStatus,
   QwenAnswer,
   QwenStatus,
+  LeafSelectionRequired,
+  TargetPoint,
 } from "../api/types";
 
 type FeatureAction<T> =
@@ -73,9 +80,16 @@ export interface DemoState {
   qwenRuntime: FeatureState<QwenStatus>;
   adviceProviders: FeatureState<AdviceProvidersResponse>;
   advice: FeatureState<ManagementAdvice>;
+  plantIdentity: FeatureState<PlantIdentityStatus>;
   selectedFile: File | null;
   previewUrl: string | null;
+  targetPoint: TargetPoint | null;
+  leafSelection: LeafSelectionRequired | null;
+  targetSelectionActive: boolean;
   selectFile(file: File): void;
+  setTargetPoint(point: TargetPoint): void;
+  beginTargetSelection(): void;
+  clearTargetPoint(): void;
   classify(options: ClassifyOptions): Promise<void>;
   ask(question: string): Promise<void>;
   askAdvice(provider: AdviceProviderId, question: string): Promise<void>;
@@ -85,6 +99,8 @@ export interface DemoState {
     modelId?: string,
   ): Promise<void>;
   clearProvider(provider: AdviceProviderId): Promise<void>;
+  configurePlantIdentity(apiKey: string): Promise<void>;
+  clearPlantIdentity(): Promise<void>;
   refreshQwenRuntime(): Promise<void>;
   reset(): void;
 }
@@ -110,10 +126,19 @@ export function useDemo(): DemoState {
     featureReducer<ManagementAdvice>,
     initialFeatureState<ManagementAdvice>(),
   );
+  const [plantIdentity, dispatchPlantIdentity] = useReducer(
+    featureReducer<PlantIdentityStatus>,
+    initialFeatureState<PlantIdentityStatus>(),
+  );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [targetPoint, setTargetPointState] = useState<TargetPoint | null>(null);
+  const [leafSelection, setLeafSelection] =
+    useState<LeafSelectionRequired | null>(null);
+  const [targetSelectionActive, setTargetSelectionActive] = useState(false);
   const selectedFileRef = useRef<File | null>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const targetPointRef = useRef<TargetPoint | null>(null);
   const classificationResultRef = useRef<ClassificationResult | undefined>(
     undefined,
   );
@@ -121,10 +146,12 @@ export function useDemo(): DemoState {
   const exampleControllerRef = useRef<AbortController | null>(null);
   const qwenStatusControllerRef = useRef<AbortController | null>(null);
   const adviceStatusControllerRef = useRef<AbortController | null>(null);
+  const plantIdentityStatusControllerRef = useRef<AbortController | null>(null);
   const classificationControllerRef = useRef<AbortController | null>(null);
   const qwenControllerRef = useRef<AbortController | null>(null);
   const adviceControllerRef = useRef<AbortController | null>(null);
   const providerConfigControllerRef = useRef<AbortController | null>(null);
+  const plantIdentityConfigControllerRef = useRef<AbortController | null>(null);
   const adviceProvidersRef = useRef<AdviceProvidersResponse | null>(null);
 
   const replacePreview = useCallback((url: string | null) => {
@@ -191,6 +218,33 @@ export function useDemo(): DemoState {
         }
       });
 
+    const plantStatusController = new AbortController();
+    plantIdentityStatusControllerRef.current = plantStatusController;
+    dispatchPlantIdentity({ type: "start" });
+    void fetchPlantIdentityStatus(plantStatusController.signal)
+      .then((status) => {
+        if (
+          plantStatusController.signal.aborted ||
+          plantIdentityStatusControllerRef.current !== plantStatusController
+        ) {
+          return;
+        }
+        dispatchPlantIdentity({ type: "success", data: status });
+      })
+      .catch((error: unknown) => {
+        if (
+          !plantStatusController.signal.aborted &&
+          plantIdentityStatusControllerRef.current === plantStatusController
+        ) {
+          dispatchPlantIdentity({ type: "error", error: errorMessage(error) });
+        }
+      })
+      .finally(() => {
+        if (plantIdentityStatusControllerRef.current === plantStatusController) {
+          plantIdentityStatusControllerRef.current = null;
+        }
+      });
+
     void fetchExampleImage(controller.signal)
       .then((file) => {
         if (
@@ -216,10 +270,13 @@ export function useDemo(): DemoState {
       qwenStatusControllerRef.current = null;
       adviceStatusControllerRef.current?.abort();
       adviceStatusControllerRef.current = null;
+      plantIdentityStatusControllerRef.current?.abort();
+      plantIdentityStatusControllerRef.current = null;
       classificationControllerRef.current?.abort();
       qwenControllerRef.current?.abort();
       adviceControllerRef.current?.abort();
       providerConfigControllerRef.current?.abort();
+      plantIdentityConfigControllerRef.current?.abort();
       if (previewUrlRef.current) {
         URL.revokeObjectURL(previewUrlRef.current);
         previewUrlRef.current = null;
@@ -244,10 +301,28 @@ export function useDemo(): DemoState {
       dispatchAdvice({ type: "reset" });
       selectedFileRef.current = file;
       setSelectedFile(file);
+      targetPointRef.current = null;
+      setTargetPointState(null);
+      setLeafSelection(null);
+      setTargetSelectionActive(false);
       replacePreview(URL.createObjectURL(file));
     },
     [replacePreview],
   );
+
+  const setTargetPoint = useCallback((point: TargetPoint) => {
+    targetPointRef.current = point;
+    setTargetPointState(point);
+  }, []);
+
+  const clearTargetPoint = useCallback(() => {
+    targetPointRef.current = null;
+    setTargetPointState(null);
+  }, []);
+
+  const beginTargetSelection = useCallback(() => {
+    setTargetSelectionActive(true);
+  }, []);
 
   const classify = useCallback(async (options: ClassifyOptions) => {
     const file = selectedFileRef.current;
@@ -268,7 +343,10 @@ export function useDemo(): DemoState {
     classificationResultRef.current = undefined;
     dispatchClassification({ type: "start" });
     try {
-      const result = await classifyImage(file, options, controller.signal);
+      const requestOptions = targetPointRef.current
+        ? { ...options, targetPoint: targetPointRef.current }
+        : options;
+      const result = await classifyImage(file, requestOptions, controller.signal);
       if (
         controller.signal.aborted ||
         classificationControllerRef.current !== controller
@@ -276,13 +354,21 @@ export function useDemo(): DemoState {
         return;
       }
       classificationResultRef.current = result;
+      setLeafSelection(null);
+      setTargetSelectionActive(false);
       dispatchClassification({ type: "success", data: result });
     } catch (error: unknown) {
       if (
         !controller.signal.aborted &&
         classificationControllerRef.current === controller
       ) {
-        dispatchClassification({ type: "error", error: errorMessage(error) });
+        if (error instanceof LeafSelectionRequiredError) {
+          setLeafSelection(error.detail);
+          setTargetSelectionActive(true);
+          dispatchClassification({ type: "reset" });
+        } else {
+          dispatchClassification({ type: "error", error: errorMessage(error) });
+        }
       }
     } finally {
       if (classificationControllerRef.current === controller) {
@@ -447,6 +533,44 @@ export function useDemo(): DemoState {
     [updateProviderStatus],
   );
 
+  const configureBroadPlantIdentity = useCallback(async (apiKey: string) => {
+    plantIdentityConfigControllerRef.current?.abort();
+    const controller = new AbortController();
+    plantIdentityConfigControllerRef.current = controller;
+    try {
+      const status = await configurePlantIdentity(apiKey, controller.signal);
+      if (
+        !controller.signal.aborted &&
+        plantIdentityConfigControllerRef.current === controller
+      ) {
+        dispatchPlantIdentity({ type: "success", data: status });
+      }
+    } finally {
+      if (plantIdentityConfigControllerRef.current === controller) {
+        plantIdentityConfigControllerRef.current = null;
+      }
+    }
+  }, []);
+
+  const clearBroadPlantIdentity = useCallback(async () => {
+    plantIdentityConfigControllerRef.current?.abort();
+    const controller = new AbortController();
+    plantIdentityConfigControllerRef.current = controller;
+    try {
+      const status = await clearPlantIdentity(controller.signal);
+      if (
+        !controller.signal.aborted &&
+        plantIdentityConfigControllerRef.current === controller
+      ) {
+        dispatchPlantIdentity({ type: "success", data: status });
+      }
+    } finally {
+      if (plantIdentityConfigControllerRef.current === controller) {
+        plantIdentityConfigControllerRef.current = null;
+      }
+    }
+  }, []);
+
   const reset = useCallback(() => {
     exampleControllerRef.current?.abort();
     exampleControllerRef.current = null;
@@ -458,10 +582,16 @@ export function useDemo(): DemoState {
     adviceControllerRef.current = null;
     providerConfigControllerRef.current?.abort();
     providerConfigControllerRef.current = null;
+    plantIdentityConfigControllerRef.current?.abort();
+    plantIdentityConfigControllerRef.current = null;
     classificationResultRef.current = undefined;
     qwenResultRef.current = undefined;
     selectedFileRef.current = null;
     setSelectedFile(null);
+    targetPointRef.current = null;
+    setTargetPointState(null);
+    setLeafSelection(null);
+    setTargetSelectionActive(false);
     replacePreview(null);
     dispatchClassification({ type: "reset" });
     dispatchQwen({ type: "reset" });
@@ -474,14 +604,23 @@ export function useDemo(): DemoState {
     qwenRuntime,
     adviceProviders,
     advice,
+    plantIdentity,
     selectedFile,
     previewUrl,
+    targetPoint,
+    leafSelection,
+    targetSelectionActive,
     selectFile,
+    setTargetPoint,
+    beginTargetSelection,
+    clearTargetPoint,
     classify,
     ask,
     askAdvice,
     configureProvider,
     clearProvider,
+    configurePlantIdentity: configureBroadPlantIdentity,
+    clearPlantIdentity: clearBroadPlantIdentity,
     refreshQwenRuntime,
     reset,
   };

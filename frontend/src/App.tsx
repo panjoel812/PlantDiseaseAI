@@ -40,7 +40,11 @@ export function App() {
             selectedFileName={demo.selectedFile?.name ?? null}
             hasImage={demo.selectedFile !== null}
             classificationStatus={demo.classification.status}
+            targetPoint={demo.targetPoint}
+            leafSelection={demo.leafSelection}
+            targetSelectionActive={demo.targetSelectionActive}
             onSelectFile={demo.selectFile}
+            onTargetPointChange={demo.setTargetPoint}
             onAnalyze={() =>
               void demo.classify({ topK: 5, includeGradcam: true })
             }
@@ -57,12 +61,19 @@ export function App() {
             <p>Classifier evidence and optional management guidance.</p>
           </div>
           <div className="results-grid">
-            <ClassifierPanel state={demo.classification} />
+            <ClassifierPanel
+              state={demo.classification}
+              plantIdentity={demo.plantIdentity}
+              onConfigurePlantIdentity={demo.configurePlantIdentity}
+              onClearPlantIdentity={demo.clearPlantIdentity}
+              onSelectAnotherLeaf={demo.beginTargetSelection}
+            />
             <AssistantPanel
               guidanceEnabled={
                 demo.classification.status === "success" &&
                 demo.classification.data.hierarchy.crop_confident &&
-                demo.classification.data.hierarchy.disease_confident !== false
+                demo.classification.data.hierarchy.disease_confident !== false &&
+                demo.classification.data.abiotic_evidence?.suspected !== true
               }
               qwenEnabled={
                 demo.classification.status === "success" &&

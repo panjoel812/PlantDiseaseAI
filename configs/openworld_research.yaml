@@ -14,10 +14,14 @@ data:
   splits: [train, validation, test, ood_validation, ood_test]
 
 catalog:
-  organ_scope: single_clear_leaf
-  known_species_count: 14
+  organ_scope: one_selected_leaf_from_single_or_multi_leaf_image
+  local_catalog_class_count: 114
+  uci_leaf100_species_count: 100
+  disease_host_count: 14
+  broad_identity_target: 100+
+  optional_broad_provider: plantnet_api
   minimum_ood_species_count: 6
-  known_species:
+  disease_host_species:
     - malus_domestica
     - vaccinium_corymbosum
     - prunus_cerasus
@@ -32,7 +36,7 @@ catalog:
     - cucurbita_pepo
     - fragaria_ananassa
     - solanum_lycopersicum
-  excluded_inputs: [multiple_overlapping_leaves, flower, fruit, stem_only, whole_plant]
+  excluded_inputs: [flower, fruit, stem_only, whole_plant]
 
 leaf_preparation:
   method: opencv_exg_single_leaf_v1
@@ -41,22 +45,33 @@ leaf_preparation:
   rejection_gates:
     minimum_leaf_coverage_percent: 5
     maximum_leaf_coverage_percent: 90
-    minimum_component_dominance: 0.60
     maximum_border_touch_ratio: 0.18
+    minimum_solidity: 0.35
+  multi_leaf_policy: select_best_area_solidity_border_quality
   shape_features: [aspect_ratio, circularity, solidity, extent]
 
 plant_identity:
+  default_checkpoint: outputs/openleaf/leaf114_uci100_pv14_balanced_seed42/checkpoint.pt
   default_encoder: torchvision/mobilenet_v2-imagenet1k-v2
   encoder_trainable: false
+  local_training_protocol: frozen_backbone_balanced_uci100_pv14_leaf_catalog_v2
   input_size: 224
   max_prototypes_per_class: 3
   score: maximum_prototype_cosine_similarity
   rejection_gates: [similarity, top1_top2_margin]
   calibration_split: ood_validation
+  local_claim_boundary: controlled_source_leaf_catalog_not_field_accuracy
   candidates:
     - plantnet_resnet18
     - dinov2_vits14
     - mobileclip2_s0
+  optional_broad_service:
+    provider: plantnet
+    organ: leaf
+    project: all
+    target_catalog: 100+
+    api_key_storage: process_memory_or_PLANTNET_API_KEY
+    disease_route: only_scientific_names_mapped_to_plantvillage
 
 condition_routing:
   route_only_after_plant_acceptance: true

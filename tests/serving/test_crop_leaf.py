@@ -7,6 +7,8 @@ import torch
 from PIL import Image, ImageDraw
 from torch import nn
 
+from plantdisease.models.checkpoint import save_checkpoint
+from plantdisease.models.factory import create_model
 from plantdisease.serving.crop import LEAF_ISOLATION_METHOD, CropClassifier
 
 
@@ -40,3 +42,27 @@ def test_leaf_checkpoint_rejects_non_leaf_input() -> None:
 
     with pytest.raises(ValueError, match="leaf isolation rejected"):
         _classifier().predict(image)
+
+
+def test_local_100_plus_catalog_checkpoint_restores_identity_source(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "leaf114.pt"
+    model = create_model("mobilenet_v2", 2, pretrained=False)
+    save_checkpoint(
+        checkpoint,
+        model,
+        ["Acer campestre", "Grape"],
+        {
+            "model_name": "mobilenet_v2",
+            "num_classes": 2,
+            "image_size": 32,
+            "task": "plant_species_classification",
+            "input_preprocessing": LEAF_ISOLATION_METHOD,
+        },
+    )
+
+    classifier = CropClassifier.from_checkpoint(checkpoint, torch.device("cpu"))
+
+    assert classifier.identity_source == "local_leaf114_checkpoint"
+    assert classifier.class_names == ["Acer campestre", "Grape"]

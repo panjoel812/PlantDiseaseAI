@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T13:52:21.355314+00:00",
+  "code_revision": "f4d71f65b73a3dbd54604a477e93a7d891aff3b1",
+  "source": {
+    "filename": "corn-def-nitrogen-source.webp",
+    "sha256": "14abb00d5ab0d223611094178a2d6d10cfbc4ed2a034423db40f523578382bed",
+    "width": 640,
+    "height": 480,
+    "repository_copy_created": false
+  },
+  "target_point": {
+    "x": 0.58,
+    "y": 0.45
+  },
+  "leaf_isolation": {
+    "method": "opencv_target_leaf_v2",
+    "selection_mode": "click_grabcut",
+    "accepted": false,
+    "reason": "The leaf is truncated by the image border.",
+    "bounding_box": [
+      308,
+      4,
+      76,
+      312
+    ],
+    "shape": {
+      "area_pixels": 12298,
+      "coverage_percent": 4.00341796875,
+      "aspect_ratio": 4.105263157894737,
+      "circularity": 0.2694648883645132,
+      "solidity": 0.701468700983887,
+      "extent": 0.5186614372469636,
+      "border_touch_ratio": 0.21518987341772153,
+      "component_dominance": 1.0
+    },
+    "purity": {
+      "accepted": false,
+      "coverage_percent": 4.00341796875,
+      "border_touch_ratio": 0.21518987341772153,
+      "fragment_count": 3,
+      "click_contained": true,
+      "probable_foreground_retention": 0.7059485621025381,
+      "principal_axis_aspect_ratio": 6.123654855842855,
+      "axis_band_retention": 1.0,
+      "coverage_range": [
+        3.0,
+        85.0
+      ],
+      "max_border_touch_ratio": 0.18,
+      "min_probable_foreground_retention": 0.6,
+      "min_axis_band_retention": 0.8,
+      "reason": "The leaf is truncated by the image border."
+    }
+  },
+  "abiotic_evidence": null,
+  "model_inference_withheld": true,
+  "boundary": "OpenCV morphology evidence only; this audit does not establish a specific nutrient deficiency or professional diagnosis."
+}

@@ -28,7 +28,7 @@ React Demo 默认加载用户提供的田间玉米叶图片 `app/examples/field_
 
 结果现在按四步显示：
 
-1. **OpenCV 单叶分离**：只接受轮廓清楚、未明显截断的一片叶子，去除背景，并展示透明 cutout、覆盖率、实心度和长宽比；多叶重叠、整株或分离失败会在模型运行前拒绝。
+1. **OpenCV 单叶分离**：只接受轮廓清楚、未明显截断的一片叶子，去除背景，并展示透明 cutout、覆盖率、实心度和长宽比；多叶重叠时先要求用户点选目标叶片，整株或分离失败会在模型运行前拒绝。
 2. **OpenCV 可见证据**：在原始分辨率上定位叶内病斑候选，报告面积、数量、最大区域、主要形状、粗粒度颜色、分布和叠加图。该步骤只描述像素，不根据手写规则诊断病害。
 3. **植物识别与 unknown 门控**：隔离输入的 14 类 MobileNetV2 先判断植物。最高作物必须达到 `60%`、领先第二名 `10` 个百分点；配置原型索引时还需通过余弦相似度、原型间隔和分类头一致性检查。
 4. **作物内病害**：只有前三步接受后，38 类 ResNet50 才保留已选作物的病害；最高条件达到 `65%` 且领先第二名 `15` 个百分点后才开放诊断、Grad-CAM 和管理建议。
@@ -40,15 +40,39 @@ React Demo 默认加载用户提供的田间玉米叶图片 `app/examples/field_
 为解决“域外葡萄叶被强制判成番茄，再继续输出番茄病害”的根本问题，OpenLeaf-14 的单叶分离与实验性拒识门控现已接入 React Demo：
 
 ```text
-图片 → OpenCV 提取一片完整叶子 + 轮廓质量门控
-     → 冻结编码器 → 14 种作物叶片识别 + 未知叶片拒识
+图片 → OpenCV 自动提取优势叶片，或一键点选目标叶片 + 纯度门控
+     → 本地 114 类目录（UCI 100 + PlantVillage 14）
+     → 仅当本地身份不确定时调用可选 Pl@ntNet 广域身份
                   → 接受植物 → 叶片内病斑框/局部 crop → 宿主专用病害模型
                   → 未知植物 → 不输出病害
 ```
 
-低算力默认路径是冻结 MobileNetV2，只提取一次特征；后续原型构建、阈值校准和目录更新均在 CPU 上完成，不反向传播。pilot 收缩为项目现有的 14 种常见作物叶片，并保留至少 6 种目录外叶片测试拒识，不训练 1,081 个物种。OpenCV 会先导出透明叶片、灰色中性背景物种输入、叶片 mask、轮廓特征、病斑叠加图和病斑 crop；训练与推理使用同一套处理。相似度与 Top-1/Top-2 间隔必须同时通过，病害模型才会运行。
+离线低算力默认路径现在是冻结 MobileNetV2 + 本地 114 类线性头：UCI Leaf100 的 100 种受控叶片轮廓，加上 PlantVillage 14 种作物。只有一片前景明显占优时 OpenCV 才自动选择；若至少两片可行绿色组件重叠、最佳组件不足可行前景的 90%，API 会先返回 `409 leaf_selection_required`，页面要求用户点一下目标叶片，而不是猜测。原有轮廓代理原型门控默认关闭，仅保留为显式实验选项。
 
-只有单片叶子轮廓完整、面积合理、没有明显被边缘截断时才接受；多片重叠叶、花、果实、整株和分离失败会直接要求重新拍摄。叶形是重要证据，但近缘物种叶形可能相似，病害也可能改变轮廓，因此物种编码器仍同时观察去背景后的叶脉与纹理，不能只靠手写形状规则下结论。
+### 一键点选叶片与玉米非生物胁迫拒答
+
+点选发生在模型运行之前。React 摄影卡把点击位置换算为原图归一化坐标，并显示固定十字标记；鼠标经过不会造成标记抖动，方向键可按 `0.01` 微调。点击种子的 GrabCut 必须包含点击点、保留足够候选前景、通过长叶主轴纯度检查、覆盖原图 `3%–85%`，且边界接触不超过 `0.18`。任何门控失败都保留可审计原因，但不会进入植物或疾病模型。
+
+植物身份接受为 Corn 后，另一个独立 OpenCV 安全门控只测量中脉方向的黄/褐/干枯形态：异常覆盖率、中轴占比、纵向连续性、两侧对称性和离轴离散病斑。五项固定条件全部满足时，页面只显示 **Suspected abiotic / nutrient stress**，清除传染性病名、疾病知识、诊断 Grad-CAM 和管理建议权限；闭集疾病分数只能作为“counterfactual only”证据展示。这个分支**不能确认缺氮**，具体原因仍需土壤/组织检测与本地农艺背景。
+
+网页会自动发送坐标；直接调用 API 时可使用：
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/classify \
+  -F image=@/你的路径/leaf.jpg \
+  -F target_x=0.43 -F target_y=0.47 \
+  -F top_k=5 -F include_gradcam=true
+```
+
+`target_x` 与 `target_y` 必须同时提供，且均为 `[0, 1]` 内有限值；非法输入在模型前返回 HTTP 422。详见[目标叶片与非生物门控 QA](reports/target-leaf-abiotic-qa.md)和[机器可读证据](reports/metrics/target_leaf_abiotic_qa.json)。
+
+植物身份、疾病 ResNet50 与 Grad-CAM 现在使用同一张 OpenCV 分离叶片和中性背景图，不再向模型暴露手、土壤、天空、花盆或相邻植物。病斑面积、颜色、形状和分布通常保持为独立可见证据。当前仅为 Grape 启用一个明确标记为实验性的窄范围保护：当整叶模型把 `healthy` 排第一、但病斑覆盖超过由训练集健康葡萄叶校准的阈值时，使用两个中性背景病斑 ROI 仅在已确认的葡萄病害类别中重新排序，并生成候选病斑 Grad-CAM。ROI 分数没有田间校准，因此仍不开放正式诊断和管理建议。详见[葡萄病斑聚焦 pilot](reports/grape_lesion_focus_pilot.md)。该处理只能减少背景线索并暴露证据冲突，不等同于已证明田间准确率提升；分割质量不合格时会拒绝分类。
+
+seed 42 实跑使用 1,896 张训练、524 张验证和 748 张测试图；混合受控测试 Accuracy `0.9158`、Macro F1 `0.9117`，UCI 子集 Accuracy `0.9133`，PlantVillage 子集 `0.9174`。这些不是田间准确率。用户提供的田间葡萄图上，本地模型输出 Strawberry `46.36%`、Peach `24.01%`、Grape `20.65%`，因此正确行为仍是拒绝病害，而不是降低阈值。详见[本地 114 类 pilot 报告](reports/openleaf114_local_pilot.md)。
+
+如需更强的田间广域身份，可在 React 页面的 Classifier 面板中直接配置临时 Pl@ntNet API key。本地预测通过门控时不会请求 Pl@ntNet；只有本地身份不确定或本地 checkpoint 不可用时才调用，以节省每日额度。官方当前 Free 方案为 `€0`、每天 500 次识别、可识别 50,000+ 物种；自 2026-02-13 起失败请求也消耗免费额度。密钥只保存在 FastAPI 进程内，也可通过 `PLANTNET_API_KEY` 提供，不会回传浏览器。价格与额度可能变化，请以[官方价格](https://my.plantnet.org/pricing)、[额度说明](https://my.plantnet.org/doc/api/quota)和[条款](https://my.plantnet.org/terms_of_use)为准。
+
+候选叶片仍需轮廓完整、面积合理且没有明显被边缘截断；多叶照片会选择质量最好的一片，严重重叠到无法形成合格轮廓时才会拒绝。花、果实、整株和分离失败仍会要求重新拍摄。叶形是重要证据，但近缘物种叶形可能相似，病害也可能改变轮廓，因此物种识别仍同时观察去背景后的叶脉与纹理，不能只靠手写形状规则下结论。Pl@ntNet 的账户、配额、输入和分数语义见[官方单物种识别 API](https://my.plantnet.org/doc/api/identify)。
 
 已完成一个低算力真实 pilot：896 张训练、224 张验证、448 张被 OpenCV 接受的 official-test 叶片，条件 Accuracy `0.9241`、Macro F1 `0.9230`；若把 469 个尝试样本中的 21 个预处理拒绝也计为端到端失败，管线成功率为 `0.8827`。这些数字来自小样本、单 seed、PlantVillage 闭集协议，不能与旧作物 checkpoint 直接比较，也不是 OOD 或田间指标。详见[OpenLeaf-14 pilot 报告](reports/openleaf14_pilot.md)。
 
@@ -58,14 +82,14 @@ React Demo 默认加载用户提供的田间玉米叶图片 `app/examples/field_
 
 新版界面使用 `liquid-glass-react` 提供轻量材质边缘，并以雾白、浅蓝、嫩绿构成通透背景。React Demo 采用“先上传、后查看结果”的纵向流程：摄影卡与 Analyze 操作位于顶部，分析成功后页面会移动到照片下方完整展开的 Classifier 与 Management guidance。结果卡使用正常文档流，不再通过嵌套纵向滚动隐藏证据；移动端保持“上传 → 分类器 → 助手”的顺序。大型卡片保持零弹性，底部叶片与露珠不接收指针事件并在 `prefers-reduced-motion` 下停止。页眉 Logo 将用户提供的 Desmos Bézier 内部曲线与 PlantDiseaseAI 叶片融合；外部源 SVG 保持原样，运行时不依赖该个人路径。
 
-PlantVillage 缓存就绪后，先训练一次独立轻量作物头；生成权重保存在被 Git 忽略的 `outputs/`：
+从[UCI 官方页面](https://archive.ics.uci.edu/dataset/241/one%2Bhundred%2Bplant%2Bspecies%2Bleaves%2Bdata%2Bset)下载约 35 MB、CC BY 4.0 的 Leaf100 zip；PlantVillage 缓存就绪后训练本地 114 类头。权重保存在被 Git 忽略的 `outputs/`：
 
 ```bash
-uv run python scripts/train_crop_classifier.py \
+uv run python scripts/train_leaf_catalog.py \
+  --uci-archive /你的路径/uci_leaf100.zip \
   --cache-dir data/huggingface \
-  --output-dir outputs/plantvillage/leaf14_opencv_pilot_seed42 \
-  --selected-per-crop 80 --validation-per-crop 16 --test-per-crop 32 \
-  --head-epochs 40 --leaf-isolation
+  --output-dir outputs/openleaf/leaf114_uci100_pv14_balanced_seed42 \
+  --head-epochs 80 --device cpu --seed 42
 ```
 
 随后在两个终端分别启动同时使用作物与病害 checkpoint 的 FastAPI 和 React：
@@ -73,12 +97,11 @@ uv run python scripts/train_crop_classifier.py \
 ```bash
 uv run python scripts/run_demo_api.py \
   --checkpoint outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/checkpoint.pt \
-  --crop-checkpoint outputs/plantvillage/leaf14_opencv_pilot_seed42/checkpoint.pt \
-  --openworld-index outputs/plantvillage/leaf14_external_ood_shape6_seed42/index \
+  --crop-checkpoint outputs/openleaf/leaf114_uci100_pv14_balanced_seed42/checkpoint.pt \
   --device mps --host 127.0.0.1 --port 8000
 ```
 
-原型索引为可选项；使用 `--no-openworld-gate` 时 Demo 仍执行单叶分离、作物概率与间隔门控，但不会声称完成 unknown 拒识。现有阈值来自受控无纹理轮廓代理，不是彩色田间 OOD 校准，页面会明确显示该证据边界。
+原型索引默认关闭；只有显式传入 `--openworld-index outputs/plantvillage/leaf14_external_ood_shape6_seed42/index` 才会启用。省略该参数时 Demo 仍执行最佳叶片选择、作物概率与间隔门控，但不会声称完成 unknown 拒识。现有阈值来自受控无纹理轮廓代理，不是彩色田间 OOD 校准，页面会明确显示该证据边界。
 
 ```bash
 cd frontend

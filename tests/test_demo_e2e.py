@@ -54,4 +54,8 @@ def test_demo_e2e_writes_prediction_json_for_checkpoint(tmp_path) -> None:
     assert payload["model_name"] == "mobilenet_v2"
     assert len(payload["predictions"]) == 3
     assert payload["gradcam_overlay"] is None
-    assert payload["knowledge"]["plant"] in {"Apple", "Tomato", "Potato"}
+    if payload["knowledge"] is None:
+        assert payload["hierarchy"]["selected_class_name"] is None
+        assert payload["hierarchy"]["disease_confident"] is False
+    else:
+        assert payload["knowledge"]["plant"] in {"Apple", "Tomato", "Potato"}

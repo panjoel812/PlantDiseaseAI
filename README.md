@@ -52,6 +52,7 @@ The main data flow is:
 
 ```text
 image -> OpenCV on original resolution -> lesion location/size/shape/colour
+      -> isolated leaf on neutral background
       -> MobileNetV2 crop-only checkpoint -> crop confidence + margin gate
                                          | accepted
       -> ResNet50 disease checkpoint -----+-> selected-crop conditions
@@ -78,21 +79,94 @@ PlantVillage disease model. It addresses the failure mode where an unknown grape
 is forced into Tomato and then receives a Tomato disease label:
 
 ```text
-image -> OpenCV single-leaf cutout + outline quality gate
-      -> frozen encoder -> 14-leaf plant identity + unknown rejection
+image -> OpenCV dominant-leaf cutout or one-click target + purity gate
+      -> local 114-class leaf catalog (UCI 100 + PlantVillage 14)
+      -> optional Pl@ntNet broad identity only when local identity is uncertain
                          -> accepted host -> leaf-constrained lesion boxes/crops
                                           -> host-specific condition model
                          -> unknown host  -> withhold condition
 ```
 
-The default baseline uses frozen MobileNetV2 embeddings, a small CPU prototype index,
-and similarity plus Top-1/Top-2 margin gates calibrated with held-out unknown plants.
-The pilot is restricted to the 14 existing crop-leaf groups plus at least six OOD leaf
-species; it does not use the full 1,081-species Pl@ntNet taxonomy. OpenCV exports the
-isolated leaf, mask, outline features, lesion overlay, and lesion crops before frozen
-feature extraction. Adding taxa rebuilds the small index from cached embeddings; it
-does not retrain the encoder. This is an expandable leaf catalog, **not** a claim to
-identify every plant or non-leaf organ.
+The same accepted OpenCV cutout is now used by both plant identity and disease
+inference, including Grad-CAM, so hands, soil, sky, pots, and neighboring plants are
+not visible to those models. Lesion geometry and colour normally remain separate
+measured evidence. One explicitly experimental Grape safeguard handles the narrower
+case where the whole-leaf model says `healthy` but lesion coverage exceeds the
+training-calibrated healthy threshold: two neutral-background lesion ROIs rerank only
+the already selected Grape disease classes and produce a candidate-focused Grad-CAM.
+The ROI scores remain uncalibrated evidence, so diagnosis and management guidance are
+withheld. See the [Grape lesion-focus pilot](reports/grape_lesion_focus_pilot.md).
+Background suppression and lesion focus are not proof of better field accuracy, and
+an invalid leaf mask is rejected rather than classified.
+
+### One-click target leaf and Corn stress abstention
+
+Automatic isolation continues when one foreground leaf clearly dominates. If
+two or more viable green components overlap and the best component contains
+less than 90% of viable foreground, the API now returns a typed HTTP
+`409 leaf_selection_required` response **before crop or disease inference**.
+The React photography card then asks for one click near the centre of the target
+leaf. A fixed crosshair can be moved by arrow keys; it never follows pointer
+hover. Click-seeded GrabCut must retain the click, pass foreground-retention and
+elongated-axis purity checks, cover 3–85% of the image, and touch no more than
+18% of the image border. Failed masks remain auditable evidence and never reach
+the models.
+
+After an accepted Corn identity, a separate OpenCV gate measures only visible
+midrib-aligned yellow/tan/brown morphology: abnormal coverage, central-axis
+share, longitudinal continuity, bilateral similarity, and off-axis discrete
+lesions. When all fixed conservative gates pass, the UI displays **Suspected
+abiotic / nutrient stress**, clears the infectious diagnosis, disease knowledge,
+diagnostic Grad-CAM, and management eligibility, and labels any closed-set
+disease scores as counterfactual evidence. It does **not** confirm nitrogen
+deficiency; soil/tissue testing and local agronomic context are required.
+
+React supplies normalized source-image coordinates automatically. A direct API
+request can provide the same pair:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/classify \
+  -F image=@/path/to/leaf.jpg \
+  -F target_x=0.43 -F target_y=0.47 \
+  -F top_k=5 -F include_gradcam=true
+```
+
+Both coordinates are required and must be finite values in `[0, 1]`; invalid
+pairs return HTTP 422. See the [QA report](reports/target-leaf-abiotic-qa.md)
+and its [machine-readable evidence](reports/metrics/target_leaf_abiotic_qa.json).
+
+The default offline pilot is a frozen MobileNetV2 encoder with one locally trained
+114-class head: the 100-species UCI Leaf100 silhouette catalog plus the 14 existing
+PlantVillage crop groups. OpenCV exports the selected leaf, mask, outline features,
+lesion overlay, and lesion crops before inference. The outline-proxy novelty index is
+opt-in because its calibration does not transfer reliably to field photographs.
+
+The completed seed-42 local run used 1,896 train, 524 validation, and 748 test images.
+On this mixed controlled-source test it reached Accuracy `0.9158` and Macro F1
+`0.9117`; source accuracies were `0.9133` for UCI silhouettes and `0.9174` for
+PlantVillage leaves. These results are **not field accuracy**. On the supplied field
+grape image, the local model ranked Strawberry `46.36%`, Peach `24.01%`, and Grape
+`20.65%`, so the confidence/margin gate correctly withheld disease. See the
+[local 114-class pilot report](reports/openleaf114_local_pilot.md).
+
+For broader field identity, the React demo can be configured with a temporary
+Pl@ntNet API key directly in the Classifier panel. The server sends only the selected
+leaf cutout with the `leaf` organ hint and receives a ranked species list. This expands
+identity beyond 100 species, but does not expand the local disease checkpoint: disease
+labels are exposed only when the returned scientific name maps to one of the 14
+PlantVillage crops. Other accepted species remain identified while disease and
+management guidance are withheld. The key stays in FastAPI process memory, or can be
+provided as `PLANTNET_API_KEY`; it is never returned to the browser.
+An accepted local prediction makes no Pl@ntNet request; the API is called only when
+the local identity is uncertain or the local checkpoint is unavailable, conserving
+the daily quota.
+The current Free plan is €0 with 500 identifications/day and 50,000+ identifiable
+species; quotas and terms may change, and since 2026-02-13 failed Free-plan requests
+also consume credit. See the official [pricing](https://my.plantnet.org/pricing),
+[quota documentation](https://my.plantnet.org/doc/api/quota), and
+[terms](https://my.plantnet.org/terms_of_use).
+See the official [Pl@ntNet single-species identification API](https://my.plantnet.org/doc/api/identify)
+for account, quota, input, and score semantics.
 
 A completed low-compute pilot used 896 training, 224 validation, and 448 accepted
 official-test leaf inputs. Conditional test Accuracy was `0.9241` and Macro F1 was
@@ -116,10 +190,10 @@ controlled single-leaf silhouettes across six identity-disjoint species. It reje
 textureless outline proxies and is **not field OOD evidence**. See the
 [external outline stress-test report](reports/openleaf14_external_ood_shape6.md).
 
-See the [complete OpenLeaf-14 protocol](docs/research/open_world_hierarchical_plant_research.md),
+See the [complete OpenLeaf protocol](docs/research/open_world_hierarchical_plant_research.md),
 the [configuration](configs/openworld_research.yaml), and the
 [manifest example](configs/openworld_manifest.example.jsonl). No Pl@ntNet/PlantWild/
-PlantSeg-scale result is claimed yet. The exact synthetic validation boundary is in
+PlantSeg training result is claimed. The exact synthetic validation boundary is in
 the [scaffold evidence report](reports/openworld_research_scaffold.md).
 
 ## Platform support
@@ -282,15 +356,17 @@ generalization evidence.
 
 ## React + FastAPI demo
 
-Train the isolated-leaf pilot head once after PlantVillage is cached. Generated
+Download the 35 MB CC BY 4.0 UCI Leaf100 archive from the
+[official dataset page](https://archive.ics.uci.edu/dataset/241/one%2Bhundred%2Bplant%2Bspecies%2Bleaves%2Bdata%2Bset),
+then train the frozen local 114-class head after PlantVillage is cached. Generated
 weights stay in Git-ignored `outputs/`:
 
 ```bash
-uv run python scripts/train_crop_classifier.py \
+uv run python scripts/train_leaf_catalog.py \
+  --uci-archive /path/to/uci_leaf100.zip \
   --cache-dir data/huggingface \
-  --output-dir outputs/plantvillage/leaf14_opencv_pilot_seed42 \
-  --selected-per-crop 80 --validation-per-crop 16 --test-per-crop 32 \
-  --head-epochs 40 --leaf-isolation
+  --output-dir outputs/openleaf/leaf114_uci100_pv14_balanced_seed42 \
+  --head-epochs 80 --device cpu --seed 42
 ```
 
 In terminal 1, start the API from the repository root with both local checkpoints:
@@ -298,8 +374,7 @@ In terminal 1, start the API from the repository root with both local checkpoint
 ```bash
 uv run python scripts/run_demo_api.py \
   --checkpoint outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/checkpoint.pt \
-  --crop-checkpoint outputs/plantvillage/leaf14_opencv_pilot_seed42/checkpoint.pt \
-  --openworld-index outputs/plantvillage/leaf14_external_ood_shape6_seed42/index \
+  --crop-checkpoint outputs/openleaf/leaf114_uci100_pv14_balanced_seed42/checkpoint.pt \
   --device auto \
   --host 127.0.0.1 \
   --port 8000
@@ -317,23 +392,32 @@ Open `http://127.0.0.1:5173/`. The bundled field image has no verified ground
 truth and is out-of-domain relative to the controlled evaluation. Its visible
 output is a model prediction, not field-accuracy evidence.
 
-The result view now follows four explicit stages. OpenCV first isolates one clear,
-untruncated leaf and removes the background. It then measures visible lesion evidence
+The result view now follows four explicit stages. OpenCV scores all viable green
+components and selects the best intact, non-truncated leaf instead of rejecting a
+photo merely because multiple leaves are visible. It then measures visible lesion evidence
 on the original upload, using resolution-scaled morphology
 and connected-component thresholds; it reports area, count, dominant shape,
 coarse colour, distribution, and an overlay, but does not turn those hand-built
-measurements into a disease claim. A separate 14-class MobileNetV2 checkpoint
-then predicts the plant. The plant must reach 60% probability with a 10-point
+measurements into a disease claim. A separate local 114-class MobileNetV2 checkpoint
+then predicts the plant identity. The plant must reach 60% probability with a 10-point
 margin. When a prototype index is supplied, cosine similarity, prototype margin,
 and agreement with the classifier head must also pass. Only then are the 38-class
-ResNet50 outputs filtered to that plant. The
+ResNet50 outputs filtered to one of the 14 supported PlantVillage crops. A recognized
+UCI tree species has no local disease taxonomy, so disease is withheld. The
 top plant-specific condition must reach 65% conditional probability with a
 15-point margin before the API exposes a diagnosis, Grad-CAM, or management
 guidance. Rejected condition candidates remain visible as evidence only.
 
-The prototype index is optional. Its current thresholds were calibrated with
+The prototype index is disabled by default and remains an experimental opt-in:
+
+```bash
+uv run python scripts/run_demo_api.py \
+  --openworld-index outputs/plantvillage/leaf14_external_ood_shape6_seed42/index
+```
+
+Its current thresholds were calibrated with
 controlled outline proxies, not colour field photographs, so the interface labels
-the gate as experimental. Add `--no-openworld-gate` to retain single-leaf isolation
+the gate as experimental. Omitting `--openworld-index` retains best-leaf isolation
 and confidence gating without claiming unknown-plant rejection.
 
 This hierarchy prevents a weak crop guess from becoming a confident but

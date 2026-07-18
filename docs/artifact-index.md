@@ -182,4 +182,9 @@
 | 植物优先病害路由 | `src/plantdisease/openworld/condition.py`、`src/plantdisease/openworld/router.py`、`tests/openworld/test_router.py` | 合成验证；未知植物不会调用病害模型 |
 | OpenLeaf-14 验证记录 | `reports/openworld_research_scaffold.md` | 29 个初始定向测试与 Ruff 通过；用户多叶葡萄在 checkpoint 分类前按预期拒绝；外部轮廓压力测试已完成，真实彩色田间 OOD 仍未完成 |
 | OpenLeaf-14 React 接入 | `src/plantdisease/serving/service.py`、`app/api.py`、`frontend/src/components/ClassifierPanel.tsx` | 已接入单叶 cutout、轮廓指标、叶内病斑、14 类植物头与可选多原型拒识；拒识会清空疾病、Grad-CAM 与管理上下文。固定田间玉米样例通过单叶分离但被轮廓代理阈值拒绝（similarity 0.4287），因此不输出疾病；这不是田间 OOD 性能声明 |
-| Pl@ntNet / PlantWild / PlantSeg pilot | 见研究协议的 Milestones | 未开始；没有下载数据或训练结果 |
+| 本地 Leaf114 身份 pilot | `reports/openleaf114_local_pilot.md`、`reports/metrics/openleaf114_local_pilot.json`、`scripts/train_leaf_catalog.py` | 已运行；UCI Leaf100 + PlantVillage 14 的冻结 MobileNetV2 头在混合受控 test 上 Accuracy 0.9158 / Macro F1 0.9117；田间葡萄仍误排 Strawberry 0.4636，未通过门控，不能作为田间准确率 |
+| 疾病背景抑制输入 | `src/plantdisease/serving/service.py`、`tests/serving/test_service.py`、`frontend/src/components/ClassifierPanel.tsx` | 已接入；疾病模型与 Grad-CAM 使用 OpenCV 分离叶片的中性背景图，病斑几何仍是独立证据；尚无田间精度提升声明 |
+| Grape healthy-veto 与病斑 ROI | `reports/grape_lesion_focus_pilot.md`、`reports/metrics/grape_lesion_focus_pilot.json`、`src/plantdisease/serving/disease_focus.py` | 实验性候选证据；健康葡萄 official test 误否决 0/100，用户图由 healthy 全叶候选切换为 Black rot ROI 候选并生成 focused Grad-CAM；不开放诊断或管理建议 |
+| Pl@ntNet 补充身份服务 | `src/plantdisease/serving/plant_identity.py`、`app/api.py`、`frontend/src/components/PlantIdentityConfigSheet.tsx` | 已接入可选 API key；本地身份通过时不调用，本地不确定时才发送选中的叶片 cutout。未进行付费或配额压力测试 |
+| 目标叶片选择与 Corn 非生物形态门控 | `docs/superpowers/specs/2026-07-18-target-leaf-abiotic-gate-design.md`、`docs/superpowers/plans/2026-07-18-target-leaf-abiotic-gate.md`、`reports/target-leaf-abiotic-qa.md`、`reports/metrics/target_leaf_abiotic_qa.json` | 已实现 source-coordinate 点选、GrabCut 纯度 409、Corn 中脉形态拒答、React 固定十字与管理建议锁定。公开参考图因边缘接触 `0.21519 > 0.18` 被正确拒绝；原用户附件路径已不存在，未冒充完成相同像素复测；阳性路径由固定阈值合成回归测试覆盖 |
+| PlantWild / PlantSeg pilot | 见研究协议的 Milestones | 未开始；没有下载数据或训练结果 |

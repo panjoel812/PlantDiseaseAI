@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiError,
+  LeafSelectionRequiredError,
   askQwen,
   askForAdvice,
   classifyImage,
@@ -70,6 +71,8 @@ function classification(): ClassificationResult {
     checkpoint_id: "checkpoint-id",
     image_size: 224,
     input_size: [1024, 768],
+    disease_input_method: "original_image_v1",
+    disease_input_size: [1024, 768],
     target_layer_name: "layer4.2",
     timings: {
       preprocess_ms: 1,
@@ -135,6 +138,7 @@ describe("API client", () => {
       includeGradcam: true,
       device: "mps",
       targetLayer: "layer4.2",
+      targetPoint: { x: 0.25, y: 0.75 },
     });
 
     expect(fetchMock).toHaveBeenCalledOnce();
@@ -147,6 +151,8 @@ describe("API client", () => {
     expect(body.get("include_gradcam")).toBe("true");
     expect(body.get("device")).toBe("mps");
     expect(body.get("target_layer")).toBe("layer4.2");
+    expect(body.get("target_x")).toBe("0.25");
+    expect(body.get("target_y")).toBe("0.75");
   });
 
   it("omits optional classifier controls instead of sending undefined text", async () => {
@@ -158,6 +164,63 @@ describe("API client", () => {
     expect(body.get("include_gradcam")).toBe("false");
     expect(body.has("device")).toBe(false);
     expect(body.has("target_layer")).toBe(false);
+    expect(body.has("target_x")).toBe(false);
+    expect(body.has("target_y")).toBe(false);
+  });
+
+  it("preserves structured leaf-selection evidence from a 409 response", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        {
+          detail: {
+            code: "leaf_selection_required",
+            message: "Select one target leaf before analysis.",
+            leaf_isolation: {
+              method: "opencv_target_leaf_v2",
+              selection_mode: "automatic",
+              target_point: null,
+              purity: {
+                accepted: false,
+                coverage_percent: 31.2,
+                border_touch_ratio: 0,
+                fragment_count: 2,
+                click_contained: null,
+                probable_foreground_retention: null,
+                principal_axis_aspect_ratio: 1.7,
+                axis_band_retention: null,
+                coverage_range: [3, 85],
+                max_border_touch_ratio: 0.18,
+                min_probable_foreground_retention: 0.6,
+                min_axis_band_retention: 0.8,
+                reason: "Select one target leaf before analysis.",
+              },
+              accepted: false,
+              reason: "Select one target leaf before analysis.",
+              image_size: [320, 220],
+              bounding_box: [20, 30, 120, 150],
+              shape: null,
+              cutout_data_url: null,
+            },
+          },
+        },
+        409,
+      ),
+    );
+
+    const request = classifyImage(file, { topK: 5, includeGradcam: true });
+
+    await expect(request).rejects.toBeInstanceOf(LeafSelectionRequiredError);
+    await expect(request).rejects.toMatchObject({
+      detail: {
+        code: "leaf_selection_required",
+        leaf_isolation: {
+          selection_mode: "automatic",
+          purity: {
+            reason: "Select one target leaf before analysis.",
+          },
+        },
+      },
+    });
   });
 
   it("sends Qwen classifier context with repeated warning fields", async () => {

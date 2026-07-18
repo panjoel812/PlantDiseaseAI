@@ -50,7 +50,8 @@ def main(argv: list[str] | None = None) -> None:
         "target_layer": result.target_layer_name,
         "timings_ms": asdict(result.timings),
         "warnings": result.warnings,
-        "knowledge": asdict(result.knowledge),
+        "hierarchy": asdict(result.hierarchy),
+        "knowledge": asdict(result.knowledge) if result.knowledge is not None else None,
         "predictions": [asdict(item) for item in result.predictions],
         "gradcam_overlay": str(overlay_path) if overlay_path is not None else None,
     }

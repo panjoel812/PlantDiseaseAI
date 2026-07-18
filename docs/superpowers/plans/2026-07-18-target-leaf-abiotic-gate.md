@@ -691,7 +691,7 @@ The script accepts explicit paths and target coordinates:
 
 ```bash
 uv run python scripts/audit_target_leaf_abiotic.py \
-  --image /Users/panjoel/Downloads/corn-def-nitrogen-2.webp \
+  --image "$HOME/Downloads/corn-def-nitrogen-2.webp" \
   --target-x 0.43 \
   --target-y 0.47 \
   --output reports/metrics/target_leaf_abiotic_qa.json

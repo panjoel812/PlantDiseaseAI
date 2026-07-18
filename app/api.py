@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import pickle
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from io import BytesIO
 from pathlib import Path
 from typing import Annotated, Literal, Protocol
@@ -17,9 +17,21 @@ from fastapi.responses import FileResponse, JSONResponse
 from PIL import Image
 from pydantic import BaseModel, Field, field_validator
 
+from plantdisease.openworld.leaf_pipeline import LeafIsolation, TargetPoint
+from plantdisease.serving.abiotic import CornAbioticEvidence
 from plantdisease.serving.cache import get_cached_service
 from plantdisease.serving.images import InputValidationError, decode_rgb_image
-from plantdisease.serving.service import InferenceResult, InferenceServiceError
+from plantdisease.serving.plant_identity import (
+    PlantIdentityError,
+    PlantIdentityResult,
+    PlantIdentityStatus,
+    get_plant_identity_service,
+)
+from plantdisease.serving.service import (
+    InferenceResult,
+    InferenceServiceError,
+    LeafSelectionRequiredError,
+)
 from plantdisease.vlm.assistant import ClassifierContext
 from plantdisease.vlm.cloud_advice import (
     AdviceContext,
@@ -39,11 +51,9 @@ DEFAULT_CHECKPOINT = Path(
     "outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/checkpoint.pt"
 )
 DEFAULT_CROP_CHECKPOINT = Path(
-    "outputs/plantvillage/leaf14_opencv_pilot_seed42/checkpoint.pt"
+    "outputs/openleaf/leaf114_uci100_pv14_balanced_seed42/checkpoint.pt"
 )
-DEFAULT_OPENWORLD_INDEX = Path(
-    "outputs/plantvillage/leaf14_external_ood_shape6_seed42/index"
-)
+DEFAULT_OPENWORLD_INDEX: Path | None = None
 DEFAULT_EXAMPLE_IMAGE = Path("app/examples/field_corn_leaf.jpeg")
 DEFAULT_CORS_ORIGINS = (
     "http://127.0.0.1:4173",
@@ -64,6 +74,9 @@ class ClassifierService(Protocol):
         *,
         top_k: int = 5,
         include_gradcam: bool = True,
+        crop_predictions_override: Sequence[object] | None = None,
+        crop_prediction_source: str | None = None,
+        target_point: TargetPoint | None = None,
     ) -> InferenceResult: ...
 
 
@@ -128,6 +141,22 @@ class AdviceProvider(Protocol):
     def __call__(self) -> AdviceService: ...
 
 
+class PlantIdentityService(Protocol):
+    """Optional broad species identity interface required by the HTTP adapter."""
+
+    def status(self) -> PlantIdentityStatus: ...
+
+    def configure(self, api_key: str) -> PlantIdentityStatus: ...
+
+    def clear(self) -> PlantIdentityStatus: ...
+
+    def identify(self, image_bytes: bytes) -> PlantIdentityResult: ...
+
+
+class PlantIdentityProvider(Protocol):
+    def __call__(self) -> PlantIdentityService: ...
+
+
 class AdviceRequest(BaseModel):
     """Bounded, non-secret evidence sent from the React demo."""
 
@@ -175,6 +204,7 @@ def create_app(
     service_provider: ServiceProvider = get_cached_service,
     qwen_provider: QwenProvider = get_qwen_service,
     advice_provider: AdviceProvider = get_cloud_advice_service,
+    plant_identity_provider: PlantIdentityProvider = get_plant_identity_service,
 ) -> FastAPI:
     """Build the classifier API without loading model weights."""
     resolved = settings or DemoSettings()
@@ -184,6 +214,7 @@ def create_app(
     app.state.service_provider = service_provider
     app.state.qwen_provider = qwen_provider
     app.state.advice_provider = advice_provider
+    app.state.plant_identity_provider = plant_identity_provider
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(cors_origins),
@@ -198,7 +229,11 @@ def create_app(
 def _register_routes(app: FastAPI) -> None:
     @app.get("/api/health")
     def health() -> dict[str, object]:
-        return _health_payload(app.state.settings, _get_qwen_status(app))
+        return _health_payload(
+            app.state.settings,
+            _get_qwen_status(app),
+            _get_plant_identity_service(app).status(),
+        )
 
     @app.get("/api/qwen/status")
     def qwen_status() -> dict[str, object]:
@@ -213,6 +248,24 @@ def _register_routes(app: FastAPI) -> None:
                 for status in service.statuses()
             ]
         }
+
+    @app.get("/api/plant-identity/status")
+    def plant_identity_status() -> dict[str, object]:
+        return _serialize_plant_identity_status(_get_plant_identity_service(app).status())
+
+    @app.post("/api/plant-identity/configure")
+    def configure_plant_identity(
+        request: ProviderConfigureRequest,
+    ) -> dict[str, object]:
+        try:
+            status = _get_plant_identity_service(app).configure(request.api_key)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return _serialize_plant_identity_status(status)
+
+    @app.delete("/api/plant-identity/configure")
+    def clear_plant_identity() -> dict[str, object]:
+        return _serialize_plant_identity_status(_get_plant_identity_service(app).clear())
 
     @app.post("/api/advice/providers/{provider}/configure")
     def configure_advice_provider(
@@ -248,15 +301,21 @@ def _register_routes(app: FastAPI) -> None:
             headers={"X-Example-Ground-Truth": "unavailable"},
         )
 
-    @app.post("/api/classify")
+    @app.post("/api/classify", response_model=None)
     def classify(
         image: Annotated[UploadFile, File(description="Leaf image")],
         top_k: Annotated[int, Form(ge=1, le=10)] = 5,
         include_gradcam: Annotated[bool, Form()] = True,
         device: Annotated[str | None, Form()] = None,
         target_layer: Annotated[str | None, Form()] = None,
-    ) -> dict[str, object]:
+        target_x: Annotated[float | None, Form()] = None,
+        target_y: Annotated[float | None, Form()] = None,
+    ) -> dict[str, object] | JSONResponse:
         settings: DemoSettings = app.state.settings
+        try:
+            target_point = _target_point(target_x, target_y)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         if not settings.checkpoint.is_file():
             raise HTTPException(
                 status_code=503,
@@ -270,7 +329,7 @@ def _register_routes(app: FastAPI) -> None:
             )
         image_bytes = image.file.read()
         try:
-            decode_rgb_image(image_bytes)
+            decoded_image = decode_rgb_image(image_bytes)
         except InputValidationError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         provider: ServiceProvider = app.state.service_provider
@@ -293,16 +352,72 @@ def _register_routes(app: FastAPI) -> None:
             device=resolved_device,
             target_layer=target_layer or settings.target_layer,
         )
+        plant_identity: PlantIdentityResult | None = None
+        plant_identity_warning: str | None = None
         try:
             result = service.predict(
                 image_bytes,
                 top_k=top_k,
                 include_gradcam=include_gradcam,
+                target_point=target_point,
             )
+            identity_service = _get_plant_identity_service(app)
+            needs_broad_identity = (
+                not result.hierarchy.crop_confident
+                or result.hierarchy.crop_source == "joint_disease_distribution"
+            )
+            if identity_service.status().configured and needs_broad_identity:
+                from plantdisease.openworld.leaf_pipeline import isolate_leaf
+
+                isolation = result.leaf_isolation or isolate_leaf(
+                    decoded_image,
+                    target_point=target_point,
+                )
+                if isolation.accepted and isolation.species_image is not None:
+                    try:
+                        plant_identity = identity_service.identify(
+                            _jpeg_bytes(isolation.species_image)
+                        )
+                        result = service.predict(
+                            image_bytes,
+                            top_k=top_k,
+                            include_gradcam=include_gradcam,
+                            crop_predictions_override=(
+                                plant_identity.as_crop_predictions()
+                            ),
+                            crop_prediction_source="plantnet_api",
+                            target_point=target_point,
+                        )
+                    except PlantIdentityError as exc:
+                        plant_identity_warning = (
+                            "Broad plant identity unavailable; local 114-class "
+                            f"fallback used. {exc}"
+                        )
         except InputValidationError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except LeafSelectionRequiredError as exc:
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "detail": {
+                        "code": "leaf_selection_required",
+                        "message": exc.isolation.reason,
+                        "leaf_isolation": _serialize_leaf_isolation(exc.isolation),
+                    }
+                },
+            )
         except InferenceServiceError as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
+        if plant_identity is not None or plant_identity_warning is not None:
+            result = replace(
+                result,
+                plant_identity=plant_identity,
+                warnings=(
+                    [*result.warnings, plant_identity_warning]
+                    if plant_identity_warning is not None
+                    else result.warnings
+                ),
+            )
         return _serialize_result(result)
 
     @app.post("/api/qwen/ask", response_model=None)
@@ -373,6 +488,7 @@ def _register_routes(app: FastAPI) -> None:
 def _health_payload(
     settings: DemoSettings,
     qwen_status: QwenRuntimeStatus,
+    plant_identity_status: PlantIdentityStatus,
 ) -> dict[str, object]:
     disease_ready = settings.checkpoint.is_file()
     crop_ready = settings.crop_checkpoint is not None and settings.crop_checkpoint.is_file()
@@ -409,6 +525,7 @@ def _health_payload(
                 else "prototype index not found; confidence-only plant gate"
             ),
         },
+        "plant_identity": _serialize_plant_identity_status(plant_identity_status),
         "qwen": _serialize_qwen_status(qwen_status),
     }
 
@@ -424,6 +541,11 @@ def _get_qwen_status(app: FastAPI) -> QwenRuntimeStatus:
 
 def _get_advice_service(app: FastAPI) -> AdviceService:
     provider: AdviceProvider = app.state.advice_provider
+    return provider()
+
+
+def _get_plant_identity_service(app: FastAPI) -> PlantIdentityService:
+    provider: PlantIdentityProvider = app.state.plant_identity_provider
     return provider()
 
 
@@ -488,6 +610,16 @@ def _serialize_advice_provider_status(
     }
 
 
+def _serialize_plant_identity_status(status: PlantIdentityStatus) -> dict[str, object]:
+    return {
+        "provider": status.provider,
+        "display_name": status.display_name,
+        "configured": status.configured,
+        "scope": status.scope,
+        "detail": status.detail,
+    }
+
+
 def _serialize_management_advice(result: ManagementAdvice) -> dict[str, object]:
     return {
         "provider": result.provider,
@@ -548,6 +680,101 @@ def _validate_cors_origins(origins: tuple[str, ...]) -> tuple[str, ...]:
     return origins
 
 
+def _target_point(x: float | None, y: float | None) -> TargetPoint | None:
+    if (x is None) != (y is None):
+        raise ValueError("target_x and target_y must be supplied together")
+    if x is None or y is None:
+        return None
+    return TargetPoint(x=x, y=y)
+
+
+def _serialize_leaf_isolation(isolation: LeafIsolation) -> dict[str, object]:
+    shape = isolation.shape
+    purity = isolation.purity
+    return {
+        "method": isolation.method,
+        "selection_mode": isolation.selection_mode,
+        "target_point": (
+            {"x": isolation.target_point.x, "y": isolation.target_point.y}
+            if isolation.target_point is not None
+            else None
+        ),
+        "purity": {
+            "accepted": purity.accepted,
+            "coverage_percent": purity.coverage_percent,
+            "border_touch_ratio": purity.border_touch_ratio,
+            "fragment_count": purity.fragment_count,
+            "click_contained": purity.click_contained,
+            "probable_foreground_retention": purity.probable_foreground_retention,
+            "principal_axis_aspect_ratio": purity.principal_axis_aspect_ratio,
+            "axis_band_retention": purity.axis_band_retention,
+            "coverage_range": list(purity.coverage_range),
+            "max_border_touch_ratio": purity.max_border_touch_ratio,
+            "min_probable_foreground_retention": (
+                purity.min_probable_foreground_retention
+            ),
+            "min_axis_band_retention": purity.min_axis_band_retention,
+            "reason": purity.reason,
+        },
+        "accepted": isolation.accepted,
+        "reason": isolation.reason,
+        "image_size": list(isolation.image_size),
+        "bounding_box": (
+            list(isolation.bounding_box)
+            if isolation.bounding_box is not None
+            else None
+        ),
+        "shape": (
+            {
+                "area_pixels": shape.area_pixels,
+                "coverage_percent": shape.coverage_percent,
+                "aspect_ratio": shape.aspect_ratio,
+                "circularity": shape.circularity,
+                "solidity": shape.solidity,
+                "extent": shape.extent,
+                "border_touch_ratio": shape.border_touch_ratio,
+                "component_dominance": shape.component_dominance,
+            }
+            if shape is not None
+            else None
+        ),
+        "cutout_data_url": (
+            _png_data_url(isolation.cutout_rgba)
+            if isolation.cutout_rgba is not None
+            else None
+        ),
+    }
+
+
+def _serialize_abiotic_evidence(
+    evidence: CornAbioticEvidence,
+) -> dict[str, object]:
+    return {
+        "method": evidence.method,
+        "status": evidence.status,
+        "suspected": evidence.suspected,
+        "abnormal_coverage_percent": evidence.abnormal_coverage_percent,
+        "central_axis_share": evidence.central_axis_share,
+        "longitudinal_continuity": evidence.longitudinal_continuity,
+        "bilateral_similarity": evidence.bilateral_similarity,
+        "off_axis_lesion_coverage_percent": (
+            evidence.off_axis_lesion_coverage_percent
+        ),
+        "abnormal_coverage_threshold": evidence.abnormal_coverage_threshold,
+        "central_axis_share_threshold": evidence.central_axis_share_threshold,
+        "longitudinal_continuity_threshold": (
+            evidence.longitudinal_continuity_threshold
+        ),
+        "bilateral_similarity_threshold": evidence.bilateral_similarity_threshold,
+        "off_axis_lesion_coverage_threshold": (
+            evidence.off_axis_lesion_coverage_threshold
+        ),
+        "reason": evidence.reason,
+        "evidence_boundary": evidence.evidence_boundary,
+        "overlay_data_url": _png_data_url(evidence.overlay),
+    }
+
+
 def _serialize_result(result: InferenceResult) -> dict[str, object]:
     gradcam: dict[str, object] | None = None
     if result.gradcam is not None:
@@ -595,40 +822,39 @@ def _serialize_result(result: InferenceResult) -> dict[str, object]:
             ],
             "overlay_data_url": _png_data_url(analysis.overlay),
         }
-    leaf_isolation: dict[str, object] | None = None
-    if result.leaf_isolation is not None:
-        isolation = result.leaf_isolation
-        shape = isolation.shape
-        leaf_isolation = {
-            "method": isolation.method,
-            "accepted": isolation.accepted,
-            "reason": isolation.reason,
-            "image_size": list(isolation.image_size),
-            "bounding_box": (
-                list(isolation.bounding_box)
-                if isolation.bounding_box is not None
-                else None
-            ),
-            "shape": (
+    lesion_focus: dict[str, object] | None = None
+    if result.lesion_focus is not None:
+        focus = result.lesion_focus
+        lesion_focus = {
+            "method": focus.method,
+            "applied": focus.applied,
+            "selected_crop": focus.selected_crop,
+            "reason": focus.reason,
+            "lesion_coverage_percent": focus.lesion_coverage_percent,
+            "healthy_coverage_threshold": focus.healthy_coverage_threshold,
+            "lesion_count": focus.lesion_count,
+            "roi_count": focus.roi_count,
+            "full_healthy_probability": focus.full_healthy_probability,
+            "focused_predictions": [
                 {
-                    "area_pixels": shape.area_pixels,
-                    "coverage_percent": shape.coverage_percent,
-                    "aspect_ratio": shape.aspect_ratio,
-                    "circularity": shape.circularity,
-                    "solidity": shape.solidity,
-                    "extent": shape.extent,
-                    "border_touch_ratio": shape.border_touch_ratio,
-                    "component_dominance": shape.component_dominance,
+                    "class_index": item.class_index,
+                    "class_name": item.class_name,
+                    "probability": item.probability,
                 }
-                if shape is not None
-                else None
-            ),
-            "cutout_data_url": (
-                _png_data_url(isolation.cutout_rgba)
-                if isolation.cutout_rgba is not None
-                else None
-            ),
+                for item in focus.focused_predictions
+            ],
+            "evidence_boundary": focus.evidence_boundary,
         }
+    abiotic_evidence = (
+        _serialize_abiotic_evidence(result.abiotic_evidence)
+        if result.abiotic_evidence is not None
+        else None
+    )
+    leaf_isolation = (
+        _serialize_leaf_isolation(result.leaf_isolation)
+        if result.leaf_isolation is not None
+        else None
+    )
     plant_novelty: dict[str, object] | None = None
     if result.plant_novelty is not None:
         evidence = result.plant_novelty
@@ -657,6 +883,27 @@ def _serialize_result(result: InferenceResult) -> dict[str, object]:
             "is_healthy": result.knowledge.is_healthy,
             "symptoms": result.knowledge.symptoms,
             "educational_note": result.knowledge.educational_note,
+        }
+    plant_identity: dict[str, object] | None = None
+    if result.plant_identity is not None:
+        identity = result.plant_identity
+        plant_identity = {
+            "provider": identity.provider,
+            "method": identity.method,
+            "model_version": identity.model_version,
+            "remaining_requests": identity.remaining_requests,
+            "evidence_boundary": identity.evidence_boundary,
+            "predictions": [
+                {
+                    "scientific_name": item.scientific_name,
+                    "common_name": item.common_name,
+                    "family": item.family,
+                    "genus": item.genus,
+                    "score": item.score,
+                    "routed_plant": item.routed_plant,
+                }
+                for item in identity.predictions
+            ],
         }
     return {
         "predictions": [
@@ -705,12 +952,21 @@ def _serialize_result(result: InferenceResult) -> dict[str, object]:
         "knowledge": knowledge,
         "leaf_isolation": leaf_isolation,
         "plant_novelty": plant_novelty,
+        "plant_identity": plant_identity,
         "lesion_analysis": lesion_analysis,
+        "lesion_focus": lesion_focus,
+        "abiotic_evidence": abiotic_evidence,
         "model_name": result.model_name,
         "checkpoint_path": result.checkpoint_path,
         "checkpoint_id": result.checkpoint_id,
         "image_size": result.image_size,
         "input_size": list(result.input_size),
+        "disease_input_method": result.disease_input_method,
+        "disease_input_size": (
+            list(result.disease_input_size)
+            if result.disease_input_size is not None
+            else None
+        ),
         "target_layer_name": result.target_layer_name,
         "timings": {
             "preprocess_ms": result.timings.preprocess_ms,
@@ -730,6 +986,12 @@ def _png_data_url(image: Image.Image) -> str:
     return f"data:image/png;base64,{encoded}"
 
 
+def _jpeg_bytes(image: Image.Image) -> bytes:
+    buffer = BytesIO()
+    image.convert("RGB").save(buffer, format="JPEG", quality=92, optimize=True)
+    return buffer.getvalue()
+
+
 app = create_app()
 
 __all__: Sequence[str] = [
@@ -739,6 +1001,7 @@ __all__: Sequence[str] = [
     "DEFAULT_OPENWORLD_INDEX",
     "DemoSettings",
     "QwenProvider",
+    "PlantIdentityProvider",
     "ServiceProvider",
     "app",
     "create_app",

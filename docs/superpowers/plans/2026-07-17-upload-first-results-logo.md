@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- The external SVG at `/Users/panjoel/Documents/Project/DesmosBezierRenderer/exports/desmos_remaining_functions.svg` is read-only reference material and must not be modified.
+- The external SVG at `$HOME/Documents/Project/DesmosBezierRenderer/exports/desmos_remaining_functions.svg` is read-only reference material and must not be modified.
 - Omit source paths `expr-003` through `expr-018` so the white background and rounded-square frame never enter the project logo.
 - Reuse source paths `expr-019` through `expr-054` as the Bézier gesture inside the new leaf mark.
 - The upload/photo card appears before all generated results in DOM and visual order.
@@ -115,7 +115,7 @@ Generate the repository-native data file without modifying the source:
 
 ```bash
 uv run python scripts/export_logo_paths.py \
-  --input /Users/panjoel/Documents/Project/DesmosBezierRenderer/exports/desmos_remaining_functions.svg \
+  --input "$HOME/Documents/Project/DesmosBezierRenderer/exports/desmos_remaining_functions.svg" \
   --output frontend/src/assets/desmosInnerPaths.ts
 ```
 

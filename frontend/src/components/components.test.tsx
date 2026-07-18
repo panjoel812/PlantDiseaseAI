@@ -9,6 +9,7 @@ import type {
   ClassificationResult,
   FeatureState,
   ManagementAdvice,
+  LeafSelectionRequired,
   QwenAnswer,
   QwenStatus,
 } from "../api/types";
@@ -115,6 +116,8 @@ function classificationResult(): ClassificationResult {
     checkpoint_id: "checkpoint-id",
     image_size: 224,
     input_size: [1024, 768],
+    disease_input_method: "original_image_v1",
+    disease_input_size: [1024, 768],
     target_layer_name: "layer4.2",
     timings: {
       preprocess_ms: 1.2,
@@ -148,6 +151,39 @@ function qwenAnswer(overrides: Partial<QwenAnswer> = {}): QwenAnswer {
     scope: "exploratory_smoke",
     evidence_boundary: "Fixed smoke evidence only.",
     ...overrides,
+  };
+}
+
+function leafSelectionRequired(): LeafSelectionRequired {
+  return {
+    code: "leaf_selection_required",
+    message: "Select one target leaf before analysis.",
+    leaf_isolation: {
+      method: "opencv_target_leaf_v2",
+      selection_mode: "automatic",
+      target_point: null,
+      purity: {
+        accepted: false,
+        coverage_percent: 31.2,
+        border_touch_ratio: 0,
+        fragment_count: 2,
+        click_contained: null,
+        probable_foreground_retention: null,
+        principal_axis_aspect_ratio: 1.7,
+        axis_band_retention: null,
+        coverage_range: [3, 85],
+        max_border_touch_ratio: 0.18,
+        min_probable_foreground_retention: 0.6,
+        min_axis_band_retention: 0.8,
+        reason: "Select one target leaf before analysis.",
+      },
+      accepted: false,
+      reason: "Select one target leaf before analysis.",
+      image_size: [400, 200],
+      bounding_box: [20, 30, 120, 150],
+      shape: null,
+      cutout_data_url: null,
+    },
   };
 }
 
@@ -278,6 +314,57 @@ describe("AssistantPanel", () => {
 });
 
 describe("ImageWorkspace", () => {
+  it("maps a target click to source coordinates and keeps a fixed keyboard crosshair", async () => {
+    const user = userEvent.setup();
+    const onTargetPointChange = vi.fn();
+    const common = {
+      previewUrl: "blob:wide-leaf",
+      selectedFileName: "wide-leaf.jpeg",
+      hasImage: true,
+      classificationStatus: "idle" as const,
+      targetSelectionActive: true,
+      leafSelection: leafSelectionRequired(),
+      onSelectFile: vi.fn(),
+      onAnalyze: vi.fn(),
+      onTargetPointChange,
+    };
+    const { rerender } = render(
+      <ImageWorkspace {...common} targetPoint={null} />,
+    );
+    const image = screen.getByRole("img");
+    Object.defineProperties(image, {
+      naturalWidth: { configurable: true, value: 400 },
+      naturalHeight: { configurable: true, value: 200 },
+    });
+    vi.spyOn(image, "getBoundingClientRect").mockReturnValue({
+      left: 0,
+      top: 0,
+      width: 200,
+      height: 200,
+      right: 200,
+      bottom: 200,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    expect(screen.getByRole("button", { name: /select a leaf first/i })).toBeDisabled();
+    fireEvent.pointerDown(image, { clientX: 0, clientY: 100 });
+    expect(onTargetPointChange).toHaveBeenLastCalledWith({ x: 0.25, y: 0.5 });
+
+    rerender(
+      <ImageWorkspace {...common} targetPoint={{ x: 0.25, y: 0.5 }} />,
+    );
+    const crosshair = screen.getByTestId("target-crosshair");
+    expect(crosshair).toHaveStyle({ left: "25%", top: "50%" });
+    fireEvent.pointerMove(image, { clientX: 160, clientY: 30 });
+    expect(onTargetPointChange).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(crosshair, { key: "ArrowRight" });
+    expect(onTargetPointChange).toHaveBeenLastCalledWith({ x: 0.26, y: 0.5 });
+    await user.click(screen.getByRole("button", { name: /use image centre/i }));
+    expect(onTargetPointChange).toHaveBeenLastCalledWith({ x: 0.5, y: 0.5 });
+  });
+
   it("labels the field example and binds upload and analysis actions", async () => {
     const user = userEvent.setup();
     const onSelectFile = vi.fn();
@@ -420,6 +507,65 @@ describe("ImageWorkspace", () => {
 });
 
 describe("ClassifierPanel", () => {
+  it("renders Corn abiotic evidence and labels disease candidates counterfactual", async () => {
+    const user = userEvent.setup();
+    const onSelectAnotherLeaf = vi.fn();
+    const result = classificationResult();
+    result.hierarchy.selected_crop = "Corn (maize)";
+    result.hierarchy.selected_class_name = null;
+    result.hierarchy.disease_confident = false;
+    result.hierarchy.disease_decision_reason = "Abiotic evidence withheld disease.";
+    result.hierarchy.conditions = result.hierarchy.conditions.map((condition) => ({
+      ...condition,
+      plant: "Corn (maize)",
+    }));
+    result.knowledge = null;
+    result.gradcam = null;
+    result.abiotic_evidence = {
+      method: "opencv_corn_midrib_stress_v1",
+      status: "suspected_abiotic_nutrient_stress",
+      suspected: true,
+      abnormal_coverage_percent: 18,
+      central_axis_share: 0.72,
+      longitudinal_continuity: 0.81,
+      bilateral_similarity: 0.68,
+      off_axis_lesion_coverage_percent: 1.2,
+      abnormal_coverage_threshold: 8,
+      central_axis_share_threshold: 0.55,
+      longitudinal_continuity_threshold: 0.6,
+      bilateral_similarity_threshold: 0.5,
+      off_axis_lesion_coverage_threshold: 5,
+      reason: "Morphology evidence only; cannot identify a specific nutrient.",
+      evidence_boundary: "Soil or tissue testing may be required.",
+      overlay_data_url: "data:image/png;base64,abiotic",
+    };
+
+    render(
+      <ClassifierPanel
+        state={{ status: "success", data: result, error: null }}
+        onSelectAnotherLeaf={onSelectAnotherLeaf}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /suspected abiotic.*nutrient stress/i }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/not a confirmed nitrogen deficiency/i),
+    ).toBeVisible();
+    expect(screen.getByText(/abnormal coverage/i)).toBeVisible();
+    expect(screen.getByText(/central-axis share/i)).toBeVisible();
+    expect(screen.getByText(/longitudinal continuity/i)).toBeVisible();
+    expect(screen.getByText(/bilateral similarity/i)).toBeVisible();
+    expect(screen.getByText(/off-axis lesion coverage/i)).toBeVisible();
+    expect(
+      screen.getByText(/closed-set infectious candidates.*counterfactual only/i),
+    ).toBeVisible();
+    expect(screen.queryByRole("img", { name: /grad-cam/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /select another leaf/i }));
+    expect(onSelectAnotherLeaf).toHaveBeenCalledOnce();
+  });
+
   it("shows a calm empty state before classification", () => {
     render(<ClassifierPanel state={idle<ClassificationResult>()} />);
 
@@ -474,6 +620,56 @@ describe("ClassifierPanel", () => {
       "src",
       "data:image/png;base64,overlay",
     );
+  });
+
+  it("discloses when disease inference uses the isolated leaf", () => {
+    const result = classificationResult();
+    result.disease_input_method =
+      "opencv_isolated_leaf_neutral_background_v1";
+    result.disease_input_size = [640, 480];
+
+    render(
+      <ClassifierPanel
+        state={{ status: "success", data: result, error: null }}
+      />,
+    );
+
+    expect(
+      screen.getByText(/background-suppressed disease input/i),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/not the original scene/i),
+    ).toBeVisible();
+  });
+
+  it("labels lesion-focused reranking as uncalibrated candidate evidence", () => {
+    const result = classificationResult();
+    result.disease_input_method = "opencv_isolated_leaf_plus_lesion_rois_v2";
+    result.lesion_focus = {
+      method: "opencv_healthy_veto_roi_ensemble_v1",
+      applied: true,
+      selected_crop: "Grape",
+      reason: "Visible lesions contradict healthy.",
+      lesion_coverage_percent: 12.42,
+      healthy_coverage_threshold: 1.2959,
+      lesion_count: 25,
+      roi_count: 2,
+      full_healthy_probability: 0.616,
+      focused_predictions: [],
+      evidence_boundary: "Candidate evidence only.",
+    };
+
+    render(
+      <ClassifierPanel
+        state={{ status: "success", data: result, error: null }}
+      />,
+    );
+
+    expect(
+      screen.getByText(/healthy candidate contradicted by visible lesions/i),
+    ).toBeVisible();
+    expect(screen.getByText(/12\.42% lesion coverage/i)).toBeVisible();
+    expect(screen.getByText(/not calibrated field probabilities/i)).toBeVisible();
   });
 
   it("owns classifier progress and error announcements", () => {

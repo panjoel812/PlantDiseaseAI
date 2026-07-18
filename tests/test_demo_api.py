@@ -3,24 +3,33 @@ from __future__ import annotations
 import inspect
 import pickle
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from app.api import DemoSettings, create_app
 from plantdisease.inference import Prediction
+from plantdisease.openworld.leaf_pipeline import LeafIsolation, TargetPoint, isolate_leaf
+from plantdisease.serving.abiotic import CornAbioticEvidence
 from plantdisease.serving.hierarchy import (
     ConditionPrediction,
     CropPrediction,
     TaxonomyHierarchy,
 )
 from plantdisease.serving.knowledge import DiseaseKnowledge
+from plantdisease.serving.plant_identity import (
+    PlantIdentityResult,
+    PlantIdentityStatus,
+    PlantSpeciesPrediction,
+)
 from plantdisease.serving.service import (
     GradCAMImages,
     InferenceResult,
     InferenceServiceError,
+    LeafSelectionRequiredError,
     TimingBreakdown,
 )
 from plantdisease.vlm.assistant import AssistantResponse, ClassifierContext
@@ -46,6 +55,9 @@ DOMAIN_WARNING = "Results may not generalize to field images."
 class FakeService:
     def __init__(self) -> None:
         self.calls: list[tuple[bytes, int, bool]] = []
+        self.crop_override_calls: list[tuple[list[Prediction] | None, str | None]] = []
+        self.target_points: list[TargetPoint | None] = []
+        self.leaf_isolation: LeafIsolation | None = None
 
     def predict(
         self,
@@ -53,8 +65,15 @@ class FakeService:
         *,
         top_k: int = 5,
         include_gradcam: bool = True,
+        crop_predictions_override: list[Prediction] | None = None,
+        crop_prediction_source: str | None = None,
+        target_point: TargetPoint | None = None,
     ) -> InferenceResult:
         self.calls.append((image_bytes, top_k, include_gradcam))
+        self.target_points.append(target_point)
+        self.crop_override_calls.append(
+            (crop_predictions_override, crop_prediction_source)
+        )
         probabilities = [0.50, 0.20, 0.12, 0.10, 0.08]
         predictions = [
             Prediction(index, f"Corn___class_{index}", probability)
@@ -103,6 +122,7 @@ class FakeService:
                 "Educational demo only.",
                 "Results may not generalize to field images.",
             ],
+            leaf_isolation=self.leaf_isolation,
             gradcam=GradCAMImages(
                 target_class_index=0,
                 target_class_name="Corn___class_0",
@@ -203,6 +223,58 @@ class FakeAdviceService:
         return CloudProviderStatus(provider, "OpenAI", False, "gpt-test", "Not configured")
 
 
+class FakePlantIdentityService:
+    def __init__(self, *, configured: bool = False) -> None:
+        self.configured = configured
+        self.identify_calls: list[bytes] = []
+
+    def status(self) -> PlantIdentityStatus:
+        return PlantIdentityStatus(
+            provider="plantnet",
+            display_name="Pl@ntNet",
+            configured=self.configured,
+            scope="Broad field species identity (100+ species)",
+            detail="Ready" if self.configured else "Add a key",
+        )
+
+    def configure(self, api_key: str) -> PlantIdentityStatus:
+        assert api_key == "temporary-key"
+        self.configured = True
+        return self.status()
+
+    def clear(self) -> PlantIdentityStatus:
+        self.configured = False
+        return self.status()
+
+    def identify(self, image_bytes: bytes) -> PlantIdentityResult:
+        self.identify_calls.append(image_bytes)
+        return PlantIdentityResult(
+            provider="plantnet",
+            method="plantnet_leaf_species_v2",
+            model_version="test-engine",
+            remaining_requests=42,
+            predictions=(
+                PlantSpeciesPrediction(
+                    scientific_name="Vitis vinifera",
+                    common_name="Common grape vine",
+                    family="Vitaceae",
+                    genus="Vitis",
+                    score=0.93,
+                    routed_plant="Grape",
+                ),
+                PlantSpeciesPrediction(
+                    scientific_name="Parthenocissus quinquefolia",
+                    common_name="Virginia creeper",
+                    family="Vitaceae",
+                    genus="Parthenocissus",
+                    score=0.04,
+                    routed_plant=None,
+                ),
+            ),
+            evidence_boundary="External species evidence; not ground truth.",
+        )
+
+
 def _qwen_status(*, ready: bool) -> QwenRuntimeStatus:
     return QwenRuntimeStatus(
         supported_platform=True,
@@ -285,6 +357,7 @@ def client(
     checkpoint.write_bytes(b"checkpoint marker")
     settings = DemoSettings(
         checkpoint=checkpoint,
+        crop_checkpoint=None,
         default_device="auto",
         example_image=Path("app/examples/field_corn_leaf.jpeg"),
         target_layer="layer4.2",
@@ -333,6 +406,73 @@ def test_health_reports_missing_checkpoint_without_loading_service(
     assert provider_called is False
 
 
+def test_plant_identity_key_can_be_configured_and_cleared_through_local_api() -> None:
+    identity = FakePlantIdentityService()
+    client = TestClient(
+        create_app(plant_identity_provider=lambda: identity)
+    )
+
+    initial = client.get("/api/plant-identity/status")
+    configured = client.post(
+        "/api/plant-identity/configure",
+        json={"api_key": "temporary-key"},
+    )
+    cleared = client.delete("/api/plant-identity/configure")
+
+    assert initial.json()["configured"] is False
+    assert configured.json()["configured"] is True
+    assert cleared.json()["configured"] is False
+    assert "temporary-key" not in configured.text
+
+
+def test_configured_broad_identity_receives_isolated_leaf_and_routes_crop_override(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_bytes(b"checkpoint marker")
+    classifier = FakeService()
+    clear_leaf = Image.new("RGB", (180, 140), (24, 25, 27))
+    ImageDraw.Draw(clear_leaf).ellipse((20, 12, 160, 128), fill=(54, 149, 62))
+    classifier.leaf_isolation = isolate_leaf(clear_leaf)
+    assert classifier.leaf_isolation.accepted is True
+    identity = FakePlantIdentityService(configured=True)
+    app = create_app(
+        DemoSettings(checkpoint=checkpoint, crop_checkpoint=None),
+        service_provider=lambda *_args, **_kwargs: classifier,
+        plant_identity_provider=lambda: identity,
+    )
+
+    response = TestClient(app).post(
+        "/api/classify",
+        files={"image": ("leaf.jpeg", FIELD_BYTES, "image/jpeg")},
+        data={
+            "include_gradcam": "false",
+            "target_x": "0.25",
+            "target_y": "0.75",
+        },
+    )
+
+    assert response.status_code == 200
+    assert len(identity.identify_calls) == 1
+    assert classifier.crop_override_calls[0] == (None, None)
+    override, source = classifier.crop_override_calls[-1]
+    assert source == "plantnet_api"
+    assert override is not None
+    assert [item.class_name for item in override] == ["Grape", "Virginia creeper"]
+    assert classifier.target_points == [
+        TargetPoint(0.25, 0.75),
+        TargetPoint(0.25, 0.75),
+    ]
+    assert response.json()["plant_identity"]["predictions"][0] == {
+        "scientific_name": "Vitis vinifera",
+        "common_name": "Common grape vine",
+        "family": "Vitaceae",
+        "genus": "Vitis",
+        "score": 0.93,
+        "routed_plant": "Grape",
+    }
+
+
 def test_classify_serializes_top5_gradcam_and_boundaries(
     client: TestClient,
     service: FakeService,
@@ -378,6 +518,172 @@ def test_classify_serializes_top5_gradcam_and_boundaries(
         (client.app.state.settings.checkpoint, "cpu", "layer4.2")
     ]
     assert service.calls == [(FIELD_BYTES, 5, True)]
+
+
+def test_classify_valid_target_coordinates_reach_service(
+    client: TestClient,
+    service: FakeService,
+) -> None:
+    response = client.post(
+        "/api/classify",
+        files={"image": ("leaf.jpeg", FIELD_BYTES, "image/jpeg")},
+        data={
+            "target_x": "0.25",
+            "target_y": "0.75",
+            "device": "cpu",
+        },
+    )
+
+    assert response.status_code == 200
+    assert service.target_points == [TargetPoint(0.25, 0.75)]
+
+
+def test_classify_rejects_incomplete_target_coordinate_pair(
+    client: TestClient,
+    service: FakeService,
+) -> None:
+    response = client.post(
+        "/api/classify",
+        files={"image": ("leaf.jpeg", FIELD_BYTES, "image/jpeg")},
+        data={"target_x": "0.25"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == (
+        "target_x and target_y must be supplied together"
+    )
+    assert service.calls == []
+
+
+@pytest.mark.parametrize(
+    ("target_x", "target_y"),
+    [("nan", "0.5"), ("-0.1", "0.5"), ("0.5", "1.1")],
+)
+def test_classify_rejects_invalid_target_coordinates(
+    client: TestClient,
+    service: FakeService,
+    target_x: str,
+    target_y: str,
+) -> None:
+    response = client.post(
+        "/api/classify",
+        files={"image": ("leaf.jpeg", FIELD_BYTES, "image/jpeg")},
+        data={"target_x": target_x, "target_y": target_y},
+    )
+
+    assert response.status_code == 422
+    assert "finite numbers between 0 and 1" in response.json()["detail"]
+    assert service.calls == []
+
+
+def test_classify_returns_structured_selection_required_response(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_bytes(b"checkpoint marker")
+    image = Image.new("RGB", (240, 160), (25, 25, 27))
+    draw = ImageDraw.Draw(image)
+    draw.ellipse((15, 30, 108, 135), fill=(52, 145, 61))
+    draw.ellipse((132, 25, 225, 130), fill=(55, 151, 65))
+    isolation = isolate_leaf(image)
+    assert isolation.accepted is False
+
+    class SelectingService(FakeService):
+        def predict(self, *_args: object, **_kwargs: object) -> InferenceResult:
+            raise LeafSelectionRequiredError(isolation)
+
+    app = create_app(
+        DemoSettings(checkpoint=checkpoint),
+        service_provider=lambda *_args, **_kwargs: SelectingService(),
+    )
+    response = TestClient(app).post(
+        "/api/classify",
+        files={"image": ("leaf.jpeg", FIELD_BYTES, "image/jpeg")},
+    )
+
+    assert response.status_code == 409
+    detail = response.json()["detail"]
+    assert detail["code"] == "leaf_selection_required"
+    assert detail["leaf_isolation"]["accepted"] is False
+    assert detail["leaf_isolation"]["selection_mode"] == "automatic"
+    assert detail["leaf_isolation"]["target_point"] is None
+    assert detail["leaf_isolation"]["purity"]["fragment_count"] == 2
+    assert "predictions" not in detail
+
+
+def test_classify_serializes_positive_abiotic_evidence(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_bytes(b"checkpoint marker")
+    evidence = CornAbioticEvidence(
+        method="opencv_corn_midrib_stress_v1",
+        status="suspected_abiotic_nutrient_stress",
+        suspected=True,
+        abnormal_coverage_percent=18.0,
+        central_axis_share=0.72,
+        longitudinal_continuity=0.81,
+        bilateral_similarity=0.68,
+        off_axis_lesion_coverage_percent=1.2,
+        abnormal_coverage_threshold=8.0,
+        central_axis_share_threshold=0.55,
+        longitudinal_continuity_threshold=0.60,
+        bilateral_similarity_threshold=0.50,
+        off_axis_lesion_coverage_threshold=5.0,
+        reason="Morphology evidence only; cannot identify a specific nutrient.",
+        evidence_boundary="Soil or tissue testing may be required.",
+        overlay=Image.new("RGB", (16, 16), (48, 110, 70)),
+    )
+
+    class AbioticService(FakeService):
+        def predict(self, *args: object, **kwargs: object) -> InferenceResult:
+            result = super().predict(*args, **kwargs)
+            return replace(
+                result,
+                hierarchy=replace(
+                    result.hierarchy,
+                    selected_class_name=None,
+                    disease_confident=False,
+                ),
+                knowledge=None,
+                gradcam=None,
+                abiotic_evidence=evidence,
+            )
+
+    app = create_app(
+        DemoSettings(checkpoint=checkpoint),
+        service_provider=lambda *_args, **_kwargs: AbioticService(),
+    )
+    response = TestClient(app).post(
+        "/api/classify",
+        files={"image": ("leaf.jpeg", FIELD_BYTES, "image/jpeg")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["hierarchy"]["selected_class_name"] is None
+    assert payload["knowledge"] is None
+    assert payload["gradcam"] is None
+    serialized_evidence = dict(payload["abiotic_evidence"])
+    overlay_data_url = serialized_evidence.pop("overlay_data_url")
+    assert serialized_evidence == {
+        "method": "opencv_corn_midrib_stress_v1",
+        "status": "suspected_abiotic_nutrient_stress",
+        "suspected": True,
+        "abnormal_coverage_percent": 18.0,
+        "central_axis_share": 0.72,
+        "longitudinal_continuity": 0.81,
+        "bilateral_similarity": 0.68,
+        "off_axis_lesion_coverage_percent": 1.2,
+        "abnormal_coverage_threshold": 8.0,
+        "central_axis_share_threshold": 0.55,
+        "longitudinal_continuity_threshold": 0.6,
+        "bilateral_similarity_threshold": 0.5,
+        "off_axis_lesion_coverage_threshold": 5.0,
+        "reason": "Morphology evidence only; cannot identify a specific nutrient.",
+        "evidence_boundary": "Soil or tissue testing may be required.",
+    }
+    assert overlay_data_url.startswith("data:image/png;base64,")
 
 
 def test_classify_rejects_corrupt_upload_before_loading_service(
