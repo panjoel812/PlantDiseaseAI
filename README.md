@@ -108,6 +108,14 @@ internal sanity check—not external OOD evidence—and shows that the MobileNet
 prototype gate is not ready for deployment. See the
 [holdout report](reports/openleaf14_open_set_holdout6.md).
 
+A subsequent external-source audit found that the simple OpenCV largest-green-component
+gate falsely accepts connected foliage and background in field images, so 72 iNaturalist
+candidates were excluded from metrics. A replacement CC BY 4.0 UCI experiment used 96
+controlled single-leaf silhouettes across six identity-disjoint species. It rejected all
+48 test silhouettes (AUROC `0.99995`), but this primarily separates photographs from
+textureless outline proxies and is **not field OOD evidence**. See the
+[external outline stress-test report](reports/openleaf14_external_ood_shape6.md).
+
 See the [complete OpenLeaf-14 protocol](docs/research/open_world_hierarchical_plant_research.md),
 the [configuration](configs/openworld_research.yaml), and the
 [manifest example](configs/openworld_manifest.example.jsonl). No Pl@ntNet/PlantWild/

@@ -177,7 +177,8 @@
 | Leaf-14 OpenCV 训练准备 | `src/plantdisease/openworld/leaf_pipeline.py`、`src/plantdisease/openworld/preparation.py`、`plant-openworld-prepare` | 合成验证；输出单叶物种输入、mask、轮廓特征、病斑 overlay/crop，原图不修改 |
 | OpenLeaf-14 真实闭集 pilot | `reports/openleaf14_pilot.md`、本地 `outputs/plantvillage/leaf14_opencv_pilot_seed42/` | 已运行；448 张接受的 test 叶片 Accuracy 0.9241 / Macro F1 0.9230；含 21 次预处理拒绝的管线成功率 0.8827；非 OOD 指标 |
 | OpenLeaf-14 内部六类留出 | `reports/openleaf14_open_set_holdout6.md`、`scripts/run_leaf14_open_set_pilot.py` | 已运行；unknown AUROC 0.7530、known coverage 0.6328、pseudo-unknown false accept 0.2083；不可部署，非外部 OOD |
+| OpenLeaf-14 外部轮廓压力测试 | `reports/openleaf14_external_ood_shape6.md`、`scripts/build_uci_leaf_shape_ood.py`、`scripts/run_leaf14_external_ood.py` | 已运行；UCI CC BY 4.0 六物种轮廓代理 test AUROC 0.99995 / false accept 0，但主要反映照片—无纹理轮廓域差异，不是田间 OOD；iNaturalist 自动门控视觉审计失败且未入指标 |
 | 冻结特征与多原型索引 | `src/plantdisease/openworld/encoder.py`、`src/plantdisease/openworld/index.py`、`src/plantdisease/openworld/cli.py` | 合成验证；尚无真实数据指标 |
 | 植物优先病害路由 | `src/plantdisease/openworld/condition.py`、`src/plantdisease/openworld/router.py`、`tests/openworld/test_router.py` | 合成验证；未知植物不会调用病害模型 |
-| OpenLeaf-14 验证记录 | `reports/openworld_research_scaffold.md` | 29 个定向测试与 Ruff 通过；用户多叶葡萄在 checkpoint 分类前按预期拒绝；外部六物种 OOD pilot 未开始 |
+| OpenLeaf-14 验证记录 | `reports/openworld_research_scaffold.md` | 29 个初始定向测试与 Ruff 通过；用户多叶葡萄在 checkpoint 分类前按预期拒绝；外部轮廓压力测试已完成，真实彩色田间 OOD 仍未完成 |
 | Pl@ntNet / PlantWild / PlantSeg pilot | 见研究协议的 Milestones | 未开始；没有下载数据或训练结果 |

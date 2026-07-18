@@ -504,7 +504,7 @@
 
 ## Week 8 后续研究：OpenLeaf-14 单叶分层识别
 
-> 状态（2026-07-18）：研究范围已收缩为 14 种常见作物的单叶识别，并建立 OpenCV 去背景叶片 → 植物拒识 → 叶片内病斑 crop → 宿主病害模型的合成基线；尚无真实开放世界指标。
+> 状态（2026-07-18）：研究范围已收缩为 14 种常见作物的单叶识别，并建立 OpenCV 去背景叶片 → 植物拒识 → 叶片内病斑 crop → 宿主病害模型。已完成外部受控轮廓压力测试，但田间自动分离视觉审计失败；因此仍无真实彩色田间开放世界指标。
 
 - [x] 定义“先植物、后病害”的分层路由，未知植物不得进入病害模型。证据：`src/plantdisease/openworld/router.py`、`tests/openworld/test_router.py`。
 - [x] 建立含来源、许可、实体分组和 OOD split 的 JSONL 数据契约。证据：`src/plantdisease/openworld/manifest.py`、`configs/openworld_manifest.example.jsonl`。
@@ -512,8 +512,9 @@
 - [x] 实现单片叶轮廓质量门控、透明/中性背景叶片导出、形状特征、叶片 mask 内病斑框与 crop 批量准备；原图不修改。证据：`src/plantdisease/openworld/leaf_pipeline.py`、`src/plantdisease/openworld/preparation.py`、`tests/openworld/test_leaf_pipeline.py`、`tests/openworld/test_preparation.py`。
 - [x] 将同一单叶预处理接入 14 类作物训练、checkpoint 配置恢复和推理拒绝；完成冻结 MobileNetV2 小型 pilot。条件 test Accuracy `0.9241` / Macro F1 `0.9230`，含预处理拒绝的管线成功率 `0.8827`。证据：`reports/openleaf14_pilot.md`、本地 `outputs/plantvillage/leaf14_opencv_pilot_seed42/`。
 - [x] 完成内部 8-known / 6-held-out pseudo-unknown 协议 sanity check，并修复重复奖励拒绝的阈值目标。AUROC `0.7530`、known coverage `0.6328`、pseudo-unknown false accept `0.2083`；明确判定为不可部署基线。证据：`reports/openleaf14_open_set_holdout6.md`。
+- [x] 完成外部数据源许可/视觉审计与 6 物种受控轮廓压力测试：iNaturalist 现场图自动门控出现严重背景/多叶假接受，72 个候选未进入指标；UCI CC BY 4.0 的 96 张轮廓代理按 3 validation / 3 test 物种隔离，测试 AUROC `0.99995`、unknown false accept `0`，但明确仅反映照片—无纹理轮廓域差异。证据：`reports/openleaf14_external_ood_shape6.md`。
 - [x] 记录 Pl@ntNet-300K、PlantWild v2、PlantSeg、PlantDoc 数据阶梯、开放集指标、许可边界和三档算力方案。证据：`docs/research/open_world_hierarchical_plant_research.md`、`configs/openworld_research.yaml`。
-- [ ] 完成 14 种已知作物叶片、至少 6 种完全隔离未知叶片的 pilot，报告叶片分离错误、AUROC、FPR@95TPR、OSCR、未知误接受率与端到端条件 Macro F1。
+- [ ] 完成 14 种已知作物叶片、至少 6 种**真实彩色且经 mask/人工审计**的完全隔离未知叶片 pilot，报告叶片分离错误、AUROC、FPR@95TPR、OSCR、未知误接受率与端到端条件 Macro F1；受控二值轮廓压力测试不计作本项完成。
 - [ ] 在同一冻结 split 上比较 Pl@ntNet ResNet18、DINOv2 ViT-S/14 与 MobileCLIP2-S0；不得只报告最有利编码器。
 - [ ] 仅为有许可病害数据的宿主训练条件模型；无模型时必须返回 `condition model unavailable`。
 - [ ] 使用 PlantSeg 真值评估病斑分割；OpenCV 结果继续只称为可见病斑候选，不称为真实病灶。

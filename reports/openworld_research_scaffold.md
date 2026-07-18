@@ -2,7 +2,7 @@
 
 Date: 2026-07-18  
 Branch: `codex/open-world-plant-research`  
-Status: implementation and synthetic tests complete; real-data pilot not started
+Status: initial scaffold complete; later pilot evidence is linked below
 
 ## Completed scope
 
@@ -46,12 +46,19 @@ classification because several large green components were present (largest-comp
 dominance `0.514`). This is expected under the current one-clear-leaf input contract;
 it is not a botanical evaluation.
 
-## Results not claimed
+## Follow-on pilot evidence
 
-- No external dataset was downloaded in this work.
+- Closed-set 14-crop single-leaf pilot: `reports/openleaf14_pilot.md`.
+- Internal six-species pseudo-OOD holdout: `reports/openleaf14_open_set_holdout6.md`.
+- External UCI six-species outline stress test and failed iNaturalist field-candidate
+  visual audit: `reports/openleaf14_external_ood_shape6.md`.
+
+## Results still not claimed
+
 - No Pl@ntNet, PlantWild, PlantSeg, or PlantDoc model was trained or evaluated.
-- No AUROC, FPR@95TPR, OSCR, field accuracy, lesion IoU, or end-to-end disease metric
-  is available yet.
+- No color field OOD accuracy, lesion IoU, or end-to-end external disease metric is
+  available. The reported external AUROC/FPR/OSCR values are outline-only stress-test
+  metrics and must not be generalized to field photographs.
 - MobileNetV2 ImageNet features are a compute baseline, not a selected final encoder.
 - “Expandable catalog” does not mean universal plant recognition.
 
