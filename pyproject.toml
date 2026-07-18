@@ -62,7 +62,7 @@ plant-smoke = "plantdisease.cli:smoke_main"
 packages = ["src/plantdisease", "app"]
 
 [tool.pytest.ini_options]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers --import-mode=importlib"
 testpaths = ["tests"]
 
 [tool.ruff]
