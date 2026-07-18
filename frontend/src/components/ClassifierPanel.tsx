@@ -98,6 +98,8 @@ function ClassifierContent({ state }: ClassifierPanelProps) {
   const result = state.data;
   const hierarchy = result.hierarchy;
   const selectedCrop = hierarchy.crops[0];
+  const leafIsolation = result.leaf_isolation;
+  const plantNovelty = result.plant_novelty;
   const lesionAnalysis = result.lesion_analysis;
   const gradcam = result.gradcam;
   const gradcamSource = showOverlay
@@ -118,11 +120,44 @@ function ClassifierContent({ state }: ClassifierPanelProps) {
         </div>
       ) : null}
 
+      {leafIsolation ? (
+        <section className="leaf-isolation-card" aria-labelledby="leaf-isolation-title">
+          <div className="evidence-heading">
+            <div>
+              <span className="step-label">Step 1 · OpenCV</span>
+              <h3 id="leaf-isolation-title">Isolate one leaf</h3>
+            </div>
+            <span className="crop-gate-status is-accepted">Passed</span>
+          </div>
+          <div className="leaf-isolation-body">
+            {leafIsolation.cutout_data_url ? (
+              <div className="leaf-cutout-frame">
+                <img
+                  src={leafIsolation.cutout_data_url}
+                  alt="Leaf isolated from its original background by OpenCV"
+                />
+              </div>
+            ) : null}
+            <div className="leaf-isolation-copy">
+              <strong>Background removed before plant recognition</strong>
+              <p>{leafIsolation.reason}</p>
+              {leafIsolation.shape ? (
+                <div className="leaf-shape-pills" aria-label="Leaf outline measurements">
+                  <span>Coverage {leafIsolation.shape.coverage_percent.toFixed(1)}%</span>
+                  <span>Solidity {leafIsolation.shape.solidity.toFixed(2)}</span>
+                  <span>Aspect {leafIsolation.shape.aspect_ratio.toFixed(2)}</span>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {lesionAnalysis ? (
         <section className="vision-evidence" aria-labelledby="vision-evidence-title">
           <div className="evidence-heading">
             <div>
-              <span className="step-label">Step 1 · OpenCV</span>
+              <span className="step-label">Step 2 · OpenCV</span>
               <h3 id="vision-evidence-title">Visible lesion map</h3>
             </div>
             <span className="evidence-method">Geometry, not diagnosis</span>
@@ -170,7 +205,7 @@ function ClassifierContent({ state }: ClassifierPanelProps) {
 
       <div className="crop-summary">
         <div className="crop-step-row">
-          <span className="eyebrow">Step 2 · Plant identity</span>
+          <span className="eyebrow">Step 3 · Plant identity</span>
           <span
             className={`crop-gate-status ${hierarchy.crop_confident ? "is-accepted" : "is-uncertain"}`}
           >
@@ -198,15 +233,34 @@ function ClassifierContent({ state }: ClassifierPanelProps) {
           </div>
         ) : null}
         <p className="crop-decision">{hierarchy.decision_reason}</p>
+        {plantNovelty ? (
+          <div className="novelty-evidence">
+            <div className="novelty-row">
+              <strong>Unknown-plant gate</strong>
+              <span className={plantNovelty.accepted ? "is-pass" : "is-stop"}>
+                {plantNovelty.accepted ? "Passed" : "Abstained"}
+              </span>
+            </div>
+            <div className="novelty-meter" aria-hidden="true">
+              <span style={{ width: `${Math.max(0, Math.min(100, plantNovelty.similarity * 100))}%` }} />
+            </div>
+            <p>
+              Similarity {plantNovelty.similarity.toFixed(3)} / threshold{" "}
+              {plantNovelty.similarity_threshold.toFixed(3)} · margin{" "}
+              {plantNovelty.margin.toFixed(3)} / {plantNovelty.margin_threshold.toFixed(3)}
+            </p>
+            <small>{plantNovelty.evidence_boundary}</small>
+          </div>
+        ) : null}
       </div>
       <p className="hierarchy-method">
         {hierarchy.crop_source === "independent_mobilenet_v2_crop_checkpoint"
-          ? "Plant identity comes from an independent lightweight MobileNetV2 checkpoint; scope remains the PlantVillage closed set."
+          ? "Plant identity comes from the isolated-leaf MobileNetV2 pilot; disease inference only continues after the plant gate accepts it."
           : "Fallback crop gate comes from the joint disease model; install the independent crop checkpoint for the full hierarchy."}
       </p>
       <div className="disease-step">
         <div className="crop-step-row">
-          <span className="step-label">Step 3 · Disease within plant</span>
+          <span className="step-label">Step 4 · Disease within plant</span>
           {hierarchy.crop_confident ? (
             <span
               className={`crop-gate-status ${hierarchy.disease_confident !== false ? "is-accepted" : "is-uncertain"}`}

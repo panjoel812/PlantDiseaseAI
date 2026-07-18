@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import torch
 from PIL import Image
@@ -34,6 +34,10 @@ from plantdisease.serving.images import (
 from plantdisease.serving.knowledge import DiseaseKnowledge, lookup_disease_knowledge
 from plantdisease.serving.lesions import LesionAnalysis, analyze_lesions
 
+if TYPE_CHECKING:
+    from plantdisease.openworld.index import PrototypeIndex
+    from plantdisease.openworld.leaf_pipeline import LeafIsolation
+
 DEFAULT_CONFIDENCE_WARNING_THRESHOLD = 0.80
 
 EDUCATIONAL_WARNING = (
@@ -51,6 +55,14 @@ CROP_UNCERTAIN_WARNING = (
 )
 DISEASE_UNCERTAIN_WARNING = (
     "Disease evidence did not pass the confidence gate; diagnosis and management are withheld."
+)
+UNKNOWN_PLANT_WARNING = (
+    "The experimental prototype gate did not accept this plant identity; "
+    "disease labels are withheld."
+)
+PROXY_GATE_WARNING = (
+    "Unknown-plant thresholds were calibrated with controlled outline proxies, "
+    "not field photographs."
 )
 
 
@@ -75,6 +87,23 @@ class GradCAMImages:
 
 
 @dataclass(frozen=True)
+class PlantNoveltyEvidence:
+    """Auditable evidence from the optional prototype-based unknown-plant gate."""
+
+    method: str
+    accepted: bool
+    candidate_plant: str
+    classifier_agrees: bool
+    similarity: float
+    margin: float
+    similarity_threshold: float
+    margin_threshold: float
+    alternatives: tuple[tuple[str, float], ...]
+    reason: str
+    evidence_boundary: str
+
+
+@dataclass(frozen=True)
 class InferenceResult:
     predictions: list[Prediction]
     hierarchy: TaxonomyHierarchy
@@ -87,6 +116,8 @@ class InferenceResult:
     target_layer_name: str | None
     timings: TimingBreakdown
     warnings: list[str]
+    leaf_isolation: LeafIsolation | None = None
+    plant_novelty: PlantNoveltyEvidence | None = None
     lesion_analysis: LesionAnalysis | None = None
     gradcam: GradCAMImages | None = None
 
@@ -111,6 +142,7 @@ class InferenceService:
         crop_confidence_threshold: float = DEFAULT_CROP_CONFIDENCE_THRESHOLD,
         crop_margin_threshold: float = DEFAULT_CROP_MARGIN_THRESHOLD,
         crop_classifier: CropClassifier | None = None,
+        prototype_index: PrototypeIndex | None = None,
     ) -> None:
         if not class_names:
             raise ValueError("class_names must be non-empty")
@@ -128,6 +160,7 @@ class InferenceService:
         self.crop_confidence_threshold = crop_confidence_threshold
         self.crop_margin_threshold = crop_margin_threshold
         self.crop_classifier = crop_classifier
+        self.prototype_index = prototype_index
         self.model_name = str(self.config.get("model_name", "unknown"))
         self.image_size = int(self.config.get("image_size", 224))
         self._transform = build_eval_transform(self.image_size)
@@ -140,6 +173,7 @@ class InferenceService:
         device: torch.device,
         target_layer_name: str | None = None,
         crop_checkpoint_path: Path | None = None,
+        prototype_index_path: Path | None = None,
     ) -> InferenceService:
         model, class_names, config = load_checkpoint(checkpoint_path, device)
         model_name = str(config["model_name"])
@@ -152,6 +186,13 @@ class InferenceService:
             if crop_checkpoint_path is not None and crop_checkpoint_path.is_file()
             else None
         )
+        prototype_index = (
+            _load_prototype_index(prototype_index_path)
+            if prototype_index_path is not None
+            and (prototype_index_path / "index.json").is_file()
+            and (prototype_index_path / "prototypes.npz").is_file()
+            else None
+        )
         return cls(
             model=model,
             class_names=class_names,
@@ -161,6 +202,7 @@ class InferenceService:
             target_layer=target.module,
             target_layer_name=target.name,
             crop_classifier=crop_classifier,
+            prototype_index=prototype_index,
         )
 
     def predict(
@@ -183,6 +225,8 @@ class InferenceService:
 
             step_started = time.perf_counter()
             leaf_mask = None
+            leaf_isolation = None
+            prepared_crop_image = image
             if (
                 self.crop_classifier is not None
                 and self.crop_classifier.input_preprocessing
@@ -190,12 +234,13 @@ class InferenceService:
             ):
                 from plantdisease.openworld.leaf_pipeline import isolate_leaf
 
-                isolation = isolate_leaf(image)
-                if not isolation.accepted:
+                leaf_isolation = isolate_leaf(image)
+                if not leaf_isolation.accepted or leaf_isolation.species_image is None:
                     raise InputValidationError(
-                        f"leaf isolation rejected input: {isolation.reason}"
+                        f"leaf isolation rejected input: {leaf_isolation.reason}"
                     )
-                leaf_mask = isolation.mask
+                leaf_mask = leaf_isolation.mask
+                prepared_crop_image = leaf_isolation.species_image
             lesion_analysis = analyze_lesions(image, leaf_mask=leaf_mask)
             tensor = self._transform(image)
             preprocess_ms = _elapsed_ms(step_started)
@@ -208,7 +253,7 @@ class InferenceService:
                 k=len(self.class_names),
             )
             crop_predictions = (
-                self.crop_classifier.predict(image)
+                self.crop_classifier.predict_prepared(prepared_crop_image)
                 if self.crop_classifier is not None
                 else None
             )
@@ -218,6 +263,23 @@ class InferenceService:
                 crop_confidence_threshold=self.crop_confidence_threshold,
                 crop_margin_threshold=self.crop_margin_threshold,
             )
+            plant_novelty = self._plant_novelty(
+                prepared_crop_image,
+                crop_predictions,
+            )
+            if plant_novelty is not None and not plant_novelty.accepted:
+                hierarchy = replace(
+                    hierarchy,
+                    selected_class_name=None,
+                    conditions=[],
+                    crop_confident=False,
+                    disease_confident=False,
+                    decision_reason=plant_novelty.reason,
+                    disease_decision_reason=(
+                        "Disease labels are withheld because the unknown-plant gate "
+                        "did not accept the plant identity."
+                    ),
+                )
             predictions = all_predictions[: min(top_k, len(all_predictions))]
             selected_prediction = None
             if hierarchy.disease_confident and hierarchy.conditions:
@@ -257,6 +319,8 @@ class InferenceService:
                     total_ms=_elapsed_ms(started),
                 ),
                 warnings=warnings,
+                leaf_isolation=leaf_isolation,
+                plant_novelty=plant_novelty,
                 lesion_analysis=lesion_analysis,
                 gradcam=gradcam,
             )
@@ -264,6 +328,46 @@ class InferenceService:
             raise
         except Exception as exc:  # noqa: BLE001 - stable service boundary for UI callers.
             raise InferenceServiceError("inference failed") from exc
+
+    def _plant_novelty(
+        self,
+        image: Image.Image,
+        crop_predictions: list[Prediction] | None,
+    ) -> PlantNoveltyEvidence | None:
+        if (
+            self.prototype_index is None
+            or self.crop_classifier is None
+            or not crop_predictions
+        ):
+            return None
+        embedding = self.crop_classifier.embed_prepared(image).numpy()
+        decision = self.prototype_index.predict(embedding)
+        head_candidate = crop_predictions[0].class_name
+        classifier_agrees = decision.candidate_plant_id == head_candidate
+        accepted = decision.accepted and classifier_agrees
+        if not classifier_agrees:
+            reason = (
+                f"Classifier candidate {head_candidate} conflicts with prototype "
+                f"candidate {decision.candidate_plant_id}; plant identity is withheld."
+            )
+        else:
+            reason = decision.reason
+        return PlantNoveltyEvidence(
+            method="frozen_encoder_multi_prototype_cosine_v1",
+            accepted=accepted,
+            candidate_plant=decision.candidate_plant_id,
+            classifier_agrees=classifier_agrees,
+            similarity=decision.similarity,
+            margin=decision.margin,
+            similarity_threshold=self.prototype_index.similarity_threshold,
+            margin_threshold=self.prototype_index.margin_threshold,
+            alternatives=decision.alternatives,
+            reason=reason,
+            evidence_boundary=(
+                "Experimental abstention gate. Thresholds use controlled outline-proxy "
+                "unknowns and are not validated for general field imagery."
+            ),
+        )
 
     def _generate_gradcam(
         self,
@@ -290,8 +394,12 @@ class InferenceService:
         hierarchy: TaxonomyHierarchy,
     ) -> list[str]:
         warnings = [EDUCATIONAL_WARNING, DOMAIN_WARNING]
+        if self.prototype_index is not None:
+            warnings.append(PROXY_GATE_WARNING)
         if not hierarchy.crop_confident:
             warnings.append(CROP_UNCERTAIN_WARNING)
+            if self.prototype_index is not None:
+                warnings.append(UNKNOWN_PLANT_WARNING)
         elif not hierarchy.disease_confident:
             warnings.append(DISEASE_UNCERTAIN_WARNING)
         elif (
@@ -325,3 +433,9 @@ def _checkpoint_id(path: Path) -> str:
 
 def _elapsed_ms(started: float) -> float:
     return (time.perf_counter() - started) * 1000.0
+
+
+def _load_prototype_index(path: Path) -> PrototypeIndex:
+    from plantdisease.openworld.index import PrototypeIndex
+
+    return PrototypeIndex.load(path)

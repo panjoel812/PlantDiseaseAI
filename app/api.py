@@ -39,7 +39,10 @@ DEFAULT_CHECKPOINT = Path(
     "outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/checkpoint.pt"
 )
 DEFAULT_CROP_CHECKPOINT = Path(
-    "outputs/plantvillage/crop_mobilenet_v2_seed42/checkpoint.pt"
+    "outputs/plantvillage/leaf14_opencv_pilot_seed42/checkpoint.pt"
+)
+DEFAULT_OPENWORLD_INDEX = Path(
+    "outputs/plantvillage/leaf14_external_ood_shape6_seed42/index"
 )
 DEFAULT_EXAMPLE_IMAGE = Path("app/examples/field_corn_leaf.jpeg")
 DEFAULT_CORS_ORIGINS = (
@@ -72,6 +75,7 @@ class ServiceProvider(Protocol):
         checkpoint_path: Path,
         *,
         crop_checkpoint_path: Path | None = None,
+        prototype_index_path: Path | None = None,
         device_name: str = "cpu",
         target_layer_name: str | None = None,
     ) -> ClassifierService: ...
@@ -158,6 +162,7 @@ class DemoSettings:
 
     checkpoint: Path = DEFAULT_CHECKPOINT
     crop_checkpoint: Path | None = DEFAULT_CROP_CHECKPOINT
+    openworld_index: Path | None = DEFAULT_OPENWORLD_INDEX
     default_device: str = "auto"
     example_image: Path = DEFAULT_EXAMPLE_IMAGE
     target_layer: str | None = None
@@ -278,6 +283,13 @@ def _register_routes(app: FastAPI) -> None:
                 and settings.crop_checkpoint.is_file()
                 else None
             ),
+            openworld_index=(
+                settings.openworld_index
+                if settings.openworld_index is not None
+                and (settings.openworld_index / "index.json").is_file()
+                and (settings.openworld_index / "prototypes.npz").is_file()
+                else None
+            ),
             device=resolved_device,
             target_layer=target_layer or settings.target_layer,
         )
@@ -364,6 +376,11 @@ def _health_payload(
 ) -> dict[str, object]:
     disease_ready = settings.checkpoint.is_file()
     crop_ready = settings.crop_checkpoint is not None and settings.crop_checkpoint.is_file()
+    openworld_ready = (
+        settings.openworld_index is not None
+        and (settings.openworld_index / "index.json").is_file()
+        and (settings.openworld_index / "prototypes.npz").is_file()
+    )
     ready = disease_ready and crop_ready
     return {
         "status": "ok" if ready else "degraded",
@@ -381,6 +398,15 @@ def _health_payload(
                 "ready"
                 if crop_ready
                 else "crop checkpoint not found; joint crop gate fallback"
+            ),
+        },
+        "openworld_gate": {
+            "ready": openworld_ready,
+            "index": str(settings.openworld_index) if settings.openworld_index else None,
+            "detail": (
+                "experimental outline-proxy-calibrated gate ready"
+                if openworld_ready
+                else "prototype index not found; confidence-only plant gate"
             ),
         },
         "qwen": _serialize_qwen_status(qwen_status),
@@ -481,6 +507,7 @@ def _get_service(
     *,
     checkpoint: Path,
     crop_checkpoint: Path | None,
+    openworld_index: Path | None,
     device: str,
     target_layer: str | None,
 ) -> ClassifierService:
@@ -488,6 +515,7 @@ def _get_service(
         return provider(
             checkpoint,
             crop_checkpoint_path=crop_checkpoint,
+            prototype_index_path=openworld_index,
             device_name=device,
             target_layer_name=target_layer,
         )
@@ -567,6 +595,59 @@ def _serialize_result(result: InferenceResult) -> dict[str, object]:
             ],
             "overlay_data_url": _png_data_url(analysis.overlay),
         }
+    leaf_isolation: dict[str, object] | None = None
+    if result.leaf_isolation is not None:
+        isolation = result.leaf_isolation
+        shape = isolation.shape
+        leaf_isolation = {
+            "method": isolation.method,
+            "accepted": isolation.accepted,
+            "reason": isolation.reason,
+            "image_size": list(isolation.image_size),
+            "bounding_box": (
+                list(isolation.bounding_box)
+                if isolation.bounding_box is not None
+                else None
+            ),
+            "shape": (
+                {
+                    "area_pixels": shape.area_pixels,
+                    "coverage_percent": shape.coverage_percent,
+                    "aspect_ratio": shape.aspect_ratio,
+                    "circularity": shape.circularity,
+                    "solidity": shape.solidity,
+                    "extent": shape.extent,
+                    "border_touch_ratio": shape.border_touch_ratio,
+                    "component_dominance": shape.component_dominance,
+                }
+                if shape is not None
+                else None
+            ),
+            "cutout_data_url": (
+                _png_data_url(isolation.cutout_rgba)
+                if isolation.cutout_rgba is not None
+                else None
+            ),
+        }
+    plant_novelty: dict[str, object] | None = None
+    if result.plant_novelty is not None:
+        evidence = result.plant_novelty
+        plant_novelty = {
+            "method": evidence.method,
+            "accepted": evidence.accepted,
+            "candidate_plant": evidence.candidate_plant,
+            "classifier_agrees": evidence.classifier_agrees,
+            "similarity": evidence.similarity,
+            "margin": evidence.margin,
+            "similarity_threshold": evidence.similarity_threshold,
+            "margin_threshold": evidence.margin_threshold,
+            "alternatives": [
+                {"plant": plant, "similarity": similarity}
+                for plant, similarity in evidence.alternatives
+            ],
+            "reason": evidence.reason,
+            "evidence_boundary": evidence.evidence_boundary,
+        }
     knowledge: dict[str, object] | None = None
     if result.knowledge is not None:
         knowledge = {
@@ -622,6 +703,8 @@ def _serialize_result(result: InferenceResult) -> dict[str, object]:
             ],
         },
         "knowledge": knowledge,
+        "leaf_isolation": leaf_isolation,
+        "plant_novelty": plant_novelty,
         "lesion_analysis": lesion_analysis,
         "model_name": result.model_name,
         "checkpoint_path": result.checkpoint_path,
@@ -653,6 +736,7 @@ __all__: Sequence[str] = [
     "AdviceProvider",
     "DEFAULT_CHECKPOINT",
     "DEFAULT_CROP_CHECKPOINT",
+    "DEFAULT_OPENWORLD_INDEX",
     "DemoSettings",
     "QwenProvider",
     "ServiceProvider",

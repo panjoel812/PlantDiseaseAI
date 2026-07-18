@@ -26,17 +26,18 @@ PlantVillage 闭集分类、Grad-CAM 相关性可视化、React / FastAPI 主演
 
 React Demo 默认加载用户提供的田间玉米叶图片 `app/examples/field_corn_leaf.jpeg`。该图片是无已验证真值的域外交互样例；页面返回的是模型预测，不是田间准确率或专业诊断结论。
 
-结果现在按三步显示：
+结果现在按四步显示：
 
-1. **OpenCV 可见证据**：在原始分辨率上先定位绿色叶片轮廓与病斑候选，形态学核和连通域面积阈值会随图片尺寸与叶片面积缩放；页面报告病斑面积、数量、最大区域、主要形状、粗粒度颜色、分布和叠加图。该步骤只描述像素，不根据手写规则诊断病害。
-2. **独立植物识别**：单独的 14 类轻量 MobileNetV2 作物 checkpoint 先判断植物。最高作物必须达到 `60%`，并且比第二名至少高 `10` 个百分点，才可进入下一步。
-3. **作物内病害**：38 类 ResNet50 结果只保留已选作物的病害。最高条件还必须达到 `65%` 的作物内概率并领先第二名 `15` 个百分点，才开放诊断、Grad-CAM 和管理建议；否则候选只作为证据展示。
+1. **OpenCV 单叶分离**：只接受轮廓清楚、未明显截断的一片叶子，去除背景，并展示透明 cutout、覆盖率、实心度和长宽比；多叶重叠、整株或分离失败会在模型运行前拒绝。
+2. **OpenCV 可见证据**：在原始分辨率上定位叶内病斑候选，报告面积、数量、最大区域、主要形状、粗粒度颜色、分布和叠加图。该步骤只描述像素，不根据手写规则诊断病害。
+3. **植物识别与 unknown 门控**：隔离输入的 14 类 MobileNetV2 先判断植物。最高作物必须达到 `60%`、领先第二名 `10` 个百分点；配置原型索引时还需通过余弦相似度、原型间隔和分类头一致性检查。
+4. **作物内病害**：只有前三步接受后，38 类 ResNet50 才保留已选作物的病害；最高条件达到 `65%` 且领先第二名 `15` 个百分点后才开放诊断、Grad-CAM 和管理建议。
 
 这会阻止“低置信错误作物 → 高置信错误病害”的级联。作物模型与病害模型已经分离，但两者仍是 PlantVillage 闭集模型，不是开放世界植物学识别器，也不能证明田间准确率。OpenCV 病斑遮罩只是确定性的可见证据估计，不是真值分割或病害分类器。
 
 ### 开放世界分层识别研究（实验支线）
 
-为解决“域外葡萄叶被强制判成番茄，再继续输出番茄病害”的根本问题，项目新增了与现有 Demo 隔离的 OpenLeaf-14 研究基线：
+为解决“域外葡萄叶被强制判成番茄，再继续输出番茄病害”的根本问题，OpenLeaf-14 的单叶分离与实验性拒识门控现已接入 React Demo：
 
 ```text
 图片 → OpenCV 提取一片完整叶子 + 轮廓质量门控
@@ -62,7 +63,9 @@ PlantVillage 缓存就绪后，先训练一次独立轻量作物头；生成权�
 ```bash
 uv run python scripts/train_crop_classifier.py \
   --cache-dir data/huggingface \
-  --output-dir outputs/plantvillage/crop_mobilenet_v2_seed42
+  --output-dir outputs/plantvillage/leaf14_opencv_pilot_seed42 \
+  --selected-per-crop 80 --validation-per-crop 16 --test-per-crop 32 \
+  --head-epochs 40 --leaf-isolation
 ```
 
 随后在两个终端分别启动同时使用作物与病害 checkpoint 的 FastAPI 和 React：
@@ -70,9 +73,12 @@ uv run python scripts/train_crop_classifier.py \
 ```bash
 uv run python scripts/run_demo_api.py \
   --checkpoint outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/checkpoint.pt \
-  --crop-checkpoint outputs/plantvillage/crop_mobilenet_v2_seed42/checkpoint.pt \
+  --crop-checkpoint outputs/plantvillage/leaf14_opencv_pilot_seed42/checkpoint.pt \
+  --openworld-index outputs/plantvillage/leaf14_external_ood_shape6_seed42/index \
   --device mps --host 127.0.0.1 --port 8000
 ```
+
+原型索引为可选项；使用 `--no-openworld-gate` 时 Demo 仍执行单叶分离、作物概率与间隔门控，但不会声称完成 unknown 拒识。现有阈值来自受控无纹理轮廓代理，不是彩色田间 OOD 校准，页面会明确显示该证据边界。
 
 ```bash
 cd frontend

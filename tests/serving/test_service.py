@@ -6,9 +6,11 @@ from types import SimpleNamespace
 
 import pytest
 import torch
-from PIL import Image
+from PIL import Image, ImageDraw
 from torch import nn
 
+from plantdisease.inference import Prediction
+from plantdisease.openworld.index import OpenSetDecision
 from plantdisease.serving.images import InputValidationError
 from plantdisease.serving.service import InferenceService, InferenceServiceError
 
@@ -159,6 +161,48 @@ def test_leaf_checkpoint_rejects_non_leaf_before_disease_inference() -> None:
 
     with pytest.raises(InputValidationError, match="leaf isolation rejected"):
         service.predict(buffer.getvalue(), include_gradcam=False)
+
+
+def test_prototype_rejection_withholds_disease_after_leaf_isolation() -> None:
+    service = _service()
+    service.crop_classifier = SimpleNamespace(
+        input_preprocessing="opencv_exg_single_leaf_v1",
+        predict_prepared=lambda _image: [
+            Prediction(0, "Tomato", 0.92),
+            Prediction(1, "Apple", 0.08),
+        ],
+        embed_prepared=lambda _image: torch.tensor([1.0, 0.0]),
+    )
+    service.prototype_index = SimpleNamespace(
+        similarity_threshold=0.8,
+        margin_threshold=0.1,
+        predict=lambda _embedding: OpenSetDecision(
+            accepted=False,
+            plant_id=None,
+            candidate_plant_id="Tomato",
+            similarity=0.61,
+            margin=0.22,
+            alternatives=(("Tomato", 0.61), ("Apple", 0.39)),
+            reason="Similarity 0.610 is below the calibrated threshold 0.800.",
+        ),
+    )
+    image = Image.new("RGB", (120, 96), (25, 26, 28))
+    ImageDraw.Draw(image).ellipse((14, 8, 106, 88), fill=(55, 150, 63))
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+
+    result = service.predict(buffer.getvalue(), include_gradcam=False)
+
+    assert result.leaf_isolation is not None
+    assert result.leaf_isolation.accepted is True
+    assert result.plant_novelty is not None
+    assert result.plant_novelty.accepted is False
+    assert result.hierarchy.selected_crop == "Tomato"
+    assert result.hierarchy.crop_confident is False
+    assert result.hierarchy.conditions == []
+    assert result.hierarchy.selected_class_name is None
+    assert result.knowledge is None
+    assert result.gradcam is None
 
 
 def test_predict_adds_low_confidence_warning_below_threshold() -> None:

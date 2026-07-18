@@ -442,7 +442,7 @@ describe("ClassifierPanel", () => {
     );
 
     expect(screen.getByText(/model prediction.*not ground truth/i)).toBeVisible();
-    expect(screen.getByText(/step 2.*plant identity/i)).toBeVisible();
+    expect(screen.getByText(/step 3.*plant identity/i)).toBeVisible();
     expect(screen.getByText("Apple")).toBeVisible();
     expect(screen.getByText(/crop confidence/i)).toBeVisible();
     expect(screen.getByText(/fallback crop gate comes from the joint disease model/i)).toBeVisible();

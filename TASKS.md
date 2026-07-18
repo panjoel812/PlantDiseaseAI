@@ -513,6 +513,7 @@
 - [x] 将同一单叶预处理接入 14 类作物训练、checkpoint 配置恢复和推理拒绝；完成冻结 MobileNetV2 小型 pilot。条件 test Accuracy `0.9241` / Macro F1 `0.9230`，含预处理拒绝的管线成功率 `0.8827`。证据：`reports/openleaf14_pilot.md`、本地 `outputs/plantvillage/leaf14_opencv_pilot_seed42/`。
 - [x] 完成内部 8-known / 6-held-out pseudo-unknown 协议 sanity check，并修复重复奖励拒绝的阈值目标。AUROC `0.7530`、known coverage `0.6328`、pseudo-unknown false accept `0.2083`；明确判定为不可部署基线。证据：`reports/openleaf14_open_set_holdout6.md`。
 - [x] 完成外部数据源许可/视觉审计与 6 物种受控轮廓压力测试：iNaturalist 现场图自动门控出现严重背景/多叶假接受，72 个候选未进入指标；UCI CC BY 4.0 的 96 张轮廓代理按 3 validation / 3 test 物种隔离，测试 AUROC `0.99995`、unknown false accept `0`，但明确仅反映照片—无纹理轮廓域差异。证据：`reports/openleaf14_external_ood_shape6.md`。
+- [x] 将单叶分离、轮廓指标、叶内病斑候选、14 类作物头与可选多原型拒识接入 React/FastAPI Demo；拒识时清空病害、Grad-CAM 与管理上下文，并在 UI 标注轮廓代理阈值边界。固定田间玉米样例通过单叶分离但被实验门控拒绝（similarity `0.4287`），因此不输出病害。证据：`src/plantdisease/serving/service.py`、`app/api.py`、`frontend/src/components/ClassifierPanel.tsx`、`docs/artifact-index.md`。
 - [x] 记录 Pl@ntNet-300K、PlantWild v2、PlantSeg、PlantDoc 数据阶梯、开放集指标、许可边界和三档算力方案。证据：`docs/research/open_world_hierarchical_plant_research.md`、`configs/openworld_research.yaml`。
 - [ ] 完成 14 种已知作物叶片、至少 6 种**真实彩色且经 mask/人工审计**的完全隔离未知叶片 pilot，报告叶片分离错误、AUROC、FPR@95TPR、OSCR、未知误接受率与端到端条件 Macro F1；受控二值轮廓压力测试不计作本项完成。
 - [ ] 在同一冻结 split 上比较 Pl@ntNet ResNet18、DINOv2 ViT-S/14 与 MobileCLIP2-S0；不得只报告最有利编码器。

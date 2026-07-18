@@ -8,6 +8,7 @@ from pathlib import Path
 import torch
 from PIL import Image
 from torch import nn
+from torch.nn import functional as F
 
 from plantdisease.data.transforms import build_eval_transform
 from plantdisease.inference import Prediction, predict_topk
@@ -56,6 +57,10 @@ class CropClassifier:
                     f"leaf isolation rejected input: {isolation.reason}"
                 )
             image = isolation.species_image
+        return self.predict_prepared(image)
+
+    def predict_prepared(self, image: Image.Image) -> list[Prediction]:
+        """Predict a crop from an image already prepared for this checkpoint."""
         transform = build_eval_transform(self.image_size)
         return predict_topk(
             self.model,
@@ -63,3 +68,17 @@ class CropClassifier:
             self.class_names,
             k=len(self.class_names),
         )
+
+    def embed_prepared(self, image: Image.Image) -> torch.Tensor:
+        """Return the frozen backbone embedding used by the prototype gate."""
+        features = getattr(self.model, "features", None)
+        if features is None:
+            raise ValueError("crop checkpoint does not expose a feature backbone")
+        transform = build_eval_transform(self.image_size)
+        device = next(self.model.parameters(), torch.empty(0)).device
+        inputs = transform(image).unsqueeze(0).to(device)
+        self.model.eval()
+        with torch.inference_mode():
+            activations = features(inputs)
+            pooled = F.adaptive_avg_pool2d(activations, (1, 1))
+        return torch.flatten(pooled, 1)[0].cpu()

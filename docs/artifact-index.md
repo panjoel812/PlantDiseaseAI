@@ -181,4 +181,5 @@
 | 冻结特征与多原型索引 | `src/plantdisease/openworld/encoder.py`、`src/plantdisease/openworld/index.py`、`src/plantdisease/openworld/cli.py` | 合成验证；尚无真实数据指标 |
 | 植物优先病害路由 | `src/plantdisease/openworld/condition.py`、`src/plantdisease/openworld/router.py`、`tests/openworld/test_router.py` | 合成验证；未知植物不会调用病害模型 |
 | OpenLeaf-14 验证记录 | `reports/openworld_research_scaffold.md` | 29 个初始定向测试与 Ruff 通过；用户多叶葡萄在 checkpoint 分类前按预期拒绝；外部轮廓压力测试已完成，真实彩色田间 OOD 仍未完成 |
+| OpenLeaf-14 React 接入 | `src/plantdisease/serving/service.py`、`app/api.py`、`frontend/src/components/ClassifierPanel.tsx` | 已接入单叶 cutout、轮廓指标、叶内病斑、14 类植物头与可选多原型拒识；拒识会清空疾病、Grad-CAM 与管理上下文。固定田间玉米样例通过单叶分离但被轮廓代理阈值拒绝（similarity 0.4287），因此不输出疾病；这不是田间 OOD 性能声明 |
 | Pl@ntNet / PlantWild / PlantSeg pilot | 见研究协议的 Milestones | 未开始；没有下载数据或训练结果 |

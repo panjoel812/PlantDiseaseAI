@@ -98,10 +98,47 @@ export interface LesionAnalysis {
   overlay_data_url: string;
 }
 
+export interface LeafShapeFeatures {
+  area_pixels: number;
+  coverage_percent: number;
+  aspect_ratio: number;
+  circularity: number;
+  solidity: number;
+  extent: number;
+  border_touch_ratio: number;
+  component_dominance: number;
+}
+
+export interface LeafIsolation {
+  method: "opencv_exg_single_leaf_v1";
+  accepted: boolean;
+  reason: string;
+  image_size: [number, number];
+  bounding_box: [number, number, number, number] | null;
+  shape: LeafShapeFeatures | null;
+  cutout_data_url: string | null;
+}
+
+export interface PlantNoveltyEvidence {
+  method: "frozen_encoder_multi_prototype_cosine_v1";
+  accepted: boolean;
+  candidate_plant: string;
+  classifier_agrees: boolean;
+  similarity: number;
+  margin: number;
+  similarity_threshold: number;
+  margin_threshold: number;
+  alternatives: Array<{ plant: string; similarity: number }>;
+  reason: string;
+  evidence_boundary: string;
+}
+
 export interface ClassificationResult {
   predictions: Prediction[];
   hierarchy: TaxonomyHierarchy;
   knowledge: DiseaseKnowledge | null;
+  leaf_isolation?: LeafIsolation | null;
+  plant_novelty?: PlantNoveltyEvidence | null;
   lesion_analysis: LesionAnalysis | null;
   model_name: string;
   checkpoint_path: string;
@@ -176,6 +213,11 @@ export interface DemoHealth {
   crop_classifier?: {
     ready: boolean;
     checkpoint: string | null;
+    detail: string;
+  };
+  openworld_gate?: {
+    ready: boolean;
+    index: string | null;
     detail: string;
   };
   qwen: QwenStatus;

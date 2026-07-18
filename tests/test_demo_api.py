@@ -250,6 +250,7 @@ def provider(
         checkpoint_path: Path,
         *,
         crop_checkpoint_path: Path | None = None,
+        prototype_index_path: Path | None = None,
         device_name: str,
         target_layer_name: str | None,
     ) -> FakeService:
@@ -258,6 +259,7 @@ def provider(
         assert device_name == "cpu"
         assert target_layer_name == "layer4.2"
         assert crop_checkpoint_path is None or crop_checkpoint_path.is_file()
+        assert prototype_index_path is None or (prototype_index_path / "index.json").is_file()
         return service
 
     return provide

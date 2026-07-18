@@ -73,8 +73,8 @@ classifier ground truth. See the [complete module map](docs/project-architecture
 
 ## Experimental open-world research
 
-The existing React demo is deliberately a PlantVillage closed-set system. A new,
-isolated research scaffold now addresses the failure mode where an unknown grape leaf
+The React demo now exposes the experimental leaf-first gate in front of the
+PlantVillage disease model. It addresses the failure mode where an unknown grape leaf
 is forced into Tomato and then receives a Tomato disease label:
 
 ```text
@@ -282,14 +282,15 @@ generalization evidence.
 
 ## React + FastAPI demo
 
-Train the independent lightweight crop head once after PlantVillage is cached.
-It uses balanced crop sampling, a frozen ImageNet MobileNetV2 backbone, and the
-official upstream test split; generated weights stay in Git-ignored `outputs/`:
+Train the isolated-leaf pilot head once after PlantVillage is cached. Generated
+weights stay in Git-ignored `outputs/`:
 
 ```bash
 uv run python scripts/train_crop_classifier.py \
   --cache-dir data/huggingface \
-  --output-dir outputs/plantvillage/crop_mobilenet_v2_seed42
+  --output-dir outputs/plantvillage/leaf14_opencv_pilot_seed42 \
+  --selected-per-crop 80 --validation-per-crop 16 --test-per-crop 32 \
+  --head-epochs 40 --leaf-isolation
 ```
 
 In terminal 1, start the API from the repository root with both local checkpoints:
@@ -297,7 +298,8 @@ In terminal 1, start the API from the repository root with both local checkpoint
 ```bash
 uv run python scripts/run_demo_api.py \
   --checkpoint outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/checkpoint.pt \
-  --crop-checkpoint outputs/plantvillage/crop_mobilenet_v2_seed42/checkpoint.pt \
+  --crop-checkpoint outputs/plantvillage/leaf14_opencv_pilot_seed42/checkpoint.pt \
+  --openworld-index outputs/plantvillage/leaf14_external_ood_shape6_seed42/index \
   --device auto \
   --host 127.0.0.1 \
   --port 8000
@@ -315,16 +317,24 @@ Open `http://127.0.0.1:5173/`. The bundled field image has no verified ground
 truth and is out-of-domain relative to the controlled evaluation. Its visible
 output is a model prediction, not field-accuracy evidence.
 
-The result view now follows three explicit stages. OpenCV first measures visible
-leaf/lesion evidence on the original upload, using resolution-scaled morphology
+The result view now follows four explicit stages. OpenCV first isolates one clear,
+untruncated leaf and removes the background. It then measures visible lesion evidence
+on the original upload, using resolution-scaled morphology
 and connected-component thresholds; it reports area, count, dominant shape,
 coarse colour, distribution, and an overlay, but does not turn those hand-built
 measurements into a disease claim. A separate 14-class MobileNetV2 checkpoint
 then predicts the plant. The plant must reach 60% probability with a 10-point
-margin. Only then are the 38-class ResNet50 outputs filtered to that plant. The
+margin. When a prototype index is supplied, cosine similarity, prototype margin,
+and agreement with the classifier head must also pass. Only then are the 38-class
+ResNet50 outputs filtered to that plant. The
 top plant-specific condition must reach 65% conditional probability with a
 15-point margin before the API exposes a diagnosis, Grad-CAM, or management
 guidance. Rejected condition candidates remain visible as evidence only.
+
+The prototype index is optional. Its current thresholds were calibrated with
+controlled outline proxies, not colour field photographs, so the interface labels
+the gate as experimental. Add `--no-openworld-gate` to retain single-leaf isolation
+and confidence gating without claiming unknown-plant rejection.
 
 This hierarchy prevents a weak crop guess from becoming a confident but
 taxonomically impossible disease result. Both learned models remain PlantVillage
