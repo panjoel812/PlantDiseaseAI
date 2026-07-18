@@ -156,6 +156,7 @@
 | 历史冻结本地证据与 Apple container | `reports/week8_reproducibility.md` | 已记录冻结 checkpoint 指标重算、Top-5/MPS Demo/24 样本 Grad-CAM，以及 linux/arm64 image/health probe；当前交付 manifest 不继承这些运行状态 |
 | React Liquid Glass Demo 与浏览器 QA | `frontend/`、`reports/figures/week8_react_demo_desktop.png`、`reports/week8_react_demo_qa.md` | 用户图片是 no verified ground truth 的 out-of-domain 田间样例；一次 38 类推理先按作物聚合，再在选中作物内排序条件，避免跨作物同名病害混列。当前源码采用顶部上传摄影卡、分析成功后移动到下方完整 Classifier/Management guidance、无结果卡内部纵向滚动的流程，并以 `scripts/export_logo_paths.py` 将用户 Desmos Bézier 内部路径与叶片融合成项目 Logo。既有 1280×720 与 390×844 QA 仅为历史证据；新布局按用户要求未重跑浏览器 QA，不新增几何通过声明。MPS 结果仅为 prediction |
 | React QA 锁定值 | `reports/week8_react_demo_qa.md` | 田间图像 SHA-256 `0364ff44229c70666216343057f9ae77d82438a7f842b30af1ffabb786061a7e`；分类器 prediction `0.870144`；本地运行时 `mlx-community/Qwen3-VL-4B-Instruct-4bit`；图像仍标注 no verified ground truth 与 out-of-domain，模型保持 no automatic download |
+| 独立作物层级 Demo | `scripts/train_crop_classifier.py`、`src/plantdisease/training/crop.py`、`reports/week8_hierarchical_crop_qa.md` | 14 类 MobileNetV2 作物头使用按作物均衡抽样与官方 test 子集；本地 test Accuracy `0.977121` / Macro F1 `0.977101`。外部多叶葡萄图未通过作物门控，因此病名、Grad-CAM 与管理建议被拒绝，不将期望标签伪装成模型真值 |
 | 最终实验报告 | `reports/final_experiment_report.md` | 汇总 Benchmark、消融、错误与校准、解释、部署、VLM、局限和后续路线 |
 | 模型卡与数据卡 | `reports/model_card.md`、`reports/data_card.md` | 预期/排除用途、数据泄漏、偏差、田间泛化与安全边界已记录 |
 | 最终双语论文 | `paper/zh/main.tex`、`paper/en/main.tex`、`paper/out/plantdisease_ai_zh.pdf`、`paper/out/plantdisease_ai_en.pdf` | 中英文各 12 页 A4；共享证据宏和 13 节结构审计通过 |

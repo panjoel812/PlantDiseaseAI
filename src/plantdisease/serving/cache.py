@@ -14,6 +14,7 @@ from plantdisease.serving.service import InferenceService
 def get_cached_service(
     checkpoint_path: Path,
     *,
+    crop_checkpoint_path: Path | None = None,
     device_name: str = "cpu",
     target_layer_name: str | None = None,
 ) -> InferenceService:
@@ -22,6 +23,7 @@ def get_cached_service(
         Path(checkpoint_path),
         device=_resolve_device(device_name),
         target_layer_name=target_layer_name,
+        crop_checkpoint_path=crop_checkpoint_path,
     )
 
 

@@ -19,7 +19,7 @@ export interface ConditionPrediction {
 }
 
 export interface TaxonomyHierarchy {
-  method: "crop_first_rejection_v2";
+  method: "crop_first_rejection_v2" | "independent_crop_then_disease_v3";
   selected_crop: string;
   selected_class_name: string | null;
   crops: CropPrediction[];
@@ -29,6 +29,13 @@ export interface TaxonomyHierarchy {
   confidence_threshold: number;
   margin_threshold: number;
   decision_reason: string;
+  crop_source?: "joint_disease_distribution" | "independent_mobilenet_v2_crop_checkpoint";
+  disease_confident?: boolean;
+  disease_confidence?: number;
+  disease_margin?: number;
+  disease_confidence_threshold?: number;
+  disease_margin_threshold?: number;
+  disease_decision_reason?: string;
 }
 
 export interface DiseaseKnowledge {
@@ -166,6 +173,11 @@ export interface ClassifierStatus {
 export interface DemoHealth {
   status: "ok" | "degraded";
   classifier: ClassifierStatus;
+  crop_classifier?: {
+    ready: boolean;
+    checkpoint: string | null;
+    detail: string;
+  };
   qwen: QwenStatus;
 }
 

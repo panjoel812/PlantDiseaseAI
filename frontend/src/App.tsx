@@ -61,7 +61,8 @@ export function App() {
             <AssistantPanel
               guidanceEnabled={
                 demo.classification.status === "success" &&
-                demo.classification.data.hierarchy.crop_confident
+                demo.classification.data.hierarchy.crop_confident &&
+                demo.classification.data.hierarchy.disease_confident !== false
               }
               qwenEnabled={
                 demo.classification.status === "success" &&

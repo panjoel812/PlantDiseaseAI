@@ -18,7 +18,9 @@ flowchart LR
     train --> explain["Explainability\nGrad-CAM and error analysis"]
     eval --> select["Frozen Week 3/4 classifier\nResNet50 combo candidate"]
     explain --> select
-    select --> service["UI-independent serving layer\nTop-5 + Grad-CAM + knowledge cards"]
+    data --> crop["Independent crop head\nMobileNetV2 + confidence gate"]
+    select --> service["Hierarchical serving layer\nOpenCV + crop gate + disease gate"]
+    crop --> service
     service --> streamlit["Streamlit demo\nupload, example image, disclaimer"]
     service --> container["Apple container\nCPU-only deployable demo"]
     select --> vlm["Week 6 VLM exploration\nVQA seed + Qwen3-VL smoke"]
@@ -36,6 +38,10 @@ flowchart LR
 - Week 5 Streamlit demo with Top-5 predictions, confidence values, Grad-CAM overlay,
   disease knowledge cards, low-confidence warnings, invalid-input handling, and
   non-professional diagnosis disclaimers.
+- React/FastAPI hierarchy with original-resolution OpenCV lesion evidence, a
+  separately trained 14-class MobileNetV2 crop head, crop and disease abstention
+  gates, and management guidance disabled whenever either learned stage is
+  uncertain.
 - Apple `container` workflow with CPU-only image, healthcheck, fixed-sample end-to-end
   validation, image size record, and one runtime memory sample.
 - Week 6 exploratory Qwen3-VL MLX smoke baseline on a small label-grounded VQA seed set.
@@ -46,6 +52,8 @@ flowchart LR
 - Demo screenshot: `reports/figures/week5_streamlit_demo.jpg`
 - Streamlit app: `app/streamlit_app.py`
 - Serving layer: `src/plantdisease/serving/service.py`
+- Crop training and QA: `src/plantdisease/training/crop.py`,
+  `reports/week8_hierarchical_crop_qa.md`
 - Container config: `Containerfile`
 - Artifact index: `docs/artifact-index.md`
 - Week 6 VLM experiment record: `reports/week6_vlm_experiment.md`
@@ -72,6 +80,8 @@ about fixed PlantVillage images.
 - PlantVillage has controlled image conditions; results must not be treated as field
   generalization evidence.
 - Grad-CAM is a relevance visualization, not a causal explanation.
+- The crop head and disease model are both PlantVillage closed-set models; the
+  crop split improves taxonomy ordering but is not open-world plant recognition.
 - The Streamlit demo is educational and should not be used as professional crop diagnosis.
 - Week 6 VLM results are small smoke baselines, not LoRA fine-tuning results.
 - Pesticide choice, dosage, legal compliance, and high-risk crop actions should be checked

@@ -200,13 +200,32 @@ function ClassifierContent({ state }: ClassifierPanelProps) {
         <p className="crop-decision">{hierarchy.decision_reason}</p>
       </div>
       <p className="hierarchy-method">
-        Crop gate from the current PlantVillage joint model; an independent crop
-        checkpoint is required before claiming open-world plant recognition.
+        {hierarchy.crop_source === "independent_mobilenet_v2_crop_checkpoint"
+          ? "Plant identity comes from an independent lightweight MobileNetV2 checkpoint; scope remains the PlantVillage closed set."
+          : "Fallback crop gate comes from the joint disease model; install the independent crop checkpoint for the full hierarchy."}
       </p>
       <div className="disease-step">
-        <span className="step-label">Step 3 · Disease within plant</span>
+        <div className="crop-step-row">
+          <span className="step-label">Step 3 · Disease within plant</span>
+          {hierarchy.crop_confident ? (
+            <span
+              className={`crop-gate-status ${hierarchy.disease_confident !== false ? "is-accepted" : "is-uncertain"}`}
+            >
+              {hierarchy.disease_confident !== false ? "Accepted" : "Evidence only"}
+            </span>
+          ) : null}
+        </div>
         {hierarchy.crop_confident ? (
           <>
+            {hierarchy.disease_confident === false ? (
+              <div className="disease-withheld" role="status">
+                <WarningIcon />
+                <div>
+                  <strong>Disease diagnosis withheld</strong>
+                  <p>{hierarchy.disease_decision_reason}</p>
+                </div>
+              </div>
+            ) : null}
             <p className="result-label">Conditions within {hierarchy.selected_crop}</p>
             <ol
               className="condition-list"

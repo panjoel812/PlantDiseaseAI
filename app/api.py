@@ -38,6 +38,9 @@ from plantdisease.vlm.interactive import (
 DEFAULT_CHECKPOINT = Path(
     "outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/checkpoint.pt"
 )
+DEFAULT_CROP_CHECKPOINT = Path(
+    "outputs/plantvillage/crop_mobilenet_v2_seed42/checkpoint.pt"
+)
 DEFAULT_EXAMPLE_IMAGE = Path("app/examples/field_corn_leaf.jpeg")
 DEFAULT_CORS_ORIGINS = (
     "http://127.0.0.1:4173",
@@ -68,6 +71,7 @@ class ServiceProvider(Protocol):
         self,
         checkpoint_path: Path,
         *,
+        crop_checkpoint_path: Path | None = None,
         device_name: str = "cpu",
         target_layer_name: str | None = None,
     ) -> ClassifierService: ...
@@ -153,6 +157,7 @@ class DemoSettings:
     """Local classifier API configuration."""
 
     checkpoint: Path = DEFAULT_CHECKPOINT
+    crop_checkpoint: Path | None = DEFAULT_CROP_CHECKPOINT
     default_device: str = "auto"
     example_image: Path = DEFAULT_EXAMPLE_IMAGE
     target_layer: str | None = None
@@ -267,6 +272,12 @@ def _register_routes(app: FastAPI) -> None:
         service = _get_service(
             provider,
             checkpoint=settings.checkpoint,
+            crop_checkpoint=(
+                settings.crop_checkpoint
+                if settings.crop_checkpoint is not None
+                and settings.crop_checkpoint.is_file()
+                else None
+            ),
             device=resolved_device,
             target_layer=target_layer or settings.target_layer,
         )
@@ -351,15 +362,26 @@ def _health_payload(
     settings: DemoSettings,
     qwen_status: QwenRuntimeStatus,
 ) -> dict[str, object]:
-    ready = settings.checkpoint.is_file()
+    disease_ready = settings.checkpoint.is_file()
+    crop_ready = settings.crop_checkpoint is not None and settings.crop_checkpoint.is_file()
+    ready = disease_ready and crop_ready
     return {
         "status": "ok" if ready else "degraded",
         "classifier": {
-            "ready": ready,
+            "ready": disease_ready,
             "checkpoint": str(settings.checkpoint),
             "device": settings.default_device,
             "target_layer": settings.target_layer,
-            "detail": "ready" if ready else "checkpoint not found",
+            "detail": "ready" if disease_ready else "checkpoint not found",
+        },
+        "crop_classifier": {
+            "ready": crop_ready,
+            "checkpoint": str(settings.crop_checkpoint) if settings.crop_checkpoint else None,
+            "detail": (
+                "ready"
+                if crop_ready
+                else "crop checkpoint not found; joint crop gate fallback"
+            ),
         },
         "qwen": _serialize_qwen_status(qwen_status),
     }
@@ -458,12 +480,14 @@ def _get_service(
     provider: ServiceProvider,
     *,
     checkpoint: Path,
+    crop_checkpoint: Path | None,
     device: str,
     target_layer: str | None,
 ) -> ClassifierService:
     try:
         return provider(
             checkpoint,
+            crop_checkpoint_path=crop_checkpoint,
             device_name=device,
             target_layer_name=target_layer,
         )
@@ -571,6 +595,13 @@ def _serialize_result(result: InferenceResult) -> dict[str, object]:
             "confidence_threshold": result.hierarchy.confidence_threshold,
             "margin_threshold": result.hierarchy.margin_threshold,
             "decision_reason": result.hierarchy.decision_reason,
+            "crop_source": result.hierarchy.crop_source,
+            "disease_confident": result.hierarchy.disease_confident,
+            "disease_confidence": result.hierarchy.disease_confidence,
+            "disease_margin": result.hierarchy.disease_margin,
+            "disease_confidence_threshold": result.hierarchy.disease_confidence_threshold,
+            "disease_margin_threshold": result.hierarchy.disease_margin_threshold,
+            "disease_decision_reason": result.hierarchy.disease_decision_reason,
             "crops": [
                 {
                     "plant": crop.plant,
@@ -621,6 +652,7 @@ app = create_app()
 __all__: Sequence[str] = [
     "AdviceProvider",
     "DEFAULT_CHECKPOINT",
+    "DEFAULT_CROP_CHECKPOINT",
     "DemoSettings",
     "QwenProvider",
     "ServiceProvider",

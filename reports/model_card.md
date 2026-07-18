@@ -92,6 +92,18 @@ representative local MPS run returned the `Cercospora leaf spot Gray leaf spot`
 class at **0.870144**; this is a closed-set model **prediction**, not a validated
 label or field-performance result ([browser QA](week8_react_demo_qa.md)).
 
+## Hierarchical demo addendum
+
+The React/FastAPI demo now places a separately trained 14-class MobileNetV2
+crop head before the frozen 38-class disease model. The crop head is trained
+with balanced PlantVillage crop sampling and has local sampled official-test
+Accuracy `0.977121` / Macro F1 `0.977101`; this is not an external field result.
+Crop and disease confidence/margin gates independently abstain. OpenCV lesion
+geometry is measured on the original upload but is not treated as a disease
+label. The user-supplied multi-leaf grape image does not pass the crop gate, so
+the demo correctly withholds diagnosis rather than asserting the expected file
+label. See [hierarchical crop QA](week8_hierarchical_crop_qa.md).
+
 ## Intended uses
 
 - Reproducibility, teaching, and research demonstrations.

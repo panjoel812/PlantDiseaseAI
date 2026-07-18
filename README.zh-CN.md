@@ -29,18 +29,27 @@ React Demo 默认加载用户提供的田间玉米叶图片 `app/examples/field_
 结果现在按三步显示：
 
 1. **OpenCV 可见证据**：在原始分辨率上先定位绿色叶片轮廓与病斑候选，形态学核和连通域面积阈值会随图片尺寸与叶片面积缩放；页面报告病斑面积、数量、最大区域、主要形状、粗粒度颜色、分布和叠加图。该步骤只描述像素，不根据手写规则诊断病害。
-2. **植物身份门控**：现有 38 类 PlantVillage 联合分类器的完整概率先按作物汇总。最高作物必须达到 `60%`，并且比第二名至少高 `10` 个百分点，才可进入下一步。
-3. **作物内病害**：只有植物身份通过门控后，才显示该作物内的病害排序与 Grad-CAM；否则 API 返回 `selected_class_name: null` 和空病害列表，同时禁用管理建议。
+2. **独立植物识别**：单独的 14 类轻量 MobileNetV2 作物 checkpoint 先判断植物。最高作物必须达到 `60%`，并且比第二名至少高 `10` 个百分点，才可进入下一步。
+3. **作物内病害**：38 类 ResNet50 结果只保留已选作物的病害。最高条件还必须达到 `65%` 的作物内概率并领先第二名 `15` 个百分点，才开放诊断、Grad-CAM 和管理建议；否则候选只作为证据展示。
 
-这会阻止“低置信错误作物 → 高置信错误病害”的级联，但**不会把现有 checkpoint 变成独立作物识别器**。目前不确定的作物会被拒答而不是被自动纠正；若要可靠识别葡萄等植物，仍需另行训练、评估并接入轻量作物 checkpoint。OpenCV 病斑遮罩也是确定性的可见证据估计，不是真值分割或病害分类器。
+这会阻止“低置信错误作物 → 高置信错误病害”的级联。作物模型与病害模型已经分离，但两者仍是 PlantVillage 闭集模型，不是开放世界植物学识别器，也不能证明田间准确率。OpenCV 病斑遮罩只是确定性的可见证据估计，不是真值分割或病害分类器。
 
 新版界面使用 `liquid-glass-react` 提供轻量材质边缘，并以雾白、浅蓝、嫩绿构成通透背景。React Demo 采用“先上传、后查看结果”的纵向流程：摄影卡与 Analyze 操作位于顶部，分析成功后页面会移动到照片下方完整展开的 Classifier 与 Management guidance。结果卡使用正常文档流，不再通过嵌套纵向滚动隐藏证据；移动端保持“上传 → 分类器 → 助手”的顺序。大型卡片保持零弹性，底部叶片与露珠不接收指针事件并在 `prefers-reduced-motion` 下停止。页眉 Logo 将用户提供的 Desmos Bézier 内部曲线与 PlantDiseaseAI 叶片融合；外部源 SVG 保持原样，运行时不依赖该个人路径。
 
-在两个终端分别启动使用正式 checkpoint 的 FastAPI 和 React 开发服务：
+PlantVillage 缓存就绪后，先训练一次独立轻量作物头；生成权重保存在被 Git 忽略的 `outputs/`：
+
+```bash
+uv run python scripts/train_crop_classifier.py \
+  --cache-dir data/huggingface \
+  --output-dir outputs/plantvillage/crop_mobilenet_v2_seed42
+```
+
+随后在两个终端分别启动同时使用作物与病害 checkpoint 的 FastAPI 和 React：
 
 ```bash
 uv run python scripts/run_demo_api.py \
   --checkpoint outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/checkpoint.pt \
+  --crop-checkpoint outputs/plantvillage/crop_mobilenet_v2_seed42/checkpoint.pt \
   --device mps --host 127.0.0.1 --port 8000
 ```
 

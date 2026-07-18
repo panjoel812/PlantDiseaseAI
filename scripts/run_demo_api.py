@@ -6,12 +6,13 @@ from pathlib import Path
 
 import uvicorn
 
-from app.api import DEFAULT_CHECKPOINT, DemoSettings, create_app
+from app.api import DEFAULT_CHECKPOINT, DEFAULT_CROP_CHECKPOINT, DemoSettings, create_app
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the PlantDiseaseAI demo API")
     parser.add_argument("--checkpoint", type=Path, default=DEFAULT_CHECKPOINT)
+    parser.add_argument("--crop-checkpoint", type=Path, default=DEFAULT_CROP_CHECKPOINT)
     parser.add_argument(
         "--device",
         choices=["auto", "cpu", "cuda", "mps"],
@@ -27,6 +28,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
     settings = DemoSettings(
         checkpoint=args.checkpoint,
+        crop_checkpoint=args.crop_checkpoint,
         default_device=args.device,
         target_layer=args.target_layer,
     )

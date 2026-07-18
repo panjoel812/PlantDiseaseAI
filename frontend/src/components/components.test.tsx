@@ -445,7 +445,7 @@ describe("ClassifierPanel", () => {
     expect(screen.getByText(/step 2.*plant identity/i)).toBeVisible();
     expect(screen.getByText("Apple")).toBeVisible();
     expect(screen.getByText(/crop confidence/i)).toBeVisible();
-    expect(screen.getByText(/crop gate from the current plantvillage/i)).toBeVisible();
+    expect(screen.getByText(/fallback crop gate comes from the joint disease model/i)).toBeVisible();
     const conditions = screen.getByRole("list", {
       name: /conditions within apple/i,
     });

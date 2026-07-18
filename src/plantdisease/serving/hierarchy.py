@@ -11,8 +11,11 @@ from plantdisease.inference import Prediction
 from plantdisease.serving.knowledge import lookup_disease_knowledge
 
 HIERARCHY_METHOD = "crop_first_rejection_v2"
+INDEPENDENT_HIERARCHY_METHOD = "independent_crop_then_disease_v3"
 DEFAULT_CROP_CONFIDENCE_THRESHOLD = 0.60
 DEFAULT_CROP_MARGIN_THRESHOLD = 0.10
+DEFAULT_DISEASE_CONFIDENCE_THRESHOLD = 0.65
+DEFAULT_DISEASE_MARGIN_THRESHOLD = 0.15
 
 
 @dataclass(frozen=True)
@@ -49,13 +52,23 @@ class TaxonomyHierarchy:
     confidence_threshold: float = DEFAULT_CROP_CONFIDENCE_THRESHOLD
     margin_threshold: float = DEFAULT_CROP_MARGIN_THRESHOLD
     decision_reason: str = "Crop gate accepted."
+    crop_source: str = "joint_disease_distribution"
+    disease_confident: bool = True
+    disease_confidence: float = 1.0
+    disease_margin: float = 1.0
+    disease_confidence_threshold: float = DEFAULT_DISEASE_CONFIDENCE_THRESHOLD
+    disease_margin_threshold: float = DEFAULT_DISEASE_MARGIN_THRESHOLD
+    disease_decision_reason: str = "Disease gate accepted."
 
 
 def build_taxonomy_hierarchy(
     predictions: Sequence[Prediction],
     *,
+    crop_predictions: Sequence[Prediction] | None = None,
     crop_confidence_threshold: float = DEFAULT_CROP_CONFIDENCE_THRESHOLD,
     crop_margin_threshold: float = DEFAULT_CROP_MARGIN_THRESHOLD,
+    disease_confidence_threshold: float = DEFAULT_DISEASE_CONFIDENCE_THRESHOLD,
+    disease_margin_threshold: float = DEFAULT_DISEASE_MARGIN_THRESHOLD,
 ) -> TaxonomyHierarchy:
     """Aggregate crop evidence, gate uncertainty, then rank crop-only conditions.
 
@@ -79,6 +92,10 @@ def build_taxonomy_hierarchy(
         raise ValueError("crop_confidence_threshold must be between zero and one")
     if not 0.0 <= crop_margin_threshold <= 1.0:
         raise ValueError("crop_margin_threshold must be between zero and one")
+    if not 0.0 <= disease_confidence_threshold <= 1.0:
+        raise ValueError("disease_confidence_threshold must be between zero and one")
+    if not 0.0 <= disease_margin_threshold <= 1.0:
+        raise ValueError("disease_margin_threshold must be between zero and one")
 
     normalized: list[tuple[Prediction, str, str, float]] = []
     crop_totals: defaultdict[str, float] = defaultdict(float)
@@ -90,13 +107,29 @@ def build_taxonomy_hierarchy(
         )
         crop_totals[knowledge.plant] += joint_probability
 
-    crops = sorted(
-        (
-            CropPrediction(plant=plant, probability=probability)
-            for plant, probability in crop_totals.items()
-        ),
-        key=lambda item: (-item.probability, item.plant),
-    )
+    if crop_predictions is None:
+        crops = sorted(
+            (
+                CropPrediction(plant=plant, probability=probability)
+                for plant, probability in crop_totals.items()
+            ),
+            key=lambda item: (-item.probability, item.plant),
+        )
+        method = HIERARCHY_METHOD
+        crop_source = "joint_disease_distribution"
+    else:
+        if not crop_predictions:
+            raise ValueError("crop_predictions must not be empty")
+        crop_total = sum(item.probability for item in crop_predictions)
+        if crop_total <= 0.0:
+            raise ValueError("crop prediction probability total must be positive")
+        crops = [
+            CropPrediction(item.class_name, item.probability / crop_total)
+            for item in crop_predictions
+        ]
+        crops.sort(key=lambda item: (-item.probability, item.plant))
+        method = INDEPENDENT_HIERARCHY_METHOD
+        crop_source = "independent_mobilenet_v2_crop_checkpoint"
     selected_crop = crops[0]
     crop_margin = selected_crop.probability - (
         crops[1].probability if len(crops) > 1 else 0.0
@@ -113,14 +146,43 @@ def build_taxonomy_hierarchy(
                 plant=plant,
                 condition=condition,
                 joint_probability=joint_probability,
-                conditional_probability=(
-                    joint_probability / selected_crop.probability
-                ),
+                conditional_probability=0.0,
             )
             for prediction, plant, condition, joint_probability in normalized
             if plant == selected_crop.plant
         ),
         key=lambda item: (-item.joint_probability, item.class_name),
+    )
+    crop_disease_mass = sum(item.joint_probability for item in ranked_conditions)
+    if crop_disease_mass > 0.0:
+        ranked_conditions = [
+            ConditionPrediction(
+                class_index=item.class_index,
+                class_name=item.class_name,
+                plant=item.plant,
+                condition=item.condition,
+                joint_probability=item.joint_probability,
+                conditional_probability=item.joint_probability / crop_disease_mass,
+            )
+            for item in ranked_conditions
+        ]
+    disease_confidence = (
+        ranked_conditions[0].conditional_probability if ranked_conditions else 0.0
+    )
+    disease_margin = disease_confidence - (
+        ranked_conditions[1].conditional_probability if len(ranked_conditions) > 1 else 0.0
+    )
+    independent_gate = crop_predictions is not None
+    disease_confident = (
+        crop_confident
+        and bool(ranked_conditions)
+        and (
+            not independent_gate
+            or (
+                disease_confidence >= disease_confidence_threshold
+                and disease_margin >= disease_margin_threshold
+            )
+        )
     )
     conditions = ranked_conditions if crop_confident else []
     if selected_crop.probability < crop_confidence_threshold:
@@ -135,10 +197,19 @@ def build_taxonomy_hierarchy(
         )
     else:
         decision_reason = "Crop gate accepted; disease ranking is restricted to this crop."
+    if not crop_confident:
+        disease_decision_reason = "Disease labels are withheld until plant identity is accepted."
+    elif not disease_confident:
+        disease_decision_reason = (
+            f"Disease confidence {disease_confidence:.1%} or margin {disease_margin:.1%} "
+            "did not pass the reliability gate; candidates are evidence only."
+        )
+    else:
+        disease_decision_reason = "Disease gate accepted within the selected plant."
     return TaxonomyHierarchy(
-        method=HIERARCHY_METHOD,
+        method=method,
         selected_crop=selected_crop.plant,
-        selected_class_name=(conditions[0].class_name if conditions else None),
+        selected_class_name=(conditions[0].class_name if disease_confident else None),
         crops=crops,
         conditions=conditions,
         crop_confident=crop_confident,
@@ -146,4 +217,11 @@ def build_taxonomy_hierarchy(
         confidence_threshold=crop_confidence_threshold,
         margin_threshold=crop_margin_threshold,
         decision_reason=decision_reason,
+        crop_source=crop_source,
+        disease_confident=disease_confident,
+        disease_confidence=disease_confidence,
+        disease_margin=disease_margin,
+        disease_confidence_threshold=disease_confidence_threshold,
+        disease_margin_threshold=disease_margin_threshold,
+        disease_decision_reason=disease_decision_reason,
     )

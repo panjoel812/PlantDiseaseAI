@@ -60,6 +60,37 @@ def test_hierarchy_withholds_disease_when_crop_confidence_is_low() -> None:
     assert "below the 60%" in hierarchy.decision_reason
 
 
+def test_independent_crop_head_selects_plant_then_rejects_weak_disease() -> None:
+    hierarchy = build_taxonomy_hierarchy(
+        [
+            Prediction(0, "Grape___healthy", 0.0304),
+            Prediction(1, "Grape___Black_rot", 0.0128),
+            Prediction(2, "Grape___Esca_(Black_Measles)", 0.0096),
+            Prediction(3, "Grape___Leaf_blight", 0.0015),
+            Prediction(4, "Tomato___Late_blight", 0.3331),
+            Prediction(5, "Apple___Black_rot", 0.0699),
+        ],
+        crop_predictions=[
+            Prediction(4, "Grape", 0.88),
+            Prediction(13, "Tomato", 0.07),
+            Prediction(0, "Apple", 0.05),
+        ],
+    )
+
+    assert hierarchy.method == "independent_crop_then_disease_v3"
+    assert hierarchy.selected_crop == "Grape"
+    assert hierarchy.crop_confident is True
+    assert hierarchy.disease_confident is False
+    assert hierarchy.selected_class_name is None
+    assert [item.class_name for item in hierarchy.conditions] == [
+        "Grape___healthy",
+        "Grape___Black_rot",
+        "Grape___Esca_(Black_Measles)",
+        "Grape___Leaf_blight",
+    ]
+    assert "evidence only" in hierarchy.disease_decision_reason
+
+
 @pytest.mark.parametrize(
     ("predictions", "message"),
     [

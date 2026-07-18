@@ -18,6 +18,7 @@ from plantdisease.explainability.layers import resolve_target_layer
 from plantdisease.explainability.visualization import heatmap_to_image, overlay_heatmap
 from plantdisease.inference import Prediction, predict_topk
 from plantdisease.models.checkpoint import load_checkpoint
+from plantdisease.serving.crop import CropClassifier
 from plantdisease.serving.hierarchy import (
     DEFAULT_CROP_CONFIDENCE_THRESHOLD,
     DEFAULT_CROP_MARGIN_THRESHOLD,
@@ -47,6 +48,9 @@ LOW_CONFIDENCE_WARNING = (
 )
 CROP_UNCERTAIN_WARNING = (
     "Crop identity did not pass the confidence gate; disease labels are withheld."
+)
+DISEASE_UNCERTAIN_WARNING = (
+    "Disease evidence did not pass the confidence gate; diagnosis and management are withheld."
 )
 
 
@@ -106,6 +110,7 @@ class InferenceService:
         confidence_warning_threshold: float = DEFAULT_CONFIDENCE_WARNING_THRESHOLD,
         crop_confidence_threshold: float = DEFAULT_CROP_CONFIDENCE_THRESHOLD,
         crop_margin_threshold: float = DEFAULT_CROP_MARGIN_THRESHOLD,
+        crop_classifier: CropClassifier | None = None,
     ) -> None:
         if not class_names:
             raise ValueError("class_names must be non-empty")
@@ -122,6 +127,7 @@ class InferenceService:
         self.confidence_warning_threshold = confidence_warning_threshold
         self.crop_confidence_threshold = crop_confidence_threshold
         self.crop_margin_threshold = crop_margin_threshold
+        self.crop_classifier = crop_classifier
         self.model_name = str(self.config.get("model_name", "unknown"))
         self.image_size = int(self.config.get("image_size", 224))
         self._transform = build_eval_transform(self.image_size)
@@ -133,6 +139,7 @@ class InferenceService:
         *,
         device: torch.device,
         target_layer_name: str | None = None,
+        crop_checkpoint_path: Path | None = None,
     ) -> InferenceService:
         model, class_names, config = load_checkpoint(checkpoint_path, device)
         model_name = str(config["model_name"])
@@ -140,6 +147,11 @@ class InferenceService:
             target = resolve_target_layer(model, model_name)
         else:
             target = _resolve_module_by_name(model, target_layer_name)
+        crop_classifier = (
+            CropClassifier.from_checkpoint(crop_checkpoint_path, device)
+            if crop_checkpoint_path is not None and crop_checkpoint_path.is_file()
+            else None
+        )
         return cls(
             model=model,
             class_names=class_names,
@@ -148,6 +160,7 @@ class InferenceService:
             device=device,
             target_layer=target.module,
             target_layer_name=target.name,
+            crop_classifier=crop_classifier,
         )
 
     def predict(
@@ -180,14 +193,20 @@ class InferenceService:
                 self.class_names,
                 k=len(self.class_names),
             )
+            crop_predictions = (
+                self.crop_classifier.predict(image)
+                if self.crop_classifier is not None
+                else None
+            )
             hierarchy = build_taxonomy_hierarchy(
                 all_predictions,
+                crop_predictions=crop_predictions,
                 crop_confidence_threshold=self.crop_confidence_threshold,
                 crop_margin_threshold=self.crop_margin_threshold,
             )
             predictions = all_predictions[: min(top_k, len(all_predictions))]
             selected_prediction = None
-            if hierarchy.conditions:
+            if hierarchy.disease_confident and hierarchy.conditions:
                 selected_condition = hierarchy.conditions[0]
                 selected_prediction = Prediction(
                     class_index=selected_condition.class_index,
@@ -259,6 +278,8 @@ class InferenceService:
         warnings = [EDUCATIONAL_WARNING, DOMAIN_WARNING]
         if not hierarchy.crop_confident:
             warnings.append(CROP_UNCERTAIN_WARNING)
+        elif not hierarchy.disease_confident:
+            warnings.append(DISEASE_UNCERTAIN_WARNING)
         elif (
             top_prediction is not None
             and top_prediction.probability < self.confidence_warning_threshold

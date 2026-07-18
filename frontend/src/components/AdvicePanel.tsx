@@ -128,7 +128,7 @@ export function AdvicePanel({
 
             {!enabled ? (
               <p className="provider-detail">
-                Guidance unlocks only after the plant identity passes the crop gate.
+                Guidance unlocks only after both plant and disease evidence pass their gates.
               </p>
             ) : null}
             {isLoading ? (

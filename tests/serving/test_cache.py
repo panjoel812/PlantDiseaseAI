@@ -24,6 +24,7 @@ def test_get_cached_service_reuses_loaded_instance_for_identical_key(monkeypatch
         *,
         device: torch.device,
         target_layer_name: str | None = None,
+        crop_checkpoint_path: Path | None = None,
     ) -> ServiceMarker:
         calls.append((checkpoint_path, device, target_layer_name))
         return ServiceMarker(checkpoint_path, device, target_layer_name)

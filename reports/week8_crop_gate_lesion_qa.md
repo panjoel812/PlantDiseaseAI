@@ -1,5 +1,9 @@
 # Crop-gate and OpenCV lesion QA
 
+> Historical first-stage record. The independent crop checkpoint and second
+> disease gate were subsequently added; see
+> [week8_hierarchical_crop_qa.md](week8_hierarchical_crop_qa.md).
+
 Date: 2026-07-18
 
 ## Scope

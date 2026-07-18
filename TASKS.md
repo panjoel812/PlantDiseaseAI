@@ -451,6 +451,8 @@
 
 > 作物门控与 OpenCV 病斑证据补充（2026-07-18）：Demo 已改为“原图 OpenCV 可见证据 → 作物置信门控 → 作物内病害”的三阶段路径。作物最高概率低于 `60%` 或领先幅度低于 `10` 个百分点时，API 返回空病害列表并禁用 Grad-CAM/管理建议，避免错误作物继续级联为错误病害。用户提供的葡萄叶 QA 图在正式 checkpoint 下仍只得到 Tomato 候选 `38.1%`，因此正确行为是拒绝病名而不是伪造 Grape；OpenCV 在原图上得到 `37` 个区域、病斑覆盖估计 `10.14%`。受影响 Python 测试 `51 passed`、React 测试 `55 passed`、React build 与 Ruff 通过，并完成本地浏览器 QA。独立轻量作物模型仍未训练或验证。证据：`src/plantdisease/serving/lesions.py`、`src/plantdisease/serving/hierarchy.py`、`reports/week8_crop_gate_lesion_qa.md`、`README.md`、`README.zh-CN.md`。
 
+> 独立作物模型补充（2026-07-18）：新增冻结 ImageNet 特征、按作物均衡抽样的 MobileNetV2 作物训练入口，并把 Demo 升级为“OpenCV 原图病斑证据 → 独立 14 类作物模型 → 作物内 38 类病害证据”的层级路径。作物门控为 `60% + 10pp margin`，病害门控为 `65% + 15pp margin`；任一失败均禁用诊断、Grad-CAM 和管理建议。权重与运行指标保存在 Git 忽略的 `outputs/plantvillage/crop_mobilenet_v2_seed42/`，公开仓库提供可复现训练命令而不提交模型权重。证据：`scripts/train_crop_classifier.py`、`src/plantdisease/training/crop.py`、`src/plantdisease/serving/crop.py`、`README.md`、`README.zh-CN.md`。
+
 #### 研发任务
 
 - [x] 冻结候选发布版本，记录代码版本、依赖版本、数据版本和模型 checkpoint 校验信息。证据：`reports/release/week8_rc1_manifest.json`。

@@ -13,6 +13,9 @@ from plantdisease.serving.service import InferenceServiceError
 DEFAULT_CHECKPOINT = Path(
     "outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/checkpoint.pt"
 )
+DEFAULT_CROP_CHECKPOINT = Path(
+    "outputs/plantvillage/crop_mobilenet_v2_seed42/checkpoint.pt"
+)
 DEFAULT_EXAMPLE_IMAGE = Path("app/examples/field_corn_leaf.jpeg")
 _FIXED_EXAMPLE_STATE_KEY = "fixed_example_bytes"
 RESEARCH_DEMO_COPY = "Research demo · PlantVillage closed set"
@@ -144,6 +147,9 @@ def _streamlit_cached_service(
 ):
     return get_cached_service(
         checkpoint_path,
+        crop_checkpoint_path=(
+            DEFAULT_CROP_CHECKPOINT if DEFAULT_CROP_CHECKPOINT.is_file() else None
+        ),
         device_name=device_name,
         target_layer_name=target_layer_name,
     )

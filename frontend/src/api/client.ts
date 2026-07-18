@@ -159,7 +159,9 @@ export async function askQwen(
   const body = new FormData();
   body.append("image", file);
   body.append("question", question);
-  const selectedCondition = classification?.hierarchy.crop_confident
+  const selectedCondition =
+    classification?.hierarchy.crop_confident &&
+    classification.hierarchy.disease_confident !== false
     ? classification.hierarchy.conditions[0]
     : undefined;
   const className = selectedCondition?.class_name;
@@ -198,10 +200,15 @@ export function askForAdvice(
     (item) => item.plant === classification.hierarchy.selected_crop,
   );
   const condition = classification.hierarchy.conditions[0];
-  if (!classification.hierarchy.crop_confident || !crop || !condition) {
+  if (
+    !classification.hierarchy.crop_confident ||
+    classification.hierarchy.disease_confident === false ||
+    !crop ||
+    !condition
+  ) {
     return Promise.reject(
       new Error(
-        "Crop identity is uncertain, so management guidance is disabled for this image.",
+        "Plant or disease evidence is uncertain, so management guidance is disabled for this image.",
       ),
     );
   }
