@@ -18,6 +18,7 @@ from plantdisease.openworld.index import (
     save_calibration,
 )
 from plantdisease.openworld.manifest import load_manifest
+from plantdisease.openworld.preparation import prepare_leaf_manifest
 
 
 def _load_embeddings(path: Path, *, labels_required: bool) -> tuple[np.ndarray, list[str]]:
@@ -110,6 +111,22 @@ def embed_main(argv: Sequence[str] | None = None) -> None:
             }
         )
     )
+
+
+def prepare_main(argv: Sequence[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(
+        description="Isolate clear leaves and export leaf-only/lesion training files"
+    )
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--image-root", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    args = parser.parse_args(argv)
+    summary = prepare_leaf_manifest(
+        load_manifest(args.manifest),
+        image_root=args.image_root,
+        output_dir=args.output_dir,
+    )
+    print(json.dumps(asdict(summary), ensure_ascii=False))
 
 
 def calibrate_main(argv: Sequence[str] | None = None) -> None:

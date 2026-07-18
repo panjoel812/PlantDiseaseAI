@@ -78,17 +78,23 @@ isolated research scaffold now addresses the failure mode where an unknown grape
 is forced into Tomato and then receives a Tomato disease label:
 
 ```text
-image -> frozen encoder -> multi-prototype plant identity + unknown rejection
-                         -> accepted host -> host-specific condition model
+image -> OpenCV single-leaf cutout + outline quality gate
+      -> frozen encoder -> 14-leaf plant identity + unknown rejection
+                         -> accepted host -> leaf-constrained lesion boxes/crops
+                                          -> host-specific condition model
                          -> unknown host  -> withhold condition
 ```
 
 The default baseline uses frozen MobileNetV2 embeddings, a small CPU prototype index,
 and similarity plus Top-1/Top-2 margin gates calibrated with held-out unknown plants.
-Adding taxa rebuilds the small index from cached embeddings; it does not retrain the
-encoder. This is an expandable catalog, **not** a claim to identify every plant.
+The pilot is restricted to the 14 existing crop-leaf groups plus at least six OOD leaf
+species; it does not use the full 1,081-species Pl@ntNet taxonomy. OpenCV exports the
+isolated leaf, mask, outline features, lesion overlay, and lesion crops before frozen
+feature extraction. Adding taxa rebuilds the small index from cached embeddings; it
+does not retrain the encoder. This is an expandable leaf catalog, **not** a claim to
+identify every plant or non-leaf organ.
 
-See the [complete OpenPlant-H protocol](docs/research/open_world_hierarchical_plant_research.md),
+See the [complete OpenLeaf-14 protocol](docs/research/open_world_hierarchical_plant_research.md),
 the [configuration](configs/openworld_research.yaml), and the
 [manifest example](configs/openworld_manifest.example.jsonl). No Pl@ntNet/PlantWild/
 PlantSeg-scale result is claimed yet. The exact synthetic validation boundary is in

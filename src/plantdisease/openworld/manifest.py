@@ -25,6 +25,9 @@ class OpenWorldRecord:
     genus_id: str | None = None
     site_id: str | None = None
     observer_id: str | None = None
+    original_image_path: str | None = None
+    leaf_mask_path: str | None = None
+    lesion_crop_paths: tuple[str, ...] = ()
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> OpenWorldRecord:
@@ -51,6 +54,9 @@ class OpenWorldRecord:
             genus_id=_optional_string(payload.get("genus_id")),
             site_id=_optional_string(payload.get("site_id")),
             observer_id=_optional_string(payload.get("observer_id")),
+            original_image_path=_optional_string(payload.get("original_image_path")),
+            leaf_mask_path=_optional_string(payload.get("leaf_mask_path")),
+            lesion_crop_paths=_string_tuple(payload.get("lesion_crop_paths")),
         )
 
 
@@ -59,6 +65,14 @@ def _optional_string(value: object) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _string_tuple(value: object) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list) or any(not str(item).strip() for item in value):
+        raise ValueError("lesion_crop_paths must be a list of non-empty strings")
+    return tuple(str(item) for item in value)
 
 
 def load_manifest(path: Path) -> list[OpenWorldRecord]:

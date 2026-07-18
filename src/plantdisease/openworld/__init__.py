@@ -7,6 +7,13 @@ from plantdisease.openworld.index import (
     ThresholdCalibration,
     calibrate_thresholds,
 )
+from plantdisease.openworld.leaf_pipeline import (
+    LeafIsolation,
+    LeafShapeFeatures,
+    PreparedLeaf,
+    isolate_leaf,
+    prepare_leaf,
+)
 from plantdisease.openworld.manifest import OpenWorldRecord, load_manifest
 from plantdisease.openworld.router import HierarchicalDecision, HierarchicalRouter
 
@@ -15,9 +22,14 @@ __all__ = [
     "HierarchicalRouter",
     "OpenSetDecision",
     "OpenWorldRecord",
+    "LeafIsolation",
+    "LeafShapeFeatures",
+    "PreparedLeaf",
     "PrototypeIndex",
     "PrototypeConditionModel",
     "ThresholdCalibration",
     "calibrate_thresholds",
+    "isolate_leaf",
     "load_manifest",
+    "prepare_leaf",
 ]

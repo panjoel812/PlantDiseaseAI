@@ -1,4 +1,4 @@
-# OpenPlant-H research scaffold evidence
+# OpenLeaf-14 research scaffold evidence
 
 Date: 2026-07-18  
 Branch: `codex/open-world-plant-research`  
@@ -14,24 +14,36 @@ Status: implementation and synthetic tests complete; real-data pilot not started
 - Threshold calibration using separate known and OOD validation embeddings.
 - Host-specific prototype condition model and plant-first router.
 - A hard routing invariant: a rejected/unknown plant cannot call a condition model.
+- OpenCV single-leaf preparation that exports a transparent cutout, neutral-background
+  species input, full-resolution mask, scale-independent outline features, lesion
+  overlay, and leaf-constrained lesion crops while preserving the original image.
+- A strict single-leaf quality gate for small, truncated, fragmented, multi-leaf, and
+  non-leaf inputs.
 - Protocol documentation for Pl@ntNet-300K, PlantWild v2, PlantSeg, and PlantDoc,
   including open-set metrics, data grouping, licensing boundaries, and compute tiers.
 
 ## Validation actually run
 
 ```text
-.venv/bin/pytest tests/openworld -q
-10 passed, 1 non-test-failure joblib CPU-count warning
+.venv/bin/pytest tests/openworld tests/serving/test_lesions.py -q
+18 passed, 1 non-test-failure joblib CPU-count warning
 
-.venv/bin/ruff check src/plantdisease/openworld tests/openworld
+.venv/bin/ruff check src/plantdisease/openworld src/plantdisease/serving/lesions.py \
+  tests/openworld tests/serving/test_lesions.py
 All checks passed!
 
 git diff --check
 no output (passed)
 ```
 
-The tests use tiny synthetic vectors and two generated 8×8 images. They validate
-contracts and routing, not botanical accuracy, OOD quality, or disease performance.
+The tests use tiny synthetic vectors and generated images. They validate contracts,
+single-leaf gating, output artifacts, leaf-constrained lesion boxes, and routing—not
+botanical accuracy, OOD quality, or disease performance.
+
+A read-only smoke on the user-supplied multi-leaf grape image was rejected before
+classification because several large green components were present (largest-component
+dominance `0.514`). This is expected under the current one-clear-leaf input contract;
+it is not a botanical evaluation.
 
 ## Results not claimed
 
@@ -44,6 +56,7 @@ contracts and routing, not botanical accuracy, OOD quality, or disease performan
 
 ## Next evidence gate
 
-Freeze a pilot containing at least 20 known plants and 10 completely disjoint unknown
-plants, preserving entity/source/license metadata. Compare at least two encoders under
-one split and report open-set, tail, latency, memory, and end-to-end routing results.
+Freeze a pilot containing the 14 configured crop leaves and at least six completely
+disjoint unknown leaf species, preserving entity/source/license metadata. First audit
+single-leaf acceptance/rejection; then compare at least two encoders under one split
+and report open-set, latency, memory, and end-to-end routing results.

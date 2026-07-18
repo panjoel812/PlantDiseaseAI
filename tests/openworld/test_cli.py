@@ -4,8 +4,14 @@ import json
 from pathlib import Path
 
 import numpy as np
+from PIL import Image, ImageDraw
 
-from plantdisease.openworld.cli import calibrate_main, index_main, predict_main
+from plantdisease.openworld.cli import (
+    calibrate_main,
+    index_main,
+    predict_main,
+    prepare_main,
+)
 
 
 def _write_embeddings(path: Path, embeddings: np.ndarray, labels: list[str]) -> None:
@@ -70,3 +76,41 @@ def test_index_calibrate_and_predict_cli_round_trip(
     output = capsys.readouterr().out
     assert output.count('"status": "completed"') == 2
     assert json.loads(output[output.rfind("{") :])["plant_id"] == "grape"
+
+
+def test_prepare_cli_exports_a_leaf_only_manifest(tmp_path: Path, capsys) -> None:
+    image = Image.new("RGB", (160, 120), (25, 26, 28))
+    ImageDraw.Draw(image).ellipse((20, 12, 140, 108), fill=(55, 150, 63))
+    image.save(tmp_path / "leaf.png")
+    manifest = tmp_path / "manifest.jsonl"
+    manifest.write_text(
+        json.dumps(
+            {
+                "image_id": "leaf-1",
+                "entity_id": "entity-1",
+                "image_path": "leaf.png",
+                "plant_id": "vitis_vinifera",
+                "condition_id": "healthy",
+                "split": "train",
+                "source": "test",
+                "license": "CC0",
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "prepared"
+
+    prepare_main(
+        [
+            "--manifest",
+            str(manifest),
+            "--image-root",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["accepted_count"] == 1
+    assert (output_dir / "prepared_manifest.jsonl").is_file()

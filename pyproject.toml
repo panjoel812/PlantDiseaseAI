@@ -54,6 +54,7 @@ plant-openworld-calibrate = "plantdisease.openworld.cli:calibrate_main"
 plant-openworld-embed = "plantdisease.openworld.cli:embed_main"
 plant-openworld-index = "plantdisease.openworld.cli:index_main"
 plant-openworld-predict = "plantdisease.openworld.cli:predict_main"
+plant-openworld-prepare = "plantdisease.openworld.cli:prepare_main"
 plant-predict = "plantdisease.cli:predict_main"
 plant-smoke = "plantdisease.cli:smoke_main"
 

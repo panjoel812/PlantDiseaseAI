@@ -1,5 +1,5 @@
 protocol:
-  id: openplant_h_v1
+  id: openplant_leaf14_v2
   seed: 42
   status: experimental_scaffold
   claim_boundary: >-
@@ -12,6 +12,38 @@ data:
   required_metadata: [source, license]
   recommended_group_keys: [observer_id, site_id]
   splits: [train, validation, test, ood_validation, ood_test]
+
+catalog:
+  organ_scope: single_clear_leaf
+  known_species_count: 14
+  minimum_ood_species_count: 6
+  known_species:
+    - malus_domestica
+    - vaccinium_corymbosum
+    - prunus_cerasus
+    - zea_mays
+    - vitis_vinifera
+    - citrus_sinensis
+    - prunus_persica
+    - capsicum_annuum
+    - solanum_tuberosum
+    - rubus_idaeus
+    - glycine_max
+    - cucurbita_pepo
+    - fragaria_ananassa
+    - solanum_lycopersicum
+  excluded_inputs: [multiple_overlapping_leaves, flower, fruit, stem_only, whole_plant]
+
+leaf_preparation:
+  method: opencv_exg_single_leaf_v1
+  training_and_inference_match: true
+  output_background_rgb: [124, 124, 124]
+  rejection_gates:
+    minimum_leaf_coverage_percent: 5
+    maximum_leaf_coverage_percent: 90
+    minimum_component_dominance: 0.60
+    maximum_border_touch_ratio: 0.18
+  shape_features: [aspect_ratio, circularity, solidity, extent]
 
 plant_identity:
   default_encoder: torchvision/mobilenet_v2-imagenet1k-v2
@@ -31,9 +63,10 @@ condition_routing:
   missing_host_model_action: withhold_condition
   default_model: host_specific_prototype_or_linear_probe
   minimum_conditions_per_host: 2
+  inputs: [isolated_leaf, leaf_constrained_lesion_crops]
 
 localization:
-  stage_0: opencv_colour_morphology_evidence
+  stage_0: opencv_leaf_mask_then_colour_morphology_boxes
   supervised_candidate: plantseg_mask_model
   claim_boundary: candidate lesion pixels, not causal disease localization
 

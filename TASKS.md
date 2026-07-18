@@ -502,15 +502,16 @@
 
 ---
 
-## Week 8 后续研究：OpenPlant-H 开放世界分层识别
+## Week 8 后续研究：OpenLeaf-14 单叶分层识别
 
-> 状态（2026-07-18）：已建立低算力研究协议与可执行合成基线；尚未下载或训练 Pl@ntNet-300K、PlantWild、PlantSeg、PlantDoc，因此没有真实开放世界指标。
+> 状态（2026-07-18）：研究范围已收缩为 14 种常见作物的单叶识别，并建立 OpenCV 去背景叶片 → 植物拒识 → 叶片内病斑 crop → 宿主病害模型的合成基线；尚无真实开放世界指标。
 
 - [x] 定义“先植物、后病害”的分层路由，未知植物不得进入病害模型。证据：`src/plantdisease/openworld/router.py`、`tests/openworld/test_router.py`。
 - [x] 建立含来源、许可、实体分组和 OOD split 的 JSONL 数据契约。证据：`src/plantdisease/openworld/manifest.py`、`configs/openworld_manifest.example.jsonl`。
 - [x] 实现冻结 MobileNetV2 特征提取、多原型目录、持久化与相似度/间隔拒识阈值校准。证据：`src/plantdisease/openworld/encoder.py`、`src/plantdisease/openworld/index.py`、`src/plantdisease/openworld/cli.py`。
+- [x] 实现单片叶轮廓质量门控、透明/中性背景叶片导出、形状特征、叶片 mask 内病斑框与 crop 批量准备；原图不修改。证据：`src/plantdisease/openworld/leaf_pipeline.py`、`src/plantdisease/openworld/preparation.py`、`tests/openworld/test_leaf_pipeline.py`、`tests/openworld/test_preparation.py`。
 - [x] 记录 Pl@ntNet-300K、PlantWild v2、PlantSeg、PlantDoc 数据阶梯、开放集指标、许可边界和三档算力方案。证据：`docs/research/open_world_hierarchical_plant_research.md`、`configs/openworld_research.yaml`。
-- [ ] 完成至少 20 个已知植物、10 个完全隔离未知植物的 pilot，报告 AUROC、FPR@95TPR、OSCR、未知误接受率、尾类召回与端到端条件 Macro F1。
+- [ ] 完成 14 种已知作物叶片、至少 6 种完全隔离未知叶片的 pilot，报告叶片分离错误、AUROC、FPR@95TPR、OSCR、未知误接受率与端到端条件 Macro F1。
 - [ ] 在同一冻结 split 上比较 Pl@ntNet ResNet18、DINOv2 ViT-S/14 与 MobileCLIP2-S0；不得只报告最有利编码器。
 - [ ] 仅为有许可病害数据的宿主训练条件模型；无模型时必须返回 `condition model unavailable`。
 - [ ] 使用 PlantSeg 真值评估病斑分割；OpenCV 结果继续只称为可见病斑候选，不称为真实病灶。
