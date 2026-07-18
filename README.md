@@ -34,6 +34,7 @@ hash against `reports/release/week8_rc1_manifest.json`.
 ## Table of contents
 
 - [Architecture](#architecture)
+- [Experimental open-world research](#experimental-open-world-research)
 - [Platform support](#platform-support)
 - [Prerequisites](#prerequisites)
 - [Five-minute smoke test](#five-minute-smoke-test)
@@ -69,6 +70,29 @@ FastAPI exposes the classifier service to React. Streamlit uses the same serving
 layer directly, keeping checkpoint loading, preprocessing, Top-5, and Grad-CAM
 consistent across interfaces. Qwen is optional context, not a source of
 classifier ground truth. See the [complete module map](docs/project-architecture.md).
+
+## Experimental open-world research
+
+The existing React demo is deliberately a PlantVillage closed-set system. A new,
+isolated research scaffold now addresses the failure mode where an unknown grape leaf
+is forced into Tomato and then receives a Tomato disease label:
+
+```text
+image -> frozen encoder -> multi-prototype plant identity + unknown rejection
+                         -> accepted host -> host-specific condition model
+                         -> unknown host  -> withhold condition
+```
+
+The default baseline uses frozen MobileNetV2 embeddings, a small CPU prototype index,
+and similarity plus Top-1/Top-2 margin gates calibrated with held-out unknown plants.
+Adding taxa rebuilds the small index from cached embeddings; it does not retrain the
+encoder. This is an expandable catalog, **not** a claim to identify every plant.
+
+See the [complete OpenPlant-H protocol](docs/research/open_world_hierarchical_plant_research.md),
+the [configuration](configs/openworld_research.yaml), and the
+[manifest example](configs/openworld_manifest.example.jsonl). No Pl@ntNet/PlantWild/
+PlantSeg-scale result is claimed yet. The exact synthetic validation boundary is in
+the [scaffold evidence report](reports/openworld_research_scaffold.md).
 
 ## Platform support
 

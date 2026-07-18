@@ -34,6 +34,20 @@ React Demo 默认加载用户提供的田间玉米叶图片 `app/examples/field_
 
 这会阻止“低置信错误作物 → 高置信错误病害”的级联。作物模型与病害模型已经分离，但两者仍是 PlantVillage 闭集模型，不是开放世界植物学识别器，也不能证明田间准确率。OpenCV 病斑遮罩只是确定性的可见证据估计，不是真值分割或病害分类器。
 
+### 开放世界分层识别研究（实验支线）
+
+为解决“域外葡萄叶被强制判成番茄，再继续输出番茄病害”的根本问题，项目新增了与现有 Demo 隔离的 OpenPlant-H 研究基线：
+
+```text
+图片 → 冻结编码器 → 多原型植物识别 + 未知植物拒识
+                  → 接受植物 → 该植物专用的健康/病害模型
+                  → 未知植物 → 不输出病害
+```
+
+低算力默认路径是冻结 MobileNetV2，只提取一次特征；后续原型构建、阈值校准和目录更新均在 CPU 上完成，不反向传播。相似度与 Top-1/Top-2 间隔必须同时通过，病害模型才会运行。新增植物只需补充有许可的参考图片并重建小型原型索引，不必重训全局网络。
+
+这里的目标是“可扩展的已知植物目录 + 明确的 unknown”，不是声称能识别世界上所有植物。完整数据协议、Pl@ntNet-300K / PlantWild / PlantSeg 数据阶梯、开放集指标、算力档位与命令见[开放世界研究方案](docs/research/open_world_hierarchical_plant_research.md)；默认配置见[`configs/openworld_research.yaml`](configs/openworld_research.yaml)，清单格式见[`configs/openworld_manifest.example.jsonl`](configs/openworld_manifest.example.jsonl)，已运行验证及其边界见[研究脚手架证据](reports/openworld_research_scaffold.md)。目前只完成研究脚手架与合成验证，不声称已得到真实大规模数据指标。
+
 新版界面使用 `liquid-glass-react` 提供轻量材质边缘，并以雾白、浅蓝、嫩绿构成通透背景。React Demo 采用“先上传、后查看结果”的纵向流程：摄影卡与 Analyze 操作位于顶部，分析成功后页面会移动到照片下方完整展开的 Classifier 与 Management guidance。结果卡使用正常文档流，不再通过嵌套纵向滚动隐藏证据；移动端保持“上传 → 分类器 → 助手”的顺序。大型卡片保持零弹性，底部叶片与露珠不接收指针事件并在 `prefers-reduced-motion` 下停止。页眉 Logo 将用户提供的 Desmos Bézier 内部曲线与 PlantDiseaseAI 叶片融合；外部源 SVG 保持原样，运行时不依赖该个人路径。
 
 PlantVillage 缓存就绪后，先训练一次独立轻量作物头；生成权重保存在被 Git 忽略的 `outputs/`：

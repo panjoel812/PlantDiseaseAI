@@ -167,3 +167,14 @@
 | 简历证据映射 | `docs/resume/week8_resume_evidence.md` | 3 条可用 bullet 均链接真实证据并保留 official split / single-seed 限制 |
 | 导师沟通摘要 | `docs/mentor/week8_mentor_summary.md` | 研究问题、个人贡献、负结果、局限与下一实验已整理 |
 | 发布检查清单 | `docs/release/week8_release_checklist.md` | 本地门禁通过；multi-seed、实体隔离、田间验证、完整人工 VQA 审计等明确未完成 |
+
+## Post-Week 8 experimental research
+
+| 证据 | 路径或生成命令 | 状态 |
+| --- | --- | --- |
+| OpenPlant-H 研究协议 | `docs/research/open_world_hierarchical_plant_research.md`、`configs/openworld_research.yaml` | 已建立；明确可扩展目录与 unknown 拒识，不声称通用植物识别 |
+| 开放世界 manifest | `src/plantdisease/openworld/manifest.py`、`configs/openworld_manifest.example.jsonl` | 已实现；来源/许可/实体分组/OOD split 可审计 |
+| 冻结特征与多原型索引 | `src/plantdisease/openworld/encoder.py`、`src/plantdisease/openworld/index.py`、`src/plantdisease/openworld/cli.py` | 合成验证；尚无真实数据指标 |
+| 植物优先病害路由 | `src/plantdisease/openworld/condition.py`、`src/plantdisease/openworld/router.py`、`tests/openworld/test_router.py` | 合成验证；未知植物不会调用病害模型 |
+| OpenPlant-H 验证记录 | `reports/openworld_research_scaffold.md` | 10 个定向测试与 Ruff 通过；真实数据 pilot 未开始 |
+| Pl@ntNet / PlantWild / PlantSeg pilot | 见研究协议的 Milestones | 未开始；没有下载数据或训练结果 |
