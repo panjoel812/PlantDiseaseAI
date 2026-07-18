@@ -19,6 +19,8 @@ from plantdisease.explainability.visualization import heatmap_to_image, overlay_
 from plantdisease.inference import Prediction, predict_topk
 from plantdisease.models.checkpoint import load_checkpoint
 from plantdisease.serving.hierarchy import (
+    DEFAULT_CROP_CONFIDENCE_THRESHOLD,
+    DEFAULT_CROP_MARGIN_THRESHOLD,
     TaxonomyHierarchy,
     build_taxonomy_hierarchy,
 )
@@ -29,6 +31,7 @@ from plantdisease.serving.images import (
     decode_rgb_image,
 )
 from plantdisease.serving.knowledge import DiseaseKnowledge, lookup_disease_knowledge
+from plantdisease.serving.lesions import LesionAnalysis, analyze_lesions
 
 DEFAULT_CONFIDENCE_WARNING_THRESHOLD = 0.80
 
@@ -41,6 +44,9 @@ DOMAIN_WARNING = (
 )
 LOW_CONFIDENCE_WARNING = (
     "Low confidence prediction; do not treat this as a definitive diagnosis."
+)
+CROP_UNCERTAIN_WARNING = (
+    "Crop identity did not pass the confidence gate; disease labels are withheld."
 )
 
 
@@ -68,7 +74,7 @@ class GradCAMImages:
 class InferenceResult:
     predictions: list[Prediction]
     hierarchy: TaxonomyHierarchy
-    knowledge: DiseaseKnowledge
+    knowledge: DiseaseKnowledge | None
     model_name: str
     checkpoint_path: str
     checkpoint_id: str
@@ -77,6 +83,7 @@ class InferenceResult:
     target_layer_name: str | None
     timings: TimingBreakdown
     warnings: list[str]
+    lesion_analysis: LesionAnalysis | None = None
     gradcam: GradCAMImages | None = None
 
 
@@ -97,6 +104,8 @@ class InferenceService:
         max_upload_bytes: int = DEFAULT_MAX_UPLOAD_BYTES,
         max_pixels: int = DEFAULT_MAX_PIXELS,
         confidence_warning_threshold: float = DEFAULT_CONFIDENCE_WARNING_THRESHOLD,
+        crop_confidence_threshold: float = DEFAULT_CROP_CONFIDENCE_THRESHOLD,
+        crop_margin_threshold: float = DEFAULT_CROP_MARGIN_THRESHOLD,
     ) -> None:
         if not class_names:
             raise ValueError("class_names must be non-empty")
@@ -111,6 +120,8 @@ class InferenceService:
         self.max_upload_bytes = max_upload_bytes
         self.max_pixels = max_pixels
         self.confidence_warning_threshold = confidence_warning_threshold
+        self.crop_confidence_threshold = crop_confidence_threshold
+        self.crop_margin_threshold = crop_margin_threshold
         self.model_name = str(self.config.get("model_name", "unknown"))
         self.image_size = int(self.config.get("image_size", 224))
         self._transform = build_eval_transform(self.image_size)
@@ -158,6 +169,7 @@ class InferenceService:
             )
 
             step_started = time.perf_counter()
+            lesion_analysis = analyze_lesions(image)
             tensor = self._transform(image)
             preprocess_ms = _elapsed_ms(step_started)
 
@@ -168,27 +180,37 @@ class InferenceService:
                 self.class_names,
                 k=len(self.class_names),
             )
-            hierarchy = build_taxonomy_hierarchy(all_predictions)
-            predictions = all_predictions[: min(top_k, len(all_predictions))]
-            selected_condition = hierarchy.conditions[0]
-            selected_prediction = Prediction(
-                class_index=selected_condition.class_index,
-                class_name=selected_condition.class_name,
-                probability=selected_condition.joint_probability,
+            hierarchy = build_taxonomy_hierarchy(
+                all_predictions,
+                crop_confidence_threshold=self.crop_confidence_threshold,
+                crop_margin_threshold=self.crop_margin_threshold,
             )
+            predictions = all_predictions[: min(top_k, len(all_predictions))]
+            selected_prediction = None
+            if hierarchy.conditions:
+                selected_condition = hierarchy.conditions[0]
+                selected_prediction = Prediction(
+                    class_index=selected_condition.class_index,
+                    class_name=selected_condition.class_name,
+                    probability=selected_condition.joint_probability,
+                )
             prediction_ms = _elapsed_ms(step_started)
 
             gradcam = None
-            if include_gradcam:
+            if include_gradcam and selected_prediction is not None:
                 step_started = time.perf_counter()
                 gradcam = self._generate_gradcam(image, tensor, selected_prediction)
                 gradcam_ms = _elapsed_ms(step_started)
 
-            warnings = self._warnings(selected_prediction)
+            warnings = self._warnings(selected_prediction, hierarchy)
             return InferenceResult(
                 predictions=predictions,
                 hierarchy=hierarchy,
-                knowledge=lookup_disease_knowledge(selected_prediction.class_name),
+                knowledge=(
+                    lookup_disease_knowledge(selected_prediction.class_name)
+                    if selected_prediction is not None
+                    else None
+                ),
                 model_name=self.model_name,
                 checkpoint_path=str(self.checkpoint_path),
                 checkpoint_id=self.checkpoint_id,
@@ -202,6 +224,7 @@ class InferenceService:
                     total_ms=_elapsed_ms(started),
                 ),
                 warnings=warnings,
+                lesion_analysis=lesion_analysis,
                 gradcam=gradcam,
             )
         except InputValidationError:
@@ -228,9 +251,18 @@ class InferenceService:
             overlay=overlay_heatmap(image, heatmap),
         )
 
-    def _warnings(self, top_prediction: Prediction) -> list[str]:
+    def _warnings(
+        self,
+        top_prediction: Prediction | None,
+        hierarchy: TaxonomyHierarchy,
+    ) -> list[str]:
         warnings = [EDUCATIONAL_WARNING, DOMAIN_WARNING]
-        if top_prediction.probability < self.confidence_warning_threshold:
+        if not hierarchy.crop_confident:
+            warnings.append(CROP_UNCERTAIN_WARNING)
+        elif (
+            top_prediction is not None
+            and top_prediction.probability < self.confidence_warning_threshold
+        ):
             warnings.append(LOW_CONFIDENCE_WARNING)
         return warnings
 

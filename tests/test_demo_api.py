@@ -63,7 +63,7 @@ class FakeService:
         return InferenceResult(
             predictions=predictions[:top_k],
             hierarchy=TaxonomyHierarchy(
-                method="single_model_taxonomy_aggregation_v1",
+                method="crop_first_rejection_v2",
                 selected_crop="Corn",
                 selected_class_name="Corn___class_0",
                 crops=[CropPrediction(plant="Corn", probability=1.0)],
@@ -348,7 +348,8 @@ def test_classify_serializes_top5_gradcam_and_boundaries(
         "class_name": "Corn___class_0",
         "probability": 0.5,
     }
-    assert payload["hierarchy"]["method"] == "single_model_taxonomy_aggregation_v1"
+    assert payload["hierarchy"]["method"] == "crop_first_rejection_v2"
+    assert payload["hierarchy"]["crop_confident"] is True
     assert payload["hierarchy"]["selected_crop"] == "Corn"
     assert payload["hierarchy"]["conditions"][0] == {
         "class_index": 0,
@@ -721,8 +722,9 @@ def test_qwen_ask_validates_question_length_after_trimming() -> None:
     accepted_question = prefix + "x" * (500 - len(prefix))
     accepted_prompt = (
         "Inspect only visible pixels. Do not diagnose disease or recommend treatment.\n"
-        "Return at most six short, complete observations about spots, colors, shapes,\n"
-        "margins, textures, and distribution. Do not add an introduction.\n\n"
+        "Return at most six complete observations, one per line, using only these labels:\n"
+        "Spots, Colors, Shapes, Margins, Textures, Distribution. Keep each line under\n"
+        "18 words. Do not add an introduction, Markdown, or unfinished text.\n\n"
         f"Question: {accepted_question}"
     )
     accepted_backend = MockVLMBackend({accepted_prompt: "Visible evidence."})

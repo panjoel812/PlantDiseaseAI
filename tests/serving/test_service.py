@@ -93,6 +93,7 @@ def _hierarchy_service(model: HierarchicalModel) -> InferenceService:
         checkpoint_path=Path("outputs/example/checkpoint.pt"),
         device=torch.device("cpu"),
         checkpoint_id="hierarchical-checkpoint",
+        crop_confidence_threshold=0.45,
     )
 
 
@@ -108,6 +109,8 @@ def test_predict_returns_top5_metadata_timings_and_safety_warnings() -> None:
     assert len(result.predictions) == 3
     assert sum(item.probability for item in result.predictions) == pytest.approx(1.0)
     assert result.gradcam is None
+    assert result.lesion_analysis is not None
+    assert result.lesion_analysis.image_size == (40, 40)
     assert result.knowledge.plant == "Tomato"
     assert result.knowledge.condition == "Late blight"
     assert result.timings.total_ms >= result.timings.prediction_ms >= 0.0

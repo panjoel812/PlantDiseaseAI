@@ -505,6 +505,54 @@ def _serialize_result(result: InferenceResult) -> dict[str, object]:
             "heatmap_data_url": _png_data_url(result.gradcam.heatmap),
             "overlay_data_url": _png_data_url(result.gradcam.overlay),
         }
+    lesion_analysis: dict[str, object] | None = None
+    if result.lesion_analysis is not None:
+        analysis = result.lesion_analysis
+        lesion_analysis = {
+            "method": analysis.method,
+            "image_size": list(analysis.image_size),
+            "leaf_area_pixels": analysis.leaf_area_pixels,
+            "leaf_coverage_percent": analysis.leaf_coverage_percent,
+            "lesion_area_pixels": analysis.lesion_area_pixels,
+            "lesion_coverage_percent": analysis.lesion_coverage_percent,
+            "lesion_count": analysis.lesion_count,
+            "median_lesion_area_percent": analysis.median_lesion_area_percent,
+            "largest_lesion_area_percent": analysis.largest_lesion_area_percent,
+            "mean_circularity": analysis.mean_circularity,
+            "dominant_colors": [
+                {"name": color.name, "proportion": color.proportion}
+                for color in analysis.dominant_colors
+            ],
+            "distribution": analysis.distribution,
+            "regions": [
+                {
+                    "x": region.x,
+                    "y": region.y,
+                    "width": region.width,
+                    "height": region.height,
+                    "centroid_x": region.centroid_x,
+                    "centroid_y": region.centroid_y,
+                    "area_pixels": region.area_pixels,
+                    "area_percent_of_leaf": region.area_percent_of_leaf,
+                    "circularity": region.circularity,
+                    "aspect_ratio": region.aspect_ratio,
+                    "shape": region.shape,
+                    "color": region.color,
+                }
+                for region in analysis.regions
+            ],
+            "overlay_data_url": _png_data_url(analysis.overlay),
+        }
+    knowledge: dict[str, object] | None = None
+    if result.knowledge is not None:
+        knowledge = {
+            "class_name": result.knowledge.class_name,
+            "plant": result.knowledge.plant,
+            "condition": result.knowledge.condition,
+            "is_healthy": result.knowledge.is_healthy,
+            "symptoms": result.knowledge.symptoms,
+            "educational_note": result.knowledge.educational_note,
+        }
     return {
         "predictions": [
             {
@@ -518,6 +566,11 @@ def _serialize_result(result: InferenceResult) -> dict[str, object]:
             "method": result.hierarchy.method,
             "selected_crop": result.hierarchy.selected_crop,
             "selected_class_name": result.hierarchy.selected_class_name,
+            "crop_confident": result.hierarchy.crop_confident,
+            "crop_margin": result.hierarchy.crop_margin,
+            "confidence_threshold": result.hierarchy.confidence_threshold,
+            "margin_threshold": result.hierarchy.margin_threshold,
+            "decision_reason": result.hierarchy.decision_reason,
             "crops": [
                 {
                     "plant": crop.plant,
@@ -537,14 +590,8 @@ def _serialize_result(result: InferenceResult) -> dict[str, object]:
                 for condition in result.hierarchy.conditions
             ],
         },
-        "knowledge": {
-            "class_name": result.knowledge.class_name,
-            "plant": result.knowledge.plant,
-            "condition": result.knowledge.condition,
-            "is_healthy": result.knowledge.is_healthy,
-            "symptoms": result.knowledge.symptoms,
-            "educational_note": result.knowledge.educational_note,
-        },
+        "knowledge": knowledge,
+        "lesion_analysis": lesion_analysis,
         "model_name": result.model_name,
         "checkpoint_path": result.checkpoint_path,
         "checkpoint_id": result.checkpoint_id,

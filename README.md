@@ -50,9 +50,13 @@ hash against `reports/release/week8_rc1_manifest.json`.
 The main data flow is:
 
 ```text
-image -> deterministic preprocessing -> ResNet50 -> Top-5 predictions
-                                            |
-                                            +-> Grad-CAM relevance map
+image -> OpenCV on original resolution -> lesion location/size/shape/colour
+      -> deterministic resize -> ResNet50 joint labels -> crop confidence gate
+                                                     | accepted
+                                                     +-> crop-only conditions
+                                                     +-> Grad-CAM relevance map
+                                                     | uncertain
+                                                     +-> disease result withheld
 
 React -> FastAPI ----+
                      +-> shared classifier serving layer
@@ -248,13 +252,20 @@ Open `http://127.0.0.1:5173/`. The bundled field image has no verified ground
 truth and is out-of-domain relative to the controlled evaluation. Its visible
 output is a model prediction, not field-accuracy evidence.
 
-The result view is crop-first, but this does **not** claim two separately
-trained models. The service runs the existing 38-class PlantVillage classifier
-once, sums the complete joint distribution by crop, selects the highest-mass
-crop, and then renormalizes only that crop's conditions. This prevents labels
-such as Apple `Black rot` and Grape `Black rot` from appearing together without
-crop context. It is closed-set taxonomy aggregation, not an independent crop
-detector and not evidence of unknown-crop or field generalization.
+The result view now follows three explicit stages. OpenCV first measures visible
+leaf/lesion evidence on the original upload, using resolution-scaled morphology
+and connected-component thresholds; it reports area, count, dominant shape,
+coarse colour, distribution, and an overlay, but does not turn those hand-built
+measurements into a disease claim. The 38-class PlantVillage checkpoint then
+aggregates its joint distribution by crop. Disease ranking and Grad-CAM run only
+when the top crop reaches 60% probability with at least a 10 percentage-point
+margin; otherwise the API returns `selected_class_name: null` and an empty
+condition list. Management guidance is disabled for the abstained result.
+
+This gate prevents a weak crop guess from becoming a confident but taxonomically
+impossible disease result. It does **not** make the existing checkpoint an
+independent crop recognizer. A separately trained and evaluated lightweight crop
+checkpoint is still required before claiming reliable open-world plant identity.
 
 The interface keeps `liquid-glass-react` for restrained material edges and
 highlights. It now follows an upload-first vertical flow: the photograph and
@@ -460,6 +471,11 @@ marks clean reproduction, package, local evidence, and container lanes as
 - The human VQA audit is incomplete.
 - No LoRA/QLoRA fine-tuning was completed.
 - Grad-CAM is relevance visualization, not causal explanation.
+- OpenCV lesion masks are deterministic visible-evidence estimates, not ground
+  truth segmentation and not a disease classifier.
+- The current crop gate is derived from the joint disease checkpoint; uncertain
+  crops are rejected rather than corrected. No independent crop checkpoint has
+  yet been trained or externally validated.
 
 ## Repository map
 

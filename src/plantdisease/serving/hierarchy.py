@@ -10,7 +10,9 @@ from dataclasses import dataclass
 from plantdisease.inference import Prediction
 from plantdisease.serving.knowledge import lookup_disease_knowledge
 
-HIERARCHY_METHOD = "single_model_taxonomy_aggregation_v1"
+HIERARCHY_METHOD = "crop_first_rejection_v2"
+DEFAULT_CROP_CONFIDENCE_THRESHOLD = 0.60
+DEFAULT_CROP_MARGIN_THRESHOLD = 0.10
 
 
 @dataclass(frozen=True)
@@ -39,15 +41,29 @@ class TaxonomyHierarchy:
 
     method: str
     selected_crop: str
-    selected_class_name: str
+    selected_class_name: str | None
     crops: list[CropPrediction]
     conditions: list[ConditionPrediction]
+    crop_confident: bool = True
+    crop_margin: float = 1.0
+    confidence_threshold: float = DEFAULT_CROP_CONFIDENCE_THRESHOLD
+    margin_threshold: float = DEFAULT_CROP_MARGIN_THRESHOLD
+    decision_reason: str = "Crop gate accepted."
 
 
 def build_taxonomy_hierarchy(
     predictions: Sequence[Prediction],
+    *,
+    crop_confidence_threshold: float = DEFAULT_CROP_CONFIDENCE_THRESHOLD,
+    crop_margin_threshold: float = DEFAULT_CROP_MARGIN_THRESHOLD,
 ) -> TaxonomyHierarchy:
-    """Aggregate joint class probabilities by crop, then rank its conditions."""
+    """Aggregate crop evidence, gate uncertainty, then rank crop-only conditions.
+
+    The current checkpoint has a joint PlantVillage label space rather than an
+    independent crop head.  A low-confidence crop is therefore treated as an
+    abstention: disease labels are withheld instead of being projected through a
+    weak or incorrect crop guess.
+    """
     if not predictions:
         raise ValueError("predictions must not be empty")
     if any(
@@ -59,6 +75,10 @@ def build_taxonomy_hierarchy(
     total_probability = sum(item.probability for item in predictions)
     if total_probability <= 0.0:
         raise ValueError("prediction probability total must be positive")
+    if not 0.0 <= crop_confidence_threshold <= 1.0:
+        raise ValueError("crop_confidence_threshold must be between zero and one")
+    if not 0.0 <= crop_margin_threshold <= 1.0:
+        raise ValueError("crop_margin_threshold must be between zero and one")
 
     normalized: list[tuple[Prediction, str, str, float]] = []
     crop_totals: defaultdict[str, float] = defaultdict(float)
@@ -78,7 +98,14 @@ def build_taxonomy_hierarchy(
         key=lambda item: (-item.probability, item.plant),
     )
     selected_crop = crops[0]
-    conditions = sorted(
+    crop_margin = selected_crop.probability - (
+        crops[1].probability if len(crops) > 1 else 0.0
+    )
+    crop_confident = (
+        selected_crop.probability >= crop_confidence_threshold
+        and crop_margin >= crop_margin_threshold
+    )
+    ranked_conditions = sorted(
         (
             ConditionPrediction(
                 class_index=prediction.class_index,
@@ -95,10 +122,28 @@ def build_taxonomy_hierarchy(
         ),
         key=lambda item: (-item.joint_probability, item.class_name),
     )
+    conditions = ranked_conditions if crop_confident else []
+    if selected_crop.probability < crop_confidence_threshold:
+        decision_reason = (
+            f"Crop confidence {selected_crop.probability:.1%} is below the "
+            f"{crop_confidence_threshold:.0%} acceptance threshold."
+        )
+    elif crop_margin < crop_margin_threshold:
+        decision_reason = (
+            f"Crop margin {crop_margin:.1%} is below the "
+            f"{crop_margin_threshold:.0%} acceptance threshold."
+        )
+    else:
+        decision_reason = "Crop gate accepted; disease ranking is restricted to this crop."
     return TaxonomyHierarchy(
         method=HIERARCHY_METHOD,
         selected_crop=selected_crop.plant,
-        selected_class_name=conditions[0].class_name,
+        selected_class_name=(conditions[0].class_name if conditions else None),
         crops=crops,
         conditions=conditions,
+        crop_confident=crop_confident,
+        crop_margin=crop_margin,
+        confidence_threshold=crop_confidence_threshold,
+        margin_threshold=crop_margin_threshold,
+        decision_reason=decision_reason,
     )

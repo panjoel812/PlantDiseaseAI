@@ -127,7 +127,9 @@ export function AdvicePanel({
             )}
 
             {!enabled ? (
-              <p className="provider-detail">Analyze an image before requesting guidance.</p>
+              <p className="provider-detail">
+                Guidance unlocks only after the plant identity passes the crop gate.
+              </p>
             ) : null}
             {isLoading ? (
               <p className="qwen-live" role="status">Requesting conditional guidance…</p>

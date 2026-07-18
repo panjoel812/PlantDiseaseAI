@@ -449,6 +449,8 @@
 
 > 紧凑可配置 Demo 收尾（2026-07-17）：`afca2d5` 已加入 Qwen 结构化视觉观察与原始回答折叠区、仅驻留 FastAPI 进程内存的三供应商临时密钥配置/清除、网站内配置面板、视口派生的紧凑桌面布局、固定叶片/露珠环境装饰，以及互相链接的完整英文与中文公开指南；实现已发布到公开 `main`。按用户明确要求，本次文档收尾不再启动服务、不重跑浏览器 QA、自动测试或 release manifest，因此这些项目在本轮记录为 `not_run`，不新增通过声明；既有 QA 与 manifest 仍只代表各自记录的提交。证据：`docs/superpowers/plans/2026-07-17-compact-demo-provider-config.md`、`reports/week8_react_demo_qa.md`、`README.md`、`README.zh-CN.md`。
 
+> 作物门控与 OpenCV 病斑证据补充（2026-07-18）：Demo 已改为“原图 OpenCV 可见证据 → 作物置信门控 → 作物内病害”的三阶段路径。作物最高概率低于 `60%` 或领先幅度低于 `10` 个百分点时，API 返回空病害列表并禁用 Grad-CAM/管理建议，避免错误作物继续级联为错误病害。用户提供的葡萄叶 QA 图在正式 checkpoint 下仍只得到 Tomato 候选 `38.1%`，因此正确行为是拒绝病名而不是伪造 Grape；OpenCV 在原图上得到 `37` 个区域、病斑覆盖估计 `10.14%`。受影响 Python 测试 `51 passed`、React 测试 `55 passed`、React build 与 Ruff 通过，并完成本地浏览器 QA。独立轻量作物模型仍未训练或验证。证据：`src/plantdisease/serving/lesions.py`、`src/plantdisease/serving/hierarchy.py`、`reports/week8_crop_gate_lesion_qa.md`、`README.md`、`README.zh-CN.md`。
+
 #### 研发任务
 
 - [x] 冻结候选发布版本，记录代码版本、依赖版本、数据版本和模型 checkpoint 校验信息。证据：`reports/release/week8_rc1_manifest.json`。

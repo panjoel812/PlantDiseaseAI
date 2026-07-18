@@ -33,7 +33,7 @@ function classification(): ClassificationResult {
       },
     ],
     hierarchy: {
-      method: "single_model_taxonomy_aggregation_v1",
+      method: "crop_first_rejection_v2",
       selected_crop: "Corn",
       selected_class_name: "Corn___Northern_Leaf_Blight",
       crops: [
@@ -50,6 +50,11 @@ function classification(): ClassificationResult {
           conditional_probability: 0.9479166667,
         },
       ],
+      crop_confident: true,
+      crop_margin: 0.92,
+      confidence_threshold: 0.6,
+      margin_threshold: 0.1,
+      decision_reason: "Crop gate accepted.",
     },
     knowledge: {
       class_name: "Corn___Northern_Leaf_Blight",
@@ -59,6 +64,7 @@ function classification(): ClassificationResult {
       symptoms: "Illustrative symptoms.",
       educational_note: "Educational summary only.",
     },
+    lesion_analysis: null,
     model_name: "resnet50",
     checkpoint_path: "outputs/checkpoint.pt",
     checkpoint_id: "checkpoint-id",

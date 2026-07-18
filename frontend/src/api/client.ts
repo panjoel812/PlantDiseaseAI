@@ -159,11 +159,11 @@ export async function askQwen(
   const body = new FormData();
   body.append("image", file);
   body.append("question", question);
-  const selectedCondition = classification?.hierarchy.conditions[0];
-  const fallbackPrediction = classification?.predictions[0];
-  const className = selectedCondition?.class_name ?? fallbackPrediction?.class_name;
-  const confidence =
-    selectedCondition?.joint_probability ?? fallbackPrediction?.probability;
+  const selectedCondition = classification?.hierarchy.crop_confident
+    ? classification.hierarchy.conditions[0]
+    : undefined;
+  const className = selectedCondition?.class_name;
+  const confidence = selectedCondition?.joint_probability;
   if (className !== undefined && confidence !== undefined) {
     body.append("classifier_top_class_name", className);
     body.append("classifier_confidence", String(confidence));
@@ -198,9 +198,11 @@ export function askForAdvice(
     (item) => item.plant === classification.hierarchy.selected_crop,
   );
   const condition = classification.hierarchy.conditions[0];
-  if (!crop || !condition) {
+  if (!classification.hierarchy.crop_confident || !crop || !condition) {
     return Promise.reject(
-      new Error("Classification hierarchy is incomplete; analyze the image again."),
+      new Error(
+        "Crop identity is uncertain, so management guidance is disabled for this image.",
+      ),
     );
   }
   const visualObservation =

@@ -59,7 +59,10 @@ export function App() {
           <div className="results-grid">
             <ClassifierPanel state={demo.classification} />
             <AssistantPanel
-              classificationReady={demo.classification.status === "success"}
+              guidanceEnabled={
+                demo.classification.status === "success" &&
+                demo.classification.data.hierarchy.crop_confident
+              }
               qwenEnabled={
                 demo.classification.status === "success" &&
                 demo.qwenRuntime.status === "success" &&

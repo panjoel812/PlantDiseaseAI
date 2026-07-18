@@ -13,7 +13,7 @@ import { ProviderConfigSheet } from "./ProviderConfigSheet";
 import { QwenPanel } from "./QwenPanel";
 
 interface AssistantPanelProps {
-  classificationReady: boolean;
+  guidanceEnabled: boolean;
   qwenEnabled: boolean;
   qwenRuntime: FeatureState<QwenStatus>;
   qwenState: FeatureState<QwenAnswer>;
@@ -33,7 +33,7 @@ interface AssistantPanelProps {
 type AssistantMode = "visual" | "guidance";
 
 export function AssistantPanel({
-  classificationReady,
+  guidanceEnabled,
   qwenEnabled,
   qwenRuntime,
   qwenState,
@@ -50,8 +50,8 @@ export function AssistantPanel({
   const canConfigure = providers.status === "success";
 
   useEffect(() => {
-    setMode(classificationReady ? "guidance" : "visual");
-  }, [classificationReady]);
+    setMode(guidanceEnabled ? "guidance" : "visual");
+  }, [guidanceEnabled]);
 
   return (
     <div className="assistant-switcher" data-testid="assistant-glass">
@@ -94,7 +94,7 @@ export function AssistantPanel({
           />
         ) : (
           <AdvicePanel
-            enabled={classificationReady}
+            enabled={guidanceEnabled}
             providers={providers}
             state={adviceState}
             onAsk={onAskAdvice}

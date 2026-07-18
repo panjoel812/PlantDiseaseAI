@@ -637,6 +637,116 @@ textarea:focus-visible,
   font-weight: 550;
 }
 
+.step-label {
+  display: block;
+  color: var(--leaf-strong);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.vision-evidence {
+  margin-top: 0.65rem;
+  padding: 0.72rem;
+  border: 1px solid rgb(104 166 150 / 22%);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgb(232 246 249 / 76%), rgb(246 253 248 / 64%));
+  box-shadow: inset 0 1px rgb(255 255 255 / 90%);
+}
+
+.evidence-heading,
+.crop-step-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.evidence-heading h3 {
+  margin: 0.18rem 0 0;
+  font-size: 0.98rem;
+  font-weight: 670;
+  letter-spacing: -0.018em;
+}
+
+.evidence-method,
+.crop-gate-status {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.48rem;
+  border: 1px solid rgb(83 142 129 / 18%);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgb(255 255 255 / 62%);
+  font-size: 0.62rem;
+  font-weight: 650;
+}
+
+.vision-evidence-grid {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.9fr) minmax(10rem, 1.1fr);
+  gap: 0.65rem;
+  margin-top: 0.58rem;
+}
+
+.vision-evidence-grid > img {
+  width: 100%;
+  height: 6.6rem;
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: 11px;
+  object-fit: cover;
+  box-shadow: 0 0.6rem 1.6rem rgb(54 100 87 / 10%);
+}
+
+.vision-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.42rem;
+  margin: 0;
+}
+
+.vision-metrics > div {
+  min-width: 0;
+  padding: 0.48rem 0.55rem;
+  border: 1px solid rgb(86 145 127 / 12%);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 54%);
+}
+
+.vision-metrics dt {
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 650;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.vision-metrics dd {
+  margin: 0.15rem 0 0;
+  overflow: hidden;
+  font-size: 0.84rem;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.vision-detail {
+  margin-top: 0.5rem !important;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.4;
+  text-transform: capitalize;
+}
+
+.vision-resolution {
+  margin-top: 0.32rem !important;
+  color: var(--muted);
+  font-size: 0.64rem;
+  line-height: 1.4;
+}
+
 .crop-summary {
   margin-top: 0.55rem;
   padding: 0.7rem 0.75rem;
@@ -644,6 +754,18 @@ textarea:focus-visible,
   border-radius: 15px;
   background: linear-gradient(145deg, rgb(235 249 241 / 80%), rgb(255 255 255 / 52%));
   box-shadow: inset 0 1px rgb(255 255 255 / 84%);
+}
+
+.crop-gate-status.is-accepted {
+  color: var(--leaf-strong);
+  border-color: rgb(67 148 101 / 20%);
+  background: rgb(224 246 232 / 72%);
+}
+
+.crop-gate-status.is-uncertain {
+  color: var(--amber-ink);
+  border-color: rgb(179 113 28 / 22%);
+  background: rgb(255 244 224 / 82%);
 }
 
 .eyebrow,
@@ -702,6 +824,15 @@ textarea:focus-visible,
   font-variant-numeric: tabular-nums;
 }
 
+.crop-decision {
+  margin-top: 0.48rem !important;
+  padding-top: 0.42rem;
+  border-top: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
 .hierarchy-method {
   margin-top: 0.45rem !important;
   color: var(--muted);
@@ -714,6 +845,42 @@ textarea:focus-visible,
   color: var(--muted);
   font-size: 0.78rem;
   letter-spacing: 0.006em;
+}
+
+.disease-step {
+  margin-top: 0.7rem;
+  padding-top: 0.68rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.disease-withheld {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.62rem;
+  margin-top: 0.5rem;
+  padding: 0.68rem;
+  border: 1px solid rgb(179 113 28 / 26%);
+  border-radius: 12px;
+  color: var(--amber-ink);
+  background: rgb(255 246 230 / 74%);
+}
+
+.disease-withheld > svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  margin-top: 0.05rem;
+}
+
+.disease-withheld strong {
+  display: block;
+  font-size: 0.78rem;
+}
+
+.disease-withheld p {
+  margin-top: 0.25rem !important;
+  font-size: 0.7rem;
+  line-height: 1.45;
 }
 
 .condition-list {
@@ -924,25 +1091,31 @@ textarea:focus-visible,
   overflow: visible;
 }
 
+/* LiquidGlass renders several visual layers as siblings of the real surface.
+   Keep those layers out of normal flow so only the panel content defines height. */
+.results-grid .glass-stage > :not(.glass-surface) {
+  position: absolute !important;
+}
+
 .results-grid .glass-stage > .glass-surface {
   position: relative !important;
   top: auto !important;
   left: auto !important;
   width: 100%;
-  height: auto;
-  min-height: 100%;
+  height: auto !important;
+  min-height: 0 !important;
   transform: none !important;
 }
 
 .results-grid .glass-surface .glass,
 .results-grid .glass-surface .glass > .transition-all {
-  height: auto;
-  min-height: 100%;
+  height: auto !important;
+  min-height: 0 !important;
 }
 
 .results-grid .side-panel {
-  height: auto;
-  min-height: 100%;
+  height: auto !important;
+  min-height: 0 !important;
   overflow: visible;
 }
 
@@ -953,7 +1126,8 @@ textarea:focus-visible,
 
 .results-grid .assistant-tab-panel,
 .results-grid .assistant-tab-panel > .glass-stage {
-  height: auto;
+  height: auto !important;
+  min-height: 0 !important;
   overflow: visible;
 }
 

@@ -149,7 +149,7 @@ describe("App", () => {
         data: {
           predictions: [],
           hierarchy: {
-            method: "single_model_taxonomy_aggregation_v1",
+            method: "crop_first_rejection_v2",
             selected_crop: "Corn",
             selected_class_name: "Corn___healthy",
             crops: [{ plant: "Corn", probability: 1 }],
@@ -163,6 +163,11 @@ describe("App", () => {
                 conditional_probability: 1,
               },
             ],
+            crop_confident: true,
+            crop_margin: 1,
+            confidence_threshold: 0.6,
+            margin_threshold: 0.1,
+            decision_reason: "Crop gate accepted.",
           },
           knowledge: {
             class_name: "",
@@ -172,6 +177,7 @@ describe("App", () => {
             symptoms: "",
             educational_note: "",
           },
+          lesion_analysis: null,
           model_name: "resnet50",
           checkpoint_path: "checkpoint.pt",
           checkpoint_id: "checkpoint-id",
@@ -191,6 +197,7 @@ describe("App", () => {
       },
     };
     rerender(<App />);
+    await user.click(screen.getByRole("tab", { name: /visual evidence/i }));
     await user.click(screen.getByRole("button", { name: /ask qwen/i }));
     expect(demo.ask).toHaveBeenCalledWith(
       "What spots, colors, shapes, margins, textures, and distributions are visible?",

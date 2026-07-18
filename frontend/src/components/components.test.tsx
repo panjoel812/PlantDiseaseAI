@@ -69,7 +69,7 @@ function classificationResult(): ClassificationResult {
       },
     ],
     hierarchy: {
-      method: "single_model_taxonomy_aggregation_v1",
+      method: "crop_first_rejection_v2",
       selected_crop: "Apple",
       selected_class_name: "Apple___Black_rot",
       crops: [
@@ -95,6 +95,11 @@ function classificationResult(): ClassificationResult {
           conditional_probability: 0.32,
         },
       ],
+      crop_confident: true,
+      crop_margin: 0.14,
+      confidence_threshold: 0.6,
+      margin_threshold: 0.1,
+      decision_reason: "Crop gate accepted.",
     },
     knowledge: {
       class_name: "Apple___Black_rot",
@@ -104,6 +109,7 @@ function classificationResult(): ClassificationResult {
       symptoms: "Illustrative symptoms.",
       educational_note: "Educational summary only.",
     },
+    lesion_analysis: null,
     model_name: "resnet50",
     checkpoint_path: "outputs/checkpoint.pt",
     checkpoint_id: "checkpoint-id",
@@ -240,7 +246,7 @@ describe("AssistantPanel", () => {
     };
     render(
       <AssistantPanel
-        classificationReady
+        guidanceEnabled
         qwenEnabled
         qwenRuntime={readyQwenRuntime()}
         qwenState={idle<QwenAnswer>()}
@@ -436,10 +442,10 @@ describe("ClassifierPanel", () => {
     );
 
     expect(screen.getByText(/model prediction.*not ground truth/i)).toBeVisible();
-    expect(screen.getByText(/detected crop/i)).toBeVisible();
+    expect(screen.getByText(/step 2.*plant identity/i)).toBeVisible();
     expect(screen.getByText("Apple")).toBeVisible();
     expect(screen.getByText(/crop confidence/i)).toBeVisible();
-    expect(screen.getByText(/hierarchical view from one/i)).toBeVisible();
+    expect(screen.getByText(/crop gate from the current plantvillage/i)).toBeVisible();
     const conditions = screen.getByRole("list", {
       name: /conditions within apple/i,
     });

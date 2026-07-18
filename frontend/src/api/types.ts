@@ -19,11 +19,16 @@ export interface ConditionPrediction {
 }
 
 export interface TaxonomyHierarchy {
-  method: "single_model_taxonomy_aggregation_v1";
+  method: "crop_first_rejection_v2";
   selected_crop: string;
-  selected_class_name: string;
+  selected_class_name: string | null;
   crops: CropPrediction[];
   conditions: ConditionPrediction[];
+  crop_confident: boolean;
+  crop_margin: number;
+  confidence_threshold: number;
+  margin_threshold: number;
+  decision_reason: string;
 }
 
 export interface DiseaseKnowledge {
@@ -49,10 +54,48 @@ export interface GradCamPayload {
   overlay_data_url: string;
 }
 
+export interface LesionColorShare {
+  name: string;
+  proportion: number;
+}
+
+export interface LesionRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  centroid_x: number;
+  centroid_y: number;
+  area_pixels: number;
+  area_percent_of_leaf: number;
+  circularity: number;
+  aspect_ratio: number;
+  shape: string;
+  color: string;
+}
+
+export interface LesionAnalysis {
+  method: "opencv_exg_hsv_components_v1";
+  image_size: [number, number];
+  leaf_area_pixels: number;
+  leaf_coverage_percent: number;
+  lesion_area_pixels: number;
+  lesion_coverage_percent: number;
+  lesion_count: number;
+  median_lesion_area_percent: number;
+  largest_lesion_area_percent: number;
+  mean_circularity: number;
+  dominant_colors: LesionColorShare[];
+  distribution: string;
+  regions: LesionRegion[];
+  overlay_data_url: string;
+}
+
 export interface ClassificationResult {
   predictions: Prediction[];
   hierarchy: TaxonomyHierarchy;
-  knowledge: DiseaseKnowledge;
+  knowledge: DiseaseKnowledge | null;
+  lesion_analysis: LesionAnalysis | null;
   model_name: string;
   checkpoint_path: string;
   checkpoint_id: string;

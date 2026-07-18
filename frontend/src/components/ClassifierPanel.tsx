@@ -55,6 +55,13 @@ function formatPercent(value: number): string {
   return `${(Math.max(0, Math.min(1, value)) * 100).toFixed(1)}%`;
 }
 
+function dominantShape(shapes: string[]): string {
+  if (shapes.length === 0) return "Not isolated";
+  const counts = new Map<string, number>();
+  for (const shape of shapes) counts.set(shape, (counts.get(shape) ?? 0) + 1);
+  return [...counts.entries()].sort((left, right) => right[1] - left[1])[0][0];
+}
+
 function ClassifierContent({ state }: ClassifierPanelProps) {
   const [showOverlay, setShowOverlay] = useState(false);
 
@@ -91,6 +98,7 @@ function ClassifierContent({ state }: ClassifierPanelProps) {
   const result = state.data;
   const hierarchy = result.hierarchy;
   const selectedCrop = hierarchy.crops[0];
+  const lesionAnalysis = result.lesion_analysis;
   const gradcam = result.gradcam;
   const gradcamSource = showOverlay
     ? gradcam?.overlay_data_url
@@ -109,13 +117,77 @@ function ClassifierContent({ state }: ClassifierPanelProps) {
           </div>
         </div>
       ) : null}
+
+      {lesionAnalysis ? (
+        <section className="vision-evidence" aria-labelledby="vision-evidence-title">
+          <div className="evidence-heading">
+            <div>
+              <span className="step-label">Step 1 · OpenCV</span>
+              <h3 id="vision-evidence-title">Visible lesion map</h3>
+            </div>
+            <span className="evidence-method">Geometry, not diagnosis</span>
+          </div>
+          <div className="vision-evidence-grid">
+            <img
+              src={lesionAnalysis.overlay_data_url}
+              alt="OpenCV overlay outlining the leaf in green and lesion candidates in coral"
+            />
+            <dl className="vision-metrics">
+              <div>
+                <dt>Lesion area</dt>
+                <dd>{lesionAnalysis.lesion_coverage_percent.toFixed(1)}%</dd>
+              </div>
+              <div>
+                <dt>Regions</dt>
+                <dd>{lesionAnalysis.lesion_count}</dd>
+              </div>
+              <div>
+                <dt>Largest</dt>
+                <dd>{lesionAnalysis.largest_lesion_area_percent.toFixed(1)}%</dd>
+              </div>
+              <div>
+                <dt>Shape</dt>
+                <dd>{dominantShape(lesionAnalysis.regions.map((region) => region.shape))}</dd>
+              </div>
+            </dl>
+          </div>
+          <p className="vision-detail">
+            {lesionAnalysis.dominant_colors.length > 0
+              ? lesionAnalysis.dominant_colors
+                  .map((color) => `${color.name} ${formatPercent(color.proportion)}`)
+                  .join(" · ")
+              : "No stable lesion colour"}
+            <span aria-hidden="true"> · </span>
+            {lesionAnalysis.distribution}
+          </p>
+          <p className="vision-resolution">
+            Measured on the original {lesionAnalysis.image_size[0]} ×{" "}
+            {lesionAnalysis.image_size[1]} image before the classifier resizes it to{" "}
+            {result.image_size} × {result.image_size}.
+          </p>
+        </section>
+      ) : null}
+
       <div className="crop-summary">
-        <span className="eyebrow">Detected crop</span>
+        <div className="crop-step-row">
+          <span className="eyebrow">Step 2 · Plant identity</span>
+          <span
+            className={`crop-gate-status ${hierarchy.crop_confident ? "is-accepted" : "is-uncertain"}`}
+          >
+            {hierarchy.crop_confident ? "Accepted" : "Uncertain"}
+          </span>
+        </div>
         <div className="crop-primary">
-          <strong>{hierarchy.selected_crop}</strong>
+          <strong>
+            {hierarchy.crop_confident
+              ? hierarchy.selected_crop
+              : `Candidate: ${hierarchy.selected_crop}`}
+          </strong>
           <span>{formatPercent(selectedCrop?.probability ?? 0)}</span>
         </div>
-        <span className="crop-confidence-label">Crop confidence</span>
+        <span className="crop-confidence-label">
+          {hierarchy.crop_confident ? "Crop confidence" : "Top candidate only"}
+        </span>
         {hierarchy.crops.length > 1 ? (
           <div className="crop-alternatives" aria-label="Alternative crops">
             {hierarchy.crops.slice(1, 3).map((crop) => (
@@ -125,39 +197,60 @@ function ClassifierContent({ state }: ClassifierPanelProps) {
             ))}
           </div>
         ) : null}
+        <p className="crop-decision">{hierarchy.decision_reason}</p>
       </div>
       <p className="hierarchy-method">
-        Hierarchical view from one PlantVillage closed-set model
+        Crop gate from the current PlantVillage joint model; an independent crop
+        checkpoint is required before claiming open-world plant recognition.
       </p>
-      <p className="result-label">Conditions within {hierarchy.selected_crop}</p>
-      <ol
-        className="condition-list"
-        aria-label={`Conditions within ${hierarchy.selected_crop}`}
-      >
-        {hierarchy.conditions.slice(0, 5).map((condition) => {
-          const percentage = Math.max(
-            0,
-            Math.min(100, condition.conditional_probability * 100),
-          );
-          return (
-            <li key={`${condition.class_index}-${condition.class_name}`}>
-              <span className="condition-name">{condition.condition}</span>
-              <span
-                className="probability-track"
-                role="progressbar"
-                aria-label={`${condition.condition} within ${condition.plant} probability`}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(percentage)}
-                title={`Joint class probability ${formatPercent(condition.joint_probability)}`}
-              >
-                <span style={{ width: `${percentage}%` }} />
-              </span>
-              <span className="probability-value">{percentage.toFixed(1)}%</span>
-            </li>
-          );
-        })}
-      </ol>
+      <div className="disease-step">
+        <span className="step-label">Step 3 · Disease within plant</span>
+        {hierarchy.crop_confident ? (
+          <>
+            <p className="result-label">Conditions within {hierarchy.selected_crop}</p>
+            <ol
+              className="condition-list"
+              aria-label={`Conditions within ${hierarchy.selected_crop}`}
+            >
+              {hierarchy.conditions.slice(0, 5).map((condition) => {
+                const percentage = Math.max(
+                  0,
+                  Math.min(100, condition.conditional_probability * 100),
+                );
+                return (
+                  <li key={`${condition.class_index}-${condition.class_name}`}>
+                    <span className="condition-name">{condition.condition}</span>
+                    <span
+                      className="probability-track"
+                      role="progressbar"
+                      aria-label={`${condition.condition} within ${condition.plant} probability`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(percentage)}
+                      title={`Joint class probability ${formatPercent(condition.joint_probability)}`}
+                    >
+                      <span style={{ width: `${percentage}%` }} />
+                    </span>
+                    <span className="probability-value">{percentage.toFixed(1)}%</span>
+                  </li>
+                );
+              })}
+            </ol>
+          </>
+        ) : (
+          <div className="disease-withheld" role="status">
+            <WarningIcon />
+            <div>
+              <strong>Disease result withheld</strong>
+              <p>
+                The plant identity is not reliable enough to select a disease
+                taxonomy. This prevents a Tomato → Late blight result from being
+                presented as if the crop were known.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {gradcam && gradcamSource ? (
         <div className="gradcam-block">
