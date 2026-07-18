@@ -182,7 +182,21 @@ class InferenceService:
             )
 
             step_started = time.perf_counter()
-            lesion_analysis = analyze_lesions(image)
+            leaf_mask = None
+            if (
+                self.crop_classifier is not None
+                and self.crop_classifier.input_preprocessing
+                == "opencv_exg_single_leaf_v1"
+            ):
+                from plantdisease.openworld.leaf_pipeline import isolate_leaf
+
+                isolation = isolate_leaf(image)
+                if not isolation.accepted:
+                    raise InputValidationError(
+                        f"leaf isolation rejected input: {isolation.reason}"
+                    )
+                leaf_mask = isolation.mask
+            lesion_analysis = analyze_lesions(image, leaf_mask=leaf_mask)
             tensor = self._transform(image)
             preprocess_ms = _elapsed_ms(step_started)
 

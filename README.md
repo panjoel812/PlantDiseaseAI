@@ -94,6 +94,13 @@ feature extraction. Adding taxa rebuilds the small index from cached embeddings;
 does not retrain the encoder. This is an expandable leaf catalog, **not** a claim to
 identify every plant or non-leaf organ.
 
+A completed low-compute pilot used 896 training, 224 validation, and 448 accepted
+official-test leaf inputs. Conditional test Accuracy was `0.9241` and Macro F1 was
+`0.9230`; including 21 preprocessing rejections among 469 attempted test candidates,
+the pipeline success rate was `0.8827`. These limited, seeded numbers are not directly
+comparable to the earlier crop checkpoint and are not OOD or field metrics. See the
+[OpenLeaf-14 pilot report](reports/openleaf14_pilot.md).
+
 See the [complete OpenLeaf-14 protocol](docs/research/open_world_hierarchical_plant_research.md),
 the [configuration](configs/openworld_research.yaml), and the
 [manifest example](configs/openworld_manifest.example.jsonl). No Pl@ntNet/PlantWild/

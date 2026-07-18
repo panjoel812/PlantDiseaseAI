@@ -510,6 +510,7 @@
 - [x] 建立含来源、许可、实体分组和 OOD split 的 JSONL 数据契约。证据：`src/plantdisease/openworld/manifest.py`、`configs/openworld_manifest.example.jsonl`。
 - [x] 实现冻结 MobileNetV2 特征提取、多原型目录、持久化与相似度/间隔拒识阈值校准。证据：`src/plantdisease/openworld/encoder.py`、`src/plantdisease/openworld/index.py`、`src/plantdisease/openworld/cli.py`。
 - [x] 实现单片叶轮廓质量门控、透明/中性背景叶片导出、形状特征、叶片 mask 内病斑框与 crop 批量准备；原图不修改。证据：`src/plantdisease/openworld/leaf_pipeline.py`、`src/plantdisease/openworld/preparation.py`、`tests/openworld/test_leaf_pipeline.py`、`tests/openworld/test_preparation.py`。
+- [x] 将同一单叶预处理接入 14 类作物训练、checkpoint 配置恢复和推理拒绝；完成冻结 MobileNetV2 小型 pilot。条件 test Accuracy `0.9241` / Macro F1 `0.9230`，含预处理拒绝的管线成功率 `0.8827`。证据：`reports/openleaf14_pilot.md`、本地 `outputs/plantvillage/leaf14_opencv_pilot_seed42/`。
 - [x] 记录 Pl@ntNet-300K、PlantWild v2、PlantSeg、PlantDoc 数据阶梯、开放集指标、许可边界和三档算力方案。证据：`docs/research/open_world_hierarchical_plant_research.md`、`configs/openworld_research.yaml`。
 - [ ] 完成 14 种已知作物叶片、至少 6 种完全隔离未知叶片的 pilot，报告叶片分离错误、AUROC、FPR@95TPR、OSCR、未知误接受率与端到端条件 Macro F1。
 - [ ] 在同一冻结 split 上比较 Pl@ntNet ResNet18、DINOv2 ViT-S/14 与 MobileCLIP2-S0；不得只报告最有利编码器。

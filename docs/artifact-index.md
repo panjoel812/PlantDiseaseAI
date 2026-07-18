@@ -175,7 +175,8 @@
 | OpenLeaf-14 研究协议 | `docs/research/open_world_hierarchical_plant_research.md`、`configs/openworld_research.yaml` | 已建立；固定 14 种作物叶片与 unknown 拒识，不声称通用植物识别 |
 | 开放世界 manifest | `src/plantdisease/openworld/manifest.py`、`configs/openworld_manifest.example.jsonl` | 已实现；来源/许可/实体分组/OOD split 可审计 |
 | Leaf-14 OpenCV 训练准备 | `src/plantdisease/openworld/leaf_pipeline.py`、`src/plantdisease/openworld/preparation.py`、`plant-openworld-prepare` | 合成验证；输出单叶物种输入、mask、轮廓特征、病斑 overlay/crop，原图不修改 |
+| OpenLeaf-14 真实闭集 pilot | `reports/openleaf14_pilot.md`、本地 `outputs/plantvillage/leaf14_opencv_pilot_seed42/` | 已运行；448 张接受的 test 叶片 Accuracy 0.9241 / Macro F1 0.9230；含 21 次预处理拒绝的管线成功率 0.8827；非 OOD 指标 |
 | 冻结特征与多原型索引 | `src/plantdisease/openworld/encoder.py`、`src/plantdisease/openworld/index.py`、`src/plantdisease/openworld/cli.py` | 合成验证；尚无真实数据指标 |
 | 植物优先病害路由 | `src/plantdisease/openworld/condition.py`、`src/plantdisease/openworld/router.py`、`tests/openworld/test_router.py` | 合成验证；未知植物不会调用病害模型 |
-| OpenLeaf-14 验证记录 | `reports/openworld_research_scaffold.md` | 18 个定向测试与 Ruff 通过；用户多叶葡萄 smoke 在分类前按预期拒绝；真实数据 pilot 未开始 |
+| OpenLeaf-14 验证记录 | `reports/openworld_research_scaffold.md` | 28 个定向测试与 Ruff 通过；用户多叶葡萄在 checkpoint 分类前按预期拒绝；六物种 OOD pilot 未开始 |
 | Pl@ntNet / PlantWild / PlantSeg pilot | 见研究协议的 Milestones | 未开始；没有下载数据或训练结果 |

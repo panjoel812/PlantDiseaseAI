@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -146,6 +147,18 @@ def test_predict_rejects_invalid_empty_and_oversized_inputs() -> None:
         service.predict(b"0123456789")
     with pytest.raises(InputValidationError, match="decode"):
         _service().predict(b"not an image")
+
+
+def test_leaf_checkpoint_rejects_non_leaf_before_disease_inference() -> None:
+    service = _service()
+    service.crop_classifier = SimpleNamespace(
+        input_preprocessing="opencv_exg_single_leaf_v1"
+    )
+    buffer = BytesIO()
+    Image.new("RGB", (80, 64), (25, 25, 25)).save(buffer, format="PNG")
+
+    with pytest.raises(InputValidationError, match="leaf isolation rejected"):
+        service.predict(buffer.getvalue(), include_gradcam=False)
 
 
 def test_predict_adds_low_confidence_warning_below_threshold() -> None:

@@ -195,5 +195,8 @@ operations. Cached embeddings make repeated experiments fast.
 - `src/plantdisease/openworld/router.py`: plant-first condition routing.
 - `configs/openworld_research.yaml`: protocol defaults and compute profiles.
 
-This implementation establishes the research baseline only. It has not yet downloaded
-Pl@ntNet, PlantWild, PlantSeg, or PlantDoc and reports no real-data result.
+The Leaf-14 PlantVillage closed-set pilot is complete: conditional Accuracy `0.9241`,
+Macro F1 `0.9230`, and pipeline success `0.8827` when preprocessing rejection is
+counted as failure under its seeded quota protocol. Full details and limitations are
+in `reports/openleaf14_pilot.md`. Pl@ntNet, PlantWild, PlantSeg, and PlantDoc have not
+been downloaded for this research line, and six-species OOD evaluation remains open.
