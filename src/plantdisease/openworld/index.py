@@ -277,7 +277,11 @@ def calibrate_thresholds(
                 similarity < similarity_threshold or margin < margin_threshold
                 for similarity, margin in unknown_rows
             ) / len(unknown_rows)
-            score = (correct_accept + unknown_reject + wrong_reject) / 3.0
+            # Correct known acceptance already penalizes both rejected known samples
+            # and accepted wrong known predictions. Adding wrong_reject to the
+            # objective would reward rejection twice and select unusably conservative
+            # gates. Keep it as a diagnostic, not an optimization term.
+            score = (correct_accept + unknown_reject) / 2.0
             candidate = ThresholdCalibration(
                 similarity_threshold=float(similarity_threshold),
                 margin_threshold=float(margin_threshold),

@@ -1,6 +1,7 @@
 """Compute-efficient open-world plant identity research primitives."""
 
 from plantdisease.openworld.condition import PrototypeConditionModel
+from plantdisease.openworld.evaluation import OpenSetMetrics, evaluate_open_set
 from plantdisease.openworld.index import (
     OpenSetDecision,
     PrototypeIndex,
@@ -21,6 +22,7 @@ __all__ = [
     "HierarchicalDecision",
     "HierarchicalRouter",
     "OpenSetDecision",
+    "OpenSetMetrics",
     "OpenWorldRecord",
     "LeafIsolation",
     "LeafShapeFeatures",
@@ -29,6 +31,7 @@ __all__ = [
     "PrototypeConditionModel",
     "ThresholdCalibration",
     "calibrate_thresholds",
+    "evaluate_open_set",
     "isolate_leaf",
     "load_manifest",
     "prepare_leaf",

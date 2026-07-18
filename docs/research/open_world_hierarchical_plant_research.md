@@ -199,4 +199,6 @@ The Leaf-14 PlantVillage closed-set pilot is complete: conditional Accuracy `0.9
 Macro F1 `0.9230`, and pipeline success `0.8827` when preprocessing rejection is
 counted as failure under its seeded quota protocol. Full details and limitations are
 in `reports/openleaf14_pilot.md`. Pl@ntNet, PlantWild, PlantSeg, and PlantDoc have not
-been downloaded for this research line, and six-species OOD evaluation remains open.
+been downloaded for this research line. An internal six-class holdout reached AUROC
+`0.7530` with pseudo-unknown false acceptance `0.2083`; it is a weak sanity check, not
+external OOD evidence (`reports/openleaf14_open_set_holdout6.md`).

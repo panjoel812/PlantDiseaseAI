@@ -51,6 +51,8 @@ React Demo 默认加载用户提供的田间玉米叶图片 `app/examples/field_
 
 已完成一个低算力真实 pilot：896 张训练、224 张验证、448 张被 OpenCV 接受的 official-test 叶片，条件 Accuracy `0.9241`、Macro F1 `0.9230`；若把 469 个尝试样本中的 21 个预处理拒绝也计为端到端失败，管线成功率为 `0.8827`。这些数字来自小样本、单 seed、PlantVillage 闭集协议，不能与旧作物 checkpoint 直接比较，也不是 OOD 或田间指标。详见[OpenLeaf-14 pilot 报告](reports/openleaf14_pilot.md)。
 
+随后用其中 6 类临时作为伪未知类完成内部拒识 sanity check：unknown AUROC `0.7530`；已接受的已知叶片准确率 `0.9753`，但已知覆盖率只有 `0.6328`，伪未知误接受率仍为 `0.2083`。这不是外部 OOD 证据，反而说明 MobileNetV2 原型门控尚不能部署。详见[六类留出报告](reports/openleaf14_open_set_holdout6.md)。
+
 这里的目标是“可扩展的已知植物目录 + 明确的 unknown”，不是声称能识别世界上所有植物。完整数据协议、Pl@ntNet-300K / PlantWild / PlantSeg 数据阶梯、开放集指标、算力档位与命令见[开放世界研究方案](docs/research/open_world_hierarchical_plant_research.md)；默认配置见[`configs/openworld_research.yaml`](configs/openworld_research.yaml)，清单格式见[`configs/openworld_manifest.example.jsonl`](configs/openworld_manifest.example.jsonl)，已运行验证及其边界见[研究脚手架证据](reports/openworld_research_scaffold.md)。目前只完成研究脚手架与合成验证，不声称已得到真实大规模数据指标。
 
 新版界面使用 `liquid-glass-react` 提供轻量材质边缘，并以雾白、浅蓝、嫩绿构成通透背景。React Demo 采用“先上传、后查看结果”的纵向流程：摄影卡与 Analyze 操作位于顶部，分析成功后页面会移动到照片下方完整展开的 Classifier 与 Management guidance。结果卡使用正常文档流，不再通过嵌套纵向滚动隐藏证据；移动端保持“上传 → 分类器 → 助手”的顺序。大型卡片保持零弹性，底部叶片与露珠不接收指针事件并在 `prefers-reduced-motion` 下停止。页眉 Logo 将用户提供的 Desmos Bézier 内部曲线与 PlantDiseaseAI 叶片融合；外部源 SVG 保持原样，运行时不依赖该个人路径。

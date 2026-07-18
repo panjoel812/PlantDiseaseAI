@@ -28,7 +28,7 @@ Status: implementation and synthetic tests complete; real-data pilot not started
 .venv/bin/pytest tests/openworld tests/serving/test_lesions.py \
   tests/serving/test_crop_leaf.py tests/serving/test_service.py \
   tests/training/test_crop_leaf_training.py -q
-28 passed, 1 non-test-failure joblib CPU-count warning
+29 passed, 1 non-test-failure joblib CPU-count warning
 
 .venv/bin/ruff check <all OpenLeaf-14 affected source and tests>
 All checks passed!

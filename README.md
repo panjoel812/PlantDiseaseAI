@@ -101,6 +101,13 @@ the pipeline success rate was `0.8827`. These limited, seeded numbers are not di
 comparable to the earlier crop checkpoint and are not OOD or field metrics. See the
 [OpenLeaf-14 pilot report](reports/openleaf14_pilot.md).
 
+An internal six-species holdout then tested the rejection protocol without downloading
+new data. It reached unknown AUROC `0.7530`, accepted-known accuracy `0.9753` at only
+`0.6328` known coverage, and pseudo-unknown false acceptance `0.2083`. This is a weak
+internal sanity check—not external OOD evidence—and shows that the MobileNetV2
+prototype gate is not ready for deployment. See the
+[holdout report](reports/openleaf14_open_set_holdout6.md).
+
 See the [complete OpenLeaf-14 protocol](docs/research/open_world_hierarchical_plant_research.md),
 the [configuration](configs/openworld_research.yaml), and the
 [manifest example](configs/openworld_manifest.example.jsonl). No Pl@ntNet/PlantWild/
