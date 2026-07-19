@@ -167,3 +167,27 @@
 | 简历证据映射 | `docs/resume/week8_resume_evidence.md` | 3 条可用 bullet 均链接真实证据并保留 official split / single-seed 限制 |
 | 导师沟通摘要 | `docs/mentor/week8_mentor_summary.md` | 研究问题、个人贡献、负结果、局限与下一实验已整理 |
 | 发布检查清单 | `docs/release/week8_release_checklist.md` | 本地门禁通过；multi-seed、实体隔离、田间验证、完整人工 VQA 审计等明确未完成 |
+
+## Post-Week 8 experimental research
+
+| 证据 | 路径或生成命令 | 状态 |
+| --- | --- | --- |
+| OpenLeaf-14 研究协议 | `docs/research/open_world_hierarchical_plant_research.md`、`configs/openworld_research.yaml` | 已建立；固定 14 种作物叶片与 unknown 拒识，不声称通用植物识别 |
+| 开放世界 manifest | `src/plantdisease/openworld/manifest.py`、`configs/openworld_manifest.example.jsonl` | 已实现；来源/许可/实体分组/OOD split 可审计 |
+| Leaf-14 OpenCV 训练准备 | `src/plantdisease/openworld/leaf_pipeline.py`、`src/plantdisease/openworld/preparation.py`、`plant-openworld-prepare` | 合成验证；输出单叶物种输入、mask、轮廓特征、病斑 overlay/crop，原图不修改 |
+| OpenLeaf-14 真实闭集 pilot | `reports/openleaf14_pilot.md`、本地 `outputs/plantvillage/leaf14_opencv_pilot_seed42/` | 已运行；448 张接受的 test 叶片 Accuracy 0.9241 / Macro F1 0.9230；含 21 次预处理拒绝的管线成功率 0.8827；非 OOD 指标 |
+| OpenLeaf-14 内部六类留出 | `reports/openleaf14_open_set_holdout6.md`、`scripts/run_leaf14_open_set_pilot.py` | 已运行；unknown AUROC 0.7530、known coverage 0.6328、pseudo-unknown false accept 0.2083；不可部署，非外部 OOD |
+| OpenLeaf-14 外部轮廓压力测试 | `reports/openleaf14_external_ood_shape6.md`、`scripts/build_uci_leaf_shape_ood.py`、`scripts/run_leaf14_external_ood.py` | 已运行；UCI CC BY 4.0 六物种轮廓代理 test AUROC 0.99995 / false accept 0，但主要反映照片—无纹理轮廓域差异，不是田间 OOD；iNaturalist 自动门控视觉审计失败且未入指标 |
+| 冻结特征与多原型索引 | `src/plantdisease/openworld/encoder.py`、`src/plantdisease/openworld/index.py`、`src/plantdisease/openworld/cli.py` | 合成验证；尚无真实数据指标 |
+| 植物优先病害路由 | `src/plantdisease/openworld/condition.py`、`src/plantdisease/openworld/router.py`、`tests/openworld/test_router.py` | 合成验证；未知植物不会调用病害模型 |
+| OpenLeaf-14 验证记录 | `reports/openworld_research_scaffold.md` | 29 个初始定向测试与 Ruff 通过；用户多叶葡萄在 checkpoint 分类前按预期拒绝；外部轮廓压力测试已完成，真实彩色田间 OOD 仍未完成 |
+| OpenLeaf-14 React 接入 | `src/plantdisease/serving/service.py`、`app/api.py`、`frontend/src/components/ClassifierPanel.tsx` | 已接入单叶 cutout、轮廓指标、叶内病斑、14 类植物头与可选多原型拒识；拒识会清空疾病、Grad-CAM 与管理上下文。固定田间玉米样例通过单叶分离但被轮廓代理阈值拒绝（similarity 0.4287），因此不输出疾病；这不是田间 OOD 性能声明 |
+| 本地 Leaf114 身份 pilot | `reports/openleaf114_local_pilot.md`、`reports/metrics/openleaf114_local_pilot.json`、`scripts/train_leaf_catalog.py` | 已运行；UCI Leaf100 + PlantVillage 14 的冻结 MobileNetV2 头在混合受控 test 上 Accuracy 0.9158 / Macro F1 0.9117；田间葡萄仍误排 Strawberry 0.4636，未通过门控，不能作为田间准确率 |
+| 疾病背景抑制输入 | `src/plantdisease/serving/service.py`、`tests/serving/test_service.py`、`frontend/src/components/ClassifierPanel.tsx` | 已接入；疾病模型与 Grad-CAM 使用 OpenCV 分离叶片的中性背景图，病斑几何仍是独立证据；尚无田间精度提升声明 |
+| Grape healthy-veto 与病斑 ROI | `reports/grape_lesion_focus_pilot.md`、`reports/metrics/grape_lesion_focus_pilot.json`、`src/plantdisease/serving/disease_focus.py` | 实验性候选证据；健康葡萄 official test 误否决 0/100，用户图由 healthy 全叶候选切换为 Black rot ROI 候选并生成 focused Grad-CAM；不开放诊断或管理建议 |
+| Pl@ntNet 补充身份服务 | `src/plantdisease/serving/plant_identity.py`、`app/api.py`、`frontend/src/components/PlantIdentityConfigSheet.tsx` | 已接入可选 API key；本地身份通过时不调用，本地不确定时才发送选中的叶片 cutout。未进行付费或配额压力测试 |
+| 目标叶片选择与 Corn 非生物形态门控 | `docs/superpowers/specs/2026-07-18-target-leaf-abiotic-gate-design.md`、`docs/superpowers/plans/2026-07-18-target-leaf-abiotic-gate.md`、`reports/target-leaf-abiotic-qa.md`、`reports/metrics/target_leaf_abiotic_qa.json` | 已实现 source-coordinate 点选、GrabCut 纯度 409、Corn 中脉形态拒答、React 固定十字与管理建议锁定。公开参考图因边缘接触 `0.21519 > 0.18` 被正确拒绝；原用户附件路径已不存在，未冒充完成相同像素复测；阳性路径由固定阈值合成回归测试覆盖 |
+| 分层服务架构生成器 | `scripts/generate_hierarchical_architecture.py`、`tests/test_hierarchical_architecture_asset.py` | 可复现工具；以 Matplotlib 同时生成 3200×1800 PNG 与可编辑 SVG，并由测试锁定关键节点和输出尺寸 |
+| Week 8 分层服务架构图 | `docs/media/week8_hierarchical_serving_architecture.svg`、`docs/media/week8_hierarchical_serving_architecture.png` | derived media；区分 verified core、implemented gates 与 experimental extensions，不新增模型性能声明 |
+| 架构证据同步设计与计划 | `docs/superpowers/specs/2026-07-19-open-world-architecture-evidence-sync-design.md`、`docs/superpowers/plans/2026-07-19-open-world-architecture-evidence-sync.md` | 已批准并执行；范围包含双语论文、双语 PPT 大纲、公共架构与证据索引，明确不修改 PPTX/Keynote |
+| PlantWild / PlantSeg pilot | 见研究协议的 Milestones | 未开始；没有下载数据或训练结果 |

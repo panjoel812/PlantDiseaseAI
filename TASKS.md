@@ -502,6 +502,34 @@
 
 ---
 
+## Week 8 后续研究：OpenLeaf-14 单叶分层识别
+
+> 状态（2026-07-18）：研究范围已收缩为 14 种常见作物的单叶识别，并建立 OpenCV 去背景叶片 → 植物拒识 → 叶片内病斑 crop → 宿主病害模型。已完成外部受控轮廓压力测试，但田间自动分离视觉审计失败；因此仍无真实彩色田间开放世界指标。
+
+> Demo 补充（2026-07-18）：OpenCV 已从“多绿色组件直接拒绝”改为逐组件质量评分并选择最佳完整叶片；用户提供的葡萄多叶图从 3 个候选中成功选叶（覆盖率 `18.95%`、solidity `0.6673`、边界接触 `0.0089`）。受控轮廓代理门控默认关闭。React/FastAPI 新增网页内临时 Pl@ntNet key 配置与 100+ 物种身份路由；只有科学名映射到本地 14 种 PlantVillage 作物时才继续疾病分类。Pl@ntNet 适配与路由使用 fake transport/API 契约验证，因未提供用户 key 未进行付费/配额相关真实调用，不声明外部模型准确率。受影响 Python `61 passed`、React `55 passed`、Ruff 与生产构建通过。证据：`src/plantdisease/serving/plant_identity.py`、`src/plantdisease/openworld/leaf_pipeline.py`、`app/api.py`、`tests/serving/test_plant_identity.py`、`tests/test_demo_api.py`、`README.md`、`README.zh-CN.md`。
+
+> 本地 100+ 目录补充（2026-07-18）：已实现并实跑冻结 MobileNetV2 的本地 114 类叶片身份头（UCI Leaf100 的 100 种 CC BY 4.0 受控轮廓 + PlantVillage 14 作物）。seed 42 使用 1,896 train / 524 validation / 748 test，CPU 112.31 秒；混合受控测试 Accuracy `0.9158`、Macro F1 `0.9117`，UCI / PlantVillage source accuracy 分别为 `0.9133` / `0.9174`。用户葡萄田间图仍错误排名 Strawberry `0.4636`、Peach `0.2401`、Grape `0.2065`，因此安全门控正确拒绝，不能声明田间泛化。模型产物保存在 Git 忽略的 `outputs/openleaf/leaf114_uci100_pv14_balanced_seed42/`，可复现代码、哈希和摘要进入仓库。证据：`scripts/train_leaf_catalog.py`、`src/plantdisease/training/leaf_catalog.py`、`reports/openleaf114_local_pilot.md`、`reports/metrics/openleaf114_local_pilot.json`。
+
+> 疾病背景抑制补充（2026-07-18）：OpenCV 接受叶片后，疾病 checkpoint 与 Grad-CAM 改为接收裁剪后合成到中性背景的同一张叶片图，不再接收含手、土壤、天空或相邻植物的原始场景。原分辨率病斑面积、颜色、形状和分布通常保持为独立可见证据。另为 Grape 加入实验性 healthy-veto：训练集健康葡萄叶覆盖率 p99 阈值 `1.2959%` 在 100 张接受的官方 test 健康葡萄叶上误否决 `0`；用户田间图覆盖 `12.42%`，两个最大 ROI 将 Black rot 排为候选第一并生成 focused Grad-CAM，但 ROI 分数未做田间校准，诊断与管理仍保持禁用。证据：`src/plantdisease/serving/disease_focus.py`、`reports/grape_lesion_focus_pilot.md`、`reports/metrics/grape_lesion_focus_pilot.json`。
+
+> 目标叶片与 Corn 非生物门控补充（2026-07-18）：多组件不再由系统暗选；优势不足 90% 时返回 typed HTTP 409，由 React 使用原图坐标点选目标叶片，GrabCut 需通过点击包含、前景保留、覆盖率、边缘接触和长叶主轴纯度。Corn 身份接受后，实验性 OpenCV 中脉形态门控可输出 `suspected_abiotic_nutrient_stress` 并清除传染性病名、疾病知识、诊断 Grad-CAM 与管理建议，但不能确认缺氮。公开参考图因边缘接触 `0.21519 > 0.18` 正确拒绝；原用户附件路径已不存在，未声明完成相同像素复测。证据：`src/plantdisease/openworld/leaf_pipeline.py`、`src/plantdisease/serving/abiotic.py`、`reports/target-leaf-abiotic-qa.md`、`reports/metrics/target_leaf_abiotic_qa.json`。
+
+- [x] 定义“先植物、后病害”的分层路由，未知植物不得进入病害模型。证据：`src/plantdisease/openworld/router.py`、`tests/openworld/test_router.py`。
+- [x] 建立含来源、许可、实体分组和 OOD split 的 JSONL 数据契约。证据：`src/plantdisease/openworld/manifest.py`、`configs/openworld_manifest.example.jsonl`。
+- [x] 实现冻结 MobileNetV2 特征提取、多原型目录、持久化与相似度/间隔拒识阈值校准。证据：`src/plantdisease/openworld/encoder.py`、`src/plantdisease/openworld/index.py`、`src/plantdisease/openworld/cli.py`。
+- [x] 实现单叶或多叶画面的最佳叶片轮廓质量选择、透明/中性背景叶片导出、形状特征、叶片 mask 内病斑框与 crop 批量准备；原图不修改。证据：`src/plantdisease/openworld/leaf_pipeline.py`、`src/plantdisease/openworld/preparation.py`、`tests/openworld/test_leaf_pipeline.py`、`tests/openworld/test_preparation.py`。
+- [x] 将同一单叶预处理接入 14 类作物训练、checkpoint 配置恢复和推理拒绝；完成冻结 MobileNetV2 小型 pilot。条件 test Accuracy `0.9241` / Macro F1 `0.9230`，含预处理拒绝的管线成功率 `0.8827`。证据：`reports/openleaf14_pilot.md`、本地 `outputs/plantvillage/leaf14_opencv_pilot_seed42/`。
+- [x] 完成内部 8-known / 6-held-out pseudo-unknown 协议 sanity check，并修复重复奖励拒绝的阈值目标。AUROC `0.7530`、known coverage `0.6328`、pseudo-unknown false accept `0.2083`；明确判定为不可部署基线。证据：`reports/openleaf14_open_set_holdout6.md`。
+- [x] 完成外部数据源许可/视觉审计与 6 物种受控轮廓压力测试：iNaturalist 现场图自动门控出现严重背景/多叶假接受，72 个候选未进入指标；UCI CC BY 4.0 的 96 张轮廓代理按 3 validation / 3 test 物种隔离，测试 AUROC `0.99995`、unknown false accept `0`，但明确仅反映照片—无纹理轮廓域差异。证据：`reports/openleaf14_external_ood_shape6.md`。
+- [x] 将最佳叶片选择、轮廓指标、叶内病斑候选、本地 114 类身份头、可选 Pl@ntNet 广域物种身份与显式实验多原型拒识接入 React/FastAPI Demo；只有 14 个 PlantVillage 宿主标签能进入本地病害模型，其他身份或低置信结果会清空病害、Grad-CAM 与管理上下文。证据：`src/plantdisease/serving/service.py`、`src/plantdisease/serving/plant_identity.py`、`src/plantdisease/training/leaf_catalog.py`、`app/api.py`、`frontend/src/components/ClassifierPanel.tsx`、`tests/serving/test_plant_identity.py`、`tests/test_demo_api.py`、`reports/openleaf114_local_pilot.md`。
+- [x] 记录 Pl@ntNet-300K、PlantWild v2、PlantSeg、PlantDoc 数据阶梯、开放集指标、许可边界和三档算力方案。证据：`docs/research/open_world_hierarchical_plant_research.md`、`configs/openworld_research.yaml`。
+- [ ] 完成 14 种已知作物叶片、至少 6 种**真实彩色且经 mask/人工审计**的完全隔离未知叶片 pilot，报告叶片分离错误、AUROC、FPR@95TPR、OSCR、未知误接受率与端到端条件 Macro F1；受控二值轮廓压力测试不计作本项完成。
+- [ ] 在同一冻结 split 上比较 Pl@ntNet ResNet18、DINOv2 ViT-S/14 与 MobileCLIP2-S0；不得只报告最有利编码器。
+- [ ] 仅为有许可病害数据的宿主训练条件模型；无模型时必须返回 `condition model unavailable`。
+- [ ] 使用 PlantSeg 真值评估病斑分割；OpenCV 结果继续只称为可见病斑候选，不称为真实病灶。
+
+---
+
 ## 最终交付物清单
 
 - [x] GitHub 级代码仓库：代码、配置、测试、许可证和规范文档。

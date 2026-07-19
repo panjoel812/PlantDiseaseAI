@@ -24,6 +24,13 @@ def main() -> None:
     parser.add_argument("--validation-per-crop", type=int, default=64)
     parser.add_argument("--test-per-crop", type=int, default=128)
     parser.add_argument("--head-epochs", type=int, default=120)
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--device", choices=["cpu", "mps", "cuda"], default="cpu")
+    parser.add_argument(
+        "--leaf-isolation",
+        action="store_true",
+        help="train and evaluate only on OpenCV-isolated single-leaf inputs",
+    )
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     os.environ.setdefault("HF_HOME", str(args.cache_dir.resolve()))
@@ -38,7 +45,9 @@ def main() -> None:
         validation_per_crop=args.validation_per_crop,
         test_per_crop=args.test_per_crop,
         head_epochs=args.head_epochs,
-        device=torch.device("cpu"),
+        batch_size=args.batch_size,
+        device=torch.device(args.device),
+        leaf_isolation=args.leaf_isolation,
     )
     print(json.dumps({"checkpoint": str(result.checkpoint), "metrics": result.metrics}))
 

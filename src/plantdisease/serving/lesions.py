@@ -64,7 +64,11 @@ class LesionAnalysis:
     overlay: Image.Image
 
 
-def analyze_lesions(image: Image.Image) -> LesionAnalysis:
+def analyze_lesions(
+    image: Image.Image,
+    *,
+    leaf_mask: np.ndarray | None = None,
+) -> LesionAnalysis:
     """Locate non-green regions inside green leaf silhouettes.
 
     The segmentation is intentionally conservative and resolution-aware.  Kernel
@@ -86,32 +90,55 @@ def analyze_lesions(image: Image.Image) -> LesionAnalysis:
     blue = rgb[:, :, 2].astype(np.int16)
     excess_green = 2 * green - red - blue
 
-    healthy_green = (
-        (excess_green > 35)
-        & (green > 42)
-        & (hsv[:, :, 0] >= 30)
-        & (hsv[:, :, 0] <= 100)
-        & (hsv[:, :, 1] >= 32)
-    )
-    base = (healthy_green.astype(np.uint8)) * 255
-    scale = max(3, _odd(round(min(width, height) * 0.008)))
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (scale, scale))
-    base = cv2.morphologyEx(base, cv2.MORPH_OPEN, kernel)
-    base = cv2.morphologyEx(base, cv2.MORPH_CLOSE, kernel, iterations=2)
-
-    contours, _ = cv2.findContours(base, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     image_area = width * height
-    minimum_leaf_component = max(32.0, image_area * 0.0015)
-    leaf_contours = [
-        contour for contour in contours if cv2.contourArea(contour) >= minimum_leaf_component
-    ]
-    leaf_mask = np.zeros((height, width), dtype=np.uint8)
-    if leaf_contours:
-        cv2.drawContours(leaf_mask, leaf_contours, -1, 255, thickness=cv2.FILLED)
-    else:
-        leaf_mask = base
+    if leaf_mask is None:
+        healthy_green = (
+            (excess_green > 35)
+            & (green > 42)
+            & (hsv[:, :, 0] >= 30)
+            & (hsv[:, :, 0] <= 100)
+            & (hsv[:, :, 1] >= 32)
+        )
+        base = (healthy_green.astype(np.uint8)) * 255
+        scale = max(3, _odd(round(min(width, height) * 0.008)))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (scale, scale))
+        base = cv2.morphologyEx(base, cv2.MORPH_OPEN, kernel)
+        base = cv2.morphologyEx(base, cv2.MORPH_CLOSE, kernel, iterations=2)
 
-    leaf_area = int(cv2.countNonZero(leaf_mask))
+        contours, _ = cv2.findContours(
+            base,
+            cv2.RETR_EXTERNAL,
+            cv2.CHAIN_APPROX_SIMPLE,
+        )
+        minimum_leaf_component = max(32.0, image_area * 0.0015)
+        leaf_contours = [
+            contour
+            for contour in contours
+            if cv2.contourArea(contour) >= minimum_leaf_component
+        ]
+        resolved_leaf_mask = np.zeros((height, width), dtype=np.uint8)
+        if leaf_contours:
+            cv2.drawContours(
+                resolved_leaf_mask,
+                leaf_contours,
+                -1,
+                255,
+                thickness=cv2.FILLED,
+            )
+        else:
+            resolved_leaf_mask = base
+    else:
+        resolved_leaf_mask = np.asarray(leaf_mask, dtype=np.uint8)
+        if resolved_leaf_mask.shape != (height, width):
+            raise ValueError("leaf_mask shape must match the image")
+        resolved_leaf_mask = np.where(resolved_leaf_mask > 0, 255, 0).astype(np.uint8)
+        leaf_contours, _ = cv2.findContours(
+            resolved_leaf_mask,
+            cv2.RETR_EXTERNAL,
+            cv2.CHAIN_APPROX_SIMPLE,
+        )
+
+    leaf_area = int(cv2.countNonZero(resolved_leaf_mask))
     if leaf_area == 0:
         return _empty_analysis(image, LESION_METHOD)
 
@@ -127,7 +154,7 @@ def analyze_lesions(image: Image.Image) -> LesionAnalysis:
     pale_or_gray = (saturation < 130) & (value > 58)
     tan_or_brown = ((hue < 42) | (hue > 168)) & (value > 38)
     lesion_candidate = (
-        (leaf_mask > 0)
+        (resolved_leaf_mask > 0)
         & non_green
         & (pale_or_gray | tan_or_brown)
     )

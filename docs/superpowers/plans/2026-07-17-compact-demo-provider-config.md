@@ -899,7 +899,7 @@ uv run ruff check .
 uv run ty check src/plantdisease app scripts
 cd frontend && npm test -- --run && npm run lint && npm run build && cd ..
 git diff --check
-git grep -n '/Users/' -- ':!*.pptx' ':!*.key' ':!*.pdf' || test $? -eq 1
+git grep -n '/''Users/' -- ':!*.pptx' ':!*.key' ':!*.pdf' || test $? -eq 1
 ```
 
 Expected: all commands exit 0; pytest and React test counts are reported in the handoff.

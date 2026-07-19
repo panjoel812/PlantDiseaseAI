@@ -55,7 +55,7 @@ Visual evidence manually. Reset returns the page to the upload-first state.
 ## Fused project logo
 
 Source artwork:
-`/Users/panjoel/Documents/Project/DesmosBezierRenderer/exports/desmos_remaining_functions.svg`.
+`$HOME/Documents/Project/DesmosBezierRenderer/exports/desmos_remaining_functions.svg`.
 
 The source is reference-only and is not modified. A repository-native inline
 React SVG component will:

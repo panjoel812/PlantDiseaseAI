@@ -5,6 +5,11 @@ The final editable 12-slide deck is
 `scripts/build_week7_apple_showcase.mjs`, and the standalone architecture visual
 exported from slide 2 is `docs/media/week7_apple_architecture.png`.
 
+That slide and image are retained as historical Week 7 classifier-first presentation
+assets. The current target-leaf and abstention architecture is documented in
+`docs/media/week8_hierarchical_serving_architecture.png` and
+`docs/project-architecture.md`; this outline update does not modify the existing PPTX.
+
 All 12 slides contain speaker notes. Each notes section has a concise
 `5-minute talk track`, an expanded `10-minute talk track`, and the same integrity
 reminder: cite the evidence path shown on the slide and do not extend the result
@@ -26,8 +31,14 @@ slide content.
   stable classifier-first stages.
 - Boundary: the VLM consumes bounded classifier context and is explicitly marked
   `Exploratory`.
-- Visual: six-stage architecture, also exported as
+- Historical visual: six-stage architecture exported as
   `docs/media/week7_apple_architecture.png`.
+- Current architecture reference: target leaf, plant identity, supported-host gate,
+  OpenCV morphology, Corn abiotic gate, crop-specific conditions, and downstream
+  evidence/guidance gates in `docs/media/week8_hierarchical_serving_architecture.png`.
+- Current boundary: the 114-class catalog is routing support rather than validated
+  114-species field accuracy; OpenCV is heuristic evidence; the Corn gate does not
+  confirm nitrogen deficiency.
 
 ### 3. The official split is useful—and not entity isolated.
 
@@ -127,8 +138,9 @@ slide content.
 
 1. **Slide 1 — Project framing.** Explain why the product image is the end of
    the evidence chain rather than the proof of diagnostic readiness.
-2. **Slide 2 — Architecture.** Walk through the shared classifier-first
-   contracts and explain why the VLM is amber and exploratory.
+2. **Slide 2 — Architecture.** Present the historical classifier-first deck visual,
+   then use the current external architecture reference to explain target-leaf,
+   plant-identity, morphology, abstention, and why VLM/guidance remain experimental.
 3. **Slide 3 — Data audit.** Discuss the official split and the distinction
    between sample-level comparison and entity-level isolation.
 4. **Slide 4 — Benchmark.** Explain the shared protocol and why ResNet50 and
@@ -153,6 +165,8 @@ slide content.
 - Slides 1 and 8: `docs/media/week7_apple_demo_poster.png`
 - Slide 2: native PowerPoint architecture shapes; exported to
   `docs/media/week7_apple_architecture.png`
+- Current architecture supplement for Slide 2 discussion:
+  `docs/media/week8_hierarchical_serving_architecture.png`
 - Slide 4: `outputs/plantvillage/benchmarks/week2_accuracy_efficiency_pareto.png`
 - Slide 5: `reports/figures/week3_validation_macro_f1_curves.png`
 - Slide 6: `reports/figures/week4_baseline_vs_final_gradcam.png`

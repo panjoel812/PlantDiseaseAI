@@ -203,15 +203,15 @@ From Data Auditing and Fair Benchmarking to Controlled Ablation, Grad-CAM, Deplo
 
 1. **科研实验：** 五模型统一 Benchmark，单变量消融与负结果记录。
 2. **可信分析：** 错误分析、校准、Grad-CAM、固定样本与复现验证。
-3. **工程闭环：** Top-5、Streamlit、服务层、Apple container。
-4. **责任与审计：** 数据泄漏披露、VLM 拒答、claim ledger 与发布审计。
+3. **工程闭环：** 目标叶片、植物身份、OpenCV 形态、作物内分类与 Apple container。
+4. **责任与审计：** 数据泄漏披露、上游拒识、VLM/建议门控、claim ledger 与发布审计。
 
 **English slide copy**
 
 1. **Scientific experimentation:** A unified five-model benchmark with controlled ablations and retained negative results.
 2. **Trustworthy analysis:** Error analysis, calibration, Grad-CAM, fixed samples, and reproducibility checks.
-3. **Engineering closure:** Top-5 inference, Streamlit, a UI-independent service layer, and Apple container packaging.
-4. **Responsibility and auditability:** Leakage disclosure, VLM refusal behavior, a claim ledger, and release auditing.
+3. **Engineering closure:** Target-leaf selection, plant identity, OpenCV morphology, crop-specific conditions, and Apple container packaging.
+4. **Responsibility and auditability:** Leakage disclosure, upstream abstention, VLM/guidance gates, a claim ledger, and release auditing.
 
 **推荐版式 / Recommended layout**
 
@@ -220,7 +220,7 @@ From Data Auditing and Fair Benchmarking to Controlled Ablation, Grad-CAM, Deplo
 
 **图像参考 / Visual reference**
 
-- [系统架构 PNG / System architecture PNG](../media/week7_apple_architecture.png)
+- [分层服务架构 PNG / Hierarchical serving architecture PNG](../media/week8_hierarchical_serving_architecture.png)
 - [现有证据闭环页 / Existing evidence-loop slide](plantdisease_ai_week8_research_defense/slide-5.png)
 
 <!-- GENERATED-CHART-REFS:START -->
@@ -442,6 +442,7 @@ Leaf image → Canonical preprocessing → Classifier → Top-5 + confidence
 - 训练增强仅作用于训练集
 - validation、test、inference 和 Demo 使用确定性预处理
 - 核心逻辑集中在 `src/plantdisease/`，CLI 只做稳定入口
+- 冻结分类语义与新增服务门控分开：门控可拒答，但不能改写 Benchmark
 
 **English slide copy**
 
@@ -450,10 +451,11 @@ Leaf image → Canonical preprocessing → Classifier → Top-5 + confidence
 - Random augmentation is applied only to training data
 - Validation, test, inference, and demo paths use deterministic preprocessing
 - Core logic lives in `src/plantdisease/`; CLIs are stable entry points
+- Frozen classifier semantics stay separate from serving gates: gates may abstain, but cannot rewrite the benchmark
 
 **推荐图像 / Recommended visual**
 
-- [系统架构图 / System architecture](../media/week7_apple_architecture.png)
+- [分层服务架构图 / Hierarchical serving architecture](../media/week8_hierarchical_serving_architecture.png)
 - [现有证据闭环页 / Existing evidence-loop slide](plantdisease_ai_week8_research_defense/slide-5.png)
 
 <!-- GENERATED-CHART-REFS:START -->
@@ -1160,41 +1162,41 @@ Dominant failure type among reviewed errors: visual similarity, 8/12.
 
 ---
 
-## Slide 24｜服务层与 UI 解耦，研究结果不会因界面漂移 / A UI-Independent Service Prevents Research–Demo Drift
+## Slide 24｜服务层先收集证据，再决定是否开放疾病路径 / The Service Collects Evidence Before Opening a Disease Path
 
 **中文上屏文案**
 
-- checkpoint 与 metadata 作为唯一模型来源
-- 服务层统一 Top-5、置信度警告、Grad-CAM 和知识卡
-- Streamlit、CLI、E2E 和 container 复用同一服务
-- 对空文件、损坏图像、超大图像和推理异常进行显式处理
-- 服务缓存避免重复加载模型
+- 目标叶片：自动选择优势叶片，或在原图上一键点选
+- 植物身份：本地 114 类目录；不确定时才使用可选 Pl@ntNet
+- 支持作物门控：不支持的身份保留 identity，但不开放病害
+- OpenCV 形态：面积、主轴、形状、颜色和分布保持为独立证据
+- Corn 先检查非生物胁迫形态；否则进入作物内 PlantVillage conditions
+- Grad-CAM、Qwen 与管理建议只在各自上游门控允许时开放
 
 **English slide copy**
 
-- Checkpoint and metadata are the single source of model truth
-- One service layer provides Top-5, confidence warnings, Grad-CAM, and knowledge cards
-- Streamlit, CLI, E2E, and container paths reuse the same service
-- Empty, corrupt, oversized, and failed inputs are handled explicitly
-- Service caching avoids redundant model loading
+- Target leaf: accept one dominant leaf or one source-image click
+- Plant identity: local 114-class routing catalog; optional Pl@ntNet only when uncertain
+- Supported-host gate: preserve identity evidence but withhold disease for unsupported plants
+- OpenCV morphology: keep area, axis, shape, color, and distribution as separate evidence
+- Accepted Corn checks abiotic-stress morphology before crop-specific PlantVillage conditions
+- Grad-CAM, Qwen, and management guidance open only when their upstream gates permit them
 
 **推荐版式 / Recommended layout**
 
 ```text
-Checkpoint + metadata
-        ↓
-UI-independent inference service
-        ├─ Top-5
-        ├─ confidence warnings
-        ├─ Grad-CAM
-        └─ knowledge-card fallback
-        ↓
-Streamlit / CLI / E2E / Container
+Target leaf → Plant identity → Supported host?
+                              ├─ No: abstain
+                              └─ Yes: OpenCV morphology
+                                      ├─ Corn abiotic gate
+                                      └─ Crop-specific conditions
+                                               ↓
+                              Grad-CAM / Qwen / optional guidance gates
 ```
 
 **图像 / Visuals**
 
-- [系统架构 PNG / System architecture PNG](../media/week7_apple_architecture.png)
+- [分层服务架构 PNG / Hierarchical serving architecture PNG](../media/week8_hierarchical_serving_architecture.png)
 - [Demo 工程说明 / Demo engineering report](../../reports/week5_demo_engineering.md)
 
 <!-- GENERATED-CHART-REFS:START -->
@@ -1212,39 +1214,40 @@ Streamlit / CLI / E2E / Container
 **代码证据 / Code evidence**
 
 - [推理服务 / Inference service](../../src/plantdisease/serving/service.py)
-- [服务缓存 / Service cache](../../src/plantdisease/serving/cache.py)
-- [知识卡 / Knowledge cards](../../src/plantdisease/serving/knowledge.py)
+- [目标叶片 / Target leaf](../../src/plantdisease/serving/leaf_isolation.py)
+- [分层路由 / Hierarchy](../../src/plantdisease/serving/hierarchy.py)
+- [病斑聚焦 / Lesion focus](../../src/plantdisease/serving/lesion_focus.py)
 
 ---
 
-## Slide 25｜Demo 同时展示预测与能力边界 / The Demo Shows Both Predictions and Boundaries
+## Slide 25｜Demo 先展示目标叶片，再完整展开证据与边界 / The Demo Shows the Target Leaf Before Expanding Evidence and Boundaries
 
 **中文上屏文案**
 
-- 上传或选择示例图片
-- Top-5 类别与置信度
-- Grad-CAM overlay
-- 推理耗时与 checkpoint ID
-- 疾病知识卡与低置信提醒
-- PlantVillage 域限制和教育用途声明
+- 顶部摄影卡上传图片；多叶歧义时直接在原图点选目标叶片
+- Analyze 后自动移动到下方完整结果区，不用嵌套滚动
+- Classifier 先显示植物身份，再显示支持作物内 conditions
+- OpenCV 形态证据与 Grad-CAM 各自标明证据边界
+- Qwen 只描述可见形态；管理建议需要用户手动选择并配置供应商
+- 上游拒识或 Corn 非生物形态会锁定疾病知识与管理建议
 
 **English slide copy**
 
-- Upload or select an example image
-- Top-5 classes and confidence
-- Grad-CAM overlay
-- Inference time and checkpoint ID
-- Disease knowledge card and low-confidence warning
-- PlantVillage-domain and educational-use disclaimers
+- Upload in the top photography card; click the source image when multiple leaves are ambiguous
+- Analyze moves to a fully expanded result region with no nested scrolling
+- Classifier shows plant identity before supported-host conditions
+- OpenCV morphology and Grad-CAM retain separate evidence boundaries
+- Qwen describes visible morphology only; management requires a manually selected, configured provider
+- Upstream abstention or Corn abiotic morphology locks disease knowledge and management guidance
 
 **安全边界 / Safety boundary**
 
-- 中文：不输出农药名称、剂量和处方；不将未知或非叶片输入包装成确定诊断。
-- English: The demo does not provide pesticide names, dosages, or prescriptions, and does not convert unknown or non-leaf inputs into definitive diagnoses.
+- 中文：114 类目录不是 114 物种田间准确率；OpenCV 不是病理分割；“疑似非生物/营养胁迫”不是确诊缺氮。
+- English: The 114-class catalog is not 114-species field accuracy; OpenCV is not pathological segmentation; suspected abiotic/nutrient stress is not confirmed nitrogen deficiency.
 
 **图像 / Visuals**
 
-- [Streamlit Demo 截图 / Streamlit demo screenshot](../../reports/figures/week5_streamlit_demo.jpg)
+- [React Demo 截图 / React demo screenshot](../../reports/figures/week8_react_demo_desktop.png)
 - [Demo poster](../media/week7_apple_demo_poster.png)
 - [Demo GIF](../media/week7_apple_demo.gif)
 - [现有 Demo 页 / Existing demo slide](plantdisease_ai_week8_research_defense/slide-15.png)
@@ -1263,8 +1266,8 @@ Streamlit / CLI / E2E / Container
 
 **证据 / Evidence**
 
-- [Streamlit app](../../app/streamlit_app.py)
-- [Week 5 工程报告 / Week 5 engineering report](../../reports/week5_demo_engineering.md)
+- [目标叶片与非生物门控 QA / Target-leaf and abiotic-gate QA](../../reports/target-leaf-abiotic-qa.md)
+- [React/FastAPI API](../../app/api.py)
 
 ---
 
@@ -1591,6 +1594,10 @@ Streamlit / CLI / E2E / Container
 - Grad-CAM 非因果
 - VQA 人工审计与 LoRA/QLoRA 未完成
 - 无真实用户与专业农艺验证
+- OpenCV 区域是启发式证据，不是专家病理 mask
+- 114 类目录没有 114 物种田间准确率验证
+- Corn 门控没有营养标签，不能确认缺氮
+- 原缺氮附件已不在仓库，尚无该精确文件的外部 Benchmark
 
 **English slide copy**
 
@@ -1604,6 +1611,10 @@ Current limitations:
 - Grad-CAM is non-causal
 - Manual VQA audit and LoRA/QLoRA are incomplete
 - No real-user or professional agronomic validation exists
+- OpenCV regions are heuristic evidence, not expert pathological masks
+- The 114-class catalog has no validated 114-species field accuracy
+- The Corn gate has no nutrient labels and cannot confirm nitrogen deficiency
+- The original deficiency attachment is absent, so no exact-file external benchmark exists
 
 **下一步 / Next steps**
 
@@ -1611,8 +1622,10 @@ Current limitations:
 2. Multi-seed runs and uncertainty estimates
 3. External field and unknown-class data
 4. Calibration and refusal under domain shift
-5. Expert human review
-6. Separately specified LoRA experiment only if resources permit
+5. Expert-labeled biotic, abiotic, nutrient-stress, and region data
+6. Region-supervised target-leaf and lesion evaluation
+7. Expert human review
+8. Separately specified LoRA experiment only if resources permit
 
 **图像 / Visuals**
 
@@ -1642,15 +1655,17 @@ Current limitations:
 
 **中文上屏文案**
 
-> 我完成了从数据、训练、评估到部署的端到端工程闭环。  
-> 我用 Benchmark、消融、错误分析与复现审计让结论能够被重新检查。  
-> 我主动披露数据泄漏、域偏移和 VLM 能力边界，没有把实验分数包装成专业诊断能力。
+> 我完成了从数据、训练、评估到部署的端到端工程闭环。
+> 我用 Benchmark、消融、错误分析与复现审计让结论能够被重新检查。
+> 我让目标叶片、身份、形态、病害和建议各自保留证据门控，并主动披露数据泄漏、域偏移和 VLM 能力边界。
+> 我没有把实验分数、启发式 mask 或 114 类目录包装成专业诊断能力。
 
 **English slide copy**
 
-> I completed an end-to-end engineering loop from data and training to evaluation and deployment.  
-> I made the conclusions recheckable through benchmarking, controlled ablations, error analysis, and reproducibility auditing.  
-> I disclosed leakage, domain-shift, and VLM limitations instead of presenting experimental scores as professional diagnostic capability.
+> I completed an end-to-end engineering loop from data and training to evaluation and deployment.
+> I made the conclusions recheckable through benchmarking, controlled ablations, error analysis, and reproducibility auditing.
+> I kept target leaf, identity, morphology, disease, and guidance behind explicit evidence gates while disclosing leakage, domain-shift, and VLM limits.
+> I did not present experimental scores, heuristic masks, or a 114-class catalog as professional diagnostic capability.
 
 **页面元素 / Slide elements**
 
@@ -1660,7 +1675,7 @@ Current limitations:
 
 **推荐图像 / Recommended visual**
 
-- [系统架构图 / System architecture](../media/week7_apple_architecture.png)
+- [分层服务架构图 / Hierarchical serving architecture](../media/week8_hierarchical_serving_architecture.png)
 - [Demo GIF](../media/week7_apple_demo.gif)
 
 <!-- GENERATED-CHART-REFS:START -->
@@ -2077,6 +2092,8 @@ Current limitations:
 - Mixup/CutMix、Loss、Scheduler、EMA
 - Grad-CAM、校准、错误分析和固定样本
 - 服务层、Streamlit、E2E 与 container 配置
+- 目标叶片点选、GrabCut 纯度、植物身份路由与支持作物拒识
+- 病斑聚焦、Corn 中轴非生物形态门控与管理建议锁定
 - VQA schema、baseline、assistant 与 audit
 - release claims、manifest、论文和 PPT 合同测试
 
@@ -2090,6 +2107,8 @@ Test coverage includes:
 - Mixup/CutMix, losses, schedulers, and EMA
 - Grad-CAM, calibration, error analysis, and fixed samples
 - Service layer, Streamlit, E2E, and container configuration
+- Target-leaf clicks, GrabCut purity, plant-identity routing, and supported-host abstention
+- Lesion focus, the Corn central-axis abiotic gate, and management-guidance locking
 - VQA schema, baseline, assistant, and audit
 - Release claims, manifest, papers, and presentation contracts
 
@@ -2132,6 +2151,9 @@ Test coverage includes:
 - 公开部署、真实用户、论文录用、比赛成绩、专利或奖项 / Public deployment, real users, accepted publication, competition result, patent, or award
 - Grad-CAM 因果解释 / Causal explanation from Grad-CAM
 - 将单次固定样例耗时当成 Benchmark / Treating one fixed-example timing as a benchmark
+- 114 类目录已经验证 114 物种田间准确率 / Validated 114-species field accuracy from the 114-class catalog
+- OpenCV 输出是病理真值分割 / OpenCV output as pathological ground-truth segmentation
+- Corn 门控确诊缺氮或具体营养元素 / Corn-gate confirmation of nitrogen deficiency or a specific nutrient
 
 <!-- GENERATED-CHART-REFS:START -->
 **生成图表参考 / Generated chart reference**
@@ -2186,7 +2208,8 @@ The shortened deck still preserves the research question, data boundary, benchma
 | Dataset samples / 数据样例 | [sample_grid.png](../../outputs/plantvillage/eda/sample_grid.png) | 6, 7, A1 |
 | Class distribution / 类别分布 | [class_distribution.png](../../outputs/plantvillage/eda/class_distribution.png) | 7, A1 |
 | Image-size audit / 尺寸审计 | [image_size_distribution.png](../../outputs/plantvillage/eda/image_size_distribution.png) | 7, A2 |
-| System architecture / 系统架构 | [week7_apple_architecture.png](../media/week7_apple_architecture.png) | 4, 9, 24, 33 |
+| Current hierarchical architecture / 当前分层架构 | [week8_hierarchical_serving_architecture.png](../media/week8_hierarchical_serving_architecture.png) | 4, 9, 24, 25, 33 |
+| Historical classifier-first architecture / 历史分类器主线架构 | [week7_apple_architecture.png](../media/week7_apple_architecture.png) | Week 7 historical reference |
 | Accuracy–efficiency trade-off / 精度效率权衡 | [week2_accuracy_efficiency_pareto.png](../../outputs/plantvillage/benchmarks/week2_accuracy_efficiency_pareto.png) | 13, 14, A4 |
 | Ablation curves / 消融曲线 | [week3_validation_macro_f1_curves.png](../../reports/figures/week3_validation_macro_f1_curves.png) | 16, 17, A6 |
 | Final training curve / 最终训练曲线 | [training_curve.png](../../outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/training_curve.png) | 18 |
@@ -2213,5 +2236,8 @@ Before finalizing the deck, verify each item:
 - [ ] 未声称完成 LoRA/QLoRA / No claim of completed LoRA/QLoRA.
 - [ ] Grad-CAM 被描述为非因果相关性可视化 / Grad-CAM is described as non-causal relevance visualization.
 - [ ] Demo 包含教育用途与非专业诊断声明 / The demo includes educational-use and non-professional-diagnosis disclaimers.
+- [ ] 114 类目录没有被写成 114 物种田间准确率 / The 114-class catalog is not presented as 114-species field accuracy.
+- [ ] OpenCV 区域被描述为启发式证据 / OpenCV regions are described as heuristic evidence.
+- [ ] Corn 门控没有被写成确诊缺氮 / The Corn gate is not presented as confirmed nitrogen deficiency.
 - [ ] 没有公开发布、真实用户、论文录用、比赛或奖项等无证据声明 / No unsupported claim of public release, real users, publication acceptance, competition result, or award.
 - [ ] 每张图都能回溯到仓库路径 / Every visual is traceable to a repository path.

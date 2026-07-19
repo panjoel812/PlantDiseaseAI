@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "run_id": "grape-lesion-focus-pilot-seed42",
+  "status": "experimental_candidate_evidence",
+  "calibration": {
+    "source": "PlantVillage official training split healthy Grape images",
+    "accepted_images": 323,
+    "percentile": 99,
+    "lesion_coverage_threshold_percent": 1.2959,
+    "minimum_lesion_count": 2,
+    "minimum_largest_lesion_percent": 0.25
+  },
+  "healthy_official_test_audit": {
+    "accepted_images": 100,
+    "false_vetoes": 0,
+    "false_veto_rate": 0.0
+  },
+  "all_grape_official_test_audit": {
+    "accepted_images": 755,
+    "whole_leaf_host_condition_accuracy": 0.9947,
+    "proposed_accuracy": 0.9947,
+    "healthy_veto_overrides": 0,
+    "corrected": 0,
+    "harmed": 0
+  },
+  "user_field_image": {
+    "path_reference": "Guignardia_bidwellii_08.jpg",
+    "plant_override": "Grape",
+    "opencv_lesion_coverage_percent": 12.421990820882934,
+    "opencv_lesion_count": 25,
+    "whole_leaf_conditional_scores": {
+      "healthy": 0.6158,
+      "Black rot": 0.3073,
+      "Esca (Black Measles)": 0.0675,
+      "Leaf blight (Isariopsis Leaf Spot)": 0.0095
+    },
+    "focused_roi_relative_scores": {
+      "Black rot": 0.9786,
+      "Esca (Black Measles)": 0.0138,
+      "Leaf blight (Isariopsis Leaf Spot)": 0.0076,
+      "healthy": 0.0
+    },
+    "diagnosis_accepted": false,
+    "focused_gradcam_generated": true
+  },
+  "claim_boundary": "The healthy veto is calibrated on controlled PlantVillage Grape leaves. ROI scores are uncalibrated candidate evidence and are not field-diagnosis probabilities."
+}

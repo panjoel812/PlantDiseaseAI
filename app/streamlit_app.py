@@ -14,7 +14,7 @@ DEFAULT_CHECKPOINT = Path(
     "outputs/plantvillage/week3_ablation/09_combo_candidate_seed42/checkpoint.pt"
 )
 DEFAULT_CROP_CHECKPOINT = Path(
-    "outputs/plantvillage/crop_mobilenet_v2_seed42/checkpoint.pt"
+    "outputs/openleaf/leaf114_uci100_pv14_balanced_seed42/checkpoint.pt"
 )
 DEFAULT_EXAMPLE_IMAGE = Path("app/examples/field_corn_leaf.jpeg")
 _FIXED_EXAMPLE_STATE_KEY = "fixed_example_bytes"

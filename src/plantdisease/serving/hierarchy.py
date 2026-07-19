@@ -12,6 +12,8 @@ from plantdisease.serving.knowledge import lookup_disease_knowledge
 
 HIERARCHY_METHOD = "crop_first_rejection_v2"
 INDEPENDENT_HIERARCHY_METHOD = "independent_crop_then_disease_v3"
+EXTERNAL_SPECIES_HIERARCHY_METHOD = "external_species_then_disease_v4"
+LOCAL_CATALOG_HIERARCHY_METHOD = "local_catalog_then_disease_v4"
 DEFAULT_CROP_CONFIDENCE_THRESHOLD = 0.60
 DEFAULT_CROP_MARGIN_THRESHOLD = 0.10
 DEFAULT_DISEASE_CONFIDENCE_THRESHOLD = 0.65
@@ -65,6 +67,7 @@ def build_taxonomy_hierarchy(
     predictions: Sequence[Prediction],
     *,
     crop_predictions: Sequence[Prediction] | None = None,
+    crop_prediction_source: str | None = None,
     crop_confidence_threshold: float = DEFAULT_CROP_CONFIDENCE_THRESHOLD,
     crop_margin_threshold: float = DEFAULT_CROP_MARGIN_THRESHOLD,
     disease_confidence_threshold: float = DEFAULT_DISEASE_CONFIDENCE_THRESHOLD,
@@ -128,8 +131,15 @@ def build_taxonomy_hierarchy(
             for item in crop_predictions
         ]
         crops.sort(key=lambda item: (-item.probability, item.plant))
-        method = INDEPENDENT_HIERARCHY_METHOD
-        crop_source = "independent_mobilenet_v2_crop_checkpoint"
+        if crop_prediction_source is None:
+            method = INDEPENDENT_HIERARCHY_METHOD
+            crop_source = "independent_mobilenet_v2_crop_checkpoint"
+        elif crop_prediction_source == "local_leaf114_checkpoint":
+            method = LOCAL_CATALOG_HIERARCHY_METHOD
+            crop_source = crop_prediction_source
+        else:
+            method = EXTERNAL_SPECIES_HIERARCHY_METHOD
+            crop_source = crop_prediction_source
     selected_crop = crops[0]
     crop_margin = selected_crop.probability - (
         crops[1].probability if len(crops) > 1 else 0.0
@@ -195,10 +205,20 @@ def build_taxonomy_hierarchy(
             f"Crop margin {crop_margin:.1%} is below the "
             f"{crop_margin_threshold:.0%} acceptance threshold."
         )
+    elif not ranked_conditions:
+        decision_reason = (
+            "Plant identity accepted, but this species has no matching local "
+            "PlantVillage disease taxonomy."
+        )
     else:
         decision_reason = "Crop gate accepted; disease ranking is restricted to this crop."
     if not crop_confident:
         disease_decision_reason = "Disease labels are withheld until plant identity is accepted."
+    elif not ranked_conditions:
+        disease_decision_reason = (
+            "Disease labels are withheld because this accepted species is outside "
+            "the local PlantVillage disease catalog."
+        )
     elif not disease_confident:
         disease_decision_reason = (
             f"Disease confidence {disease_confidence:.1%} or margin {disease_margin:.1%} "

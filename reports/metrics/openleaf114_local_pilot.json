@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "run_id": "leaf114-uci100-pv14-mobilenet-v2-frozen-seed42",
+  "status": "completed_controlled_source_pilot",
+  "seed": 42,
+  "device": "cpu",
+  "catalog_size": 114,
+  "uci_species_count": 100,
+  "plantvillage_crop_count": 14,
+  "train_sample_count": 1896,
+  "validation_sample_count": 524,
+  "test_sample_count": 748,
+  "duration_seconds": 112.31073008300154,
+  "best_validation_macro_class_accuracy": 0.9250730994152047,
+  "test": {
+    "accuracy": 0.9157754010695187,
+    "macro_precision": 0.9265882587364661,
+    "macro_recall": 0.9138340643274854,
+    "macro_f1": 0.9116995666427302,
+    "source_accuracy": {
+      "plantvillage": 0.9174107142857143,
+      "uci_leaf100": 0.9133333333333333
+    }
+  },
+  "field_checks": {
+    "bundled_corn_top1": {
+      "class_name": "Corn (maize)",
+      "probability": 0.9992,
+      "ground_truth": "unverified"
+    },
+    "user_grape_image": {
+      "expected_plant": "Grape",
+      "accepted": false,
+      "predictions": [
+        {"class_name": "Strawberry", "probability": 0.4636},
+        {"class_name": "Peach", "probability": 0.2401},
+        {"class_name": "Grape", "probability": 0.2065}
+      ]
+    }
+  },
+  "hashes": {
+    "uci_archive_sha256": "2313a70de450a8a6b81696174f52be1c037090af53b37c6a6313f11245e5fd4c",
+    "checkpoint_sha256": "2ccc906155eab0b25dd392fdf1ea77f8708affc62abee95af59a8075da26ee6e",
+    "metrics_sha256": "c83363ca851fb779d0cfd456aae2f5c408c302b4b0a7dfa7cd8504a130319c55",
+    "split_sha256": "bd2c312f4ff3c8b21e9c2178e09790ae3c18ce50908f9370b0426d7553b58b5e"
+  },
+  "claim_boundary": "Controlled UCI silhouette plus PlantVillage leaf identity; not field accuracy."
+}

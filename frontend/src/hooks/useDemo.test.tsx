@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiError,
+  LeafSelectionRequiredError,
   askForAdvice,
   askQwen,
   classifyImage,
@@ -17,6 +18,7 @@ import type {
   ManagementAdvice,
   QwenAnswer,
   QwenStatus,
+  LeafSelectionRequired,
 } from "../api/types";
 import { useDemo } from "./useDemo";
 
@@ -95,6 +97,8 @@ function classification(className = "Corn___Northern_Leaf_Blight"): Classificati
     checkpoint_id: "checkpoint-id",
     image_size: 224,
     input_size: [1024, 768],
+    disease_input_method: "original_image_v1",
+    disease_input_size: [1024, 768],
     target_layer_name: "layer4.2",
     timings: {
       preprocess_ms: 1,
@@ -172,6 +176,39 @@ function managementAdvice(): ManagementAdvice {
     sources: ["classifier-crop:Corn"],
     scope: "educational_management_guidance",
     evidence_boundary: "Educational only.",
+  };
+}
+
+function leafSelectionRequired(): LeafSelectionRequired {
+  return {
+    code: "leaf_selection_required",
+    message: "Select one target leaf before analysis.",
+    leaf_isolation: {
+      method: "opencv_target_leaf_v2",
+      selection_mode: "automatic",
+      target_point: null,
+      purity: {
+        accepted: false,
+        coverage_percent: 31.2,
+        border_touch_ratio: 0,
+        fragment_count: 2,
+        click_contained: null,
+        probable_foreground_retention: null,
+        principal_axis_aspect_ratio: 1.7,
+        axis_band_retention: null,
+        coverage_range: [3, 85],
+        max_border_touch_ratio: 0.18,
+        min_probable_foreground_retention: 0.6,
+        min_axis_band_retention: 0.8,
+        reason: "Select one target leaf before analysis.",
+      },
+      accepted: false,
+      reason: "Select one target leaf before analysis.",
+      image_size: [320, 220],
+      bounding_box: [20, 30, 120, 150],
+      shape: null,
+      cutout_data_url: null,
+    },
   };
 }
 
@@ -411,6 +448,41 @@ describe("useDemo", () => {
     });
   });
 
+  it("enters target mode on 409 and resubmits the selected point", async () => {
+    const selection = leafSelectionRequired();
+    vi.mocked(classifyImage)
+      .mockRejectedValueOnce(new LeafSelectionRequiredError(selection))
+      .mockResolvedValueOnce(classification());
+    const file = new File(["leaf"], "leaf.jpeg", { type: "image/jpeg" });
+    const replacement = new File(["next"], "next.jpeg", { type: "image/jpeg" });
+    const { result } = renderHook(() => useDemo());
+
+    act(() => result.current.selectFile(file));
+    await act(async () => result.current.classify(classifyOptions));
+
+    expect(result.current.classification.status).toBe("idle");
+    expect(result.current.leafSelection).toBe(selection);
+    expect(result.current.targetSelectionActive).toBe(true);
+
+    act(() => result.current.setTargetPoint({ x: 0.25, y: 0.75 }));
+    await act(async () => result.current.classify(classifyOptions));
+
+    expect(classifyImage).toHaveBeenLastCalledWith(
+      file,
+      { ...classifyOptions, targetPoint: { x: 0.25, y: 0.75 } },
+      expect.any(AbortSignal),
+    );
+    expect(result.current.classification.status).toBe("success");
+    expect(result.current.leafSelection).toBeNull();
+    expect(result.current.targetSelectionActive).toBe(false);
+    expect(result.current.targetPoint).toEqual({ x: 0.25, y: 0.75 });
+
+    act(() => result.current.selectFile(replacement));
+    expect(result.current.targetPoint).toBeNull();
+    expect(result.current.leafSelection).toBeNull();
+    expect(result.current.targetSelectionActive).toBe(false);
+  });
+
   it("aborts an older classifier request and ignores its late response", async () => {
     const first = deferred<ClassificationResult>();
     const second = deferred<ClassificationResult>();
@@ -631,6 +703,9 @@ describe("useDemo", () => {
     expect(result.current.previewUrl).toBeNull();
     expect(result.current.classification.status).toBe("idle");
     expect(result.current.qwen.status).toBe("idle");
+    expect(result.current.targetPoint).toBeNull();
+    expect(result.current.leafSelection).toBeNull();
+    expect(result.current.targetSelectionActive).toBe(false);
   });
 
   it("aborts in-flight work and revokes the preview on unmount", () => {

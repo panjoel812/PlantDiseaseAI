@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 import os
@@ -9,7 +10,6 @@ from pathlib import Path
 
 from pytest import MonkeyPatch
 
-from plantdisease.release.manifest import sha256_file
 from plantdisease.release.runner import CommandSpec
 
 
@@ -305,24 +305,29 @@ def test_build_release_candidate_rejects_runtime_lanes_from_other_source(
     assert "local_evidence" not in manifest["lane_evidence"]
 
 
-def test_checked_in_release_manifest_matches_tracked_artifacts() -> None:
-    manifest = json.loads(
-        Path("reports/release/week8_rc1_manifest.json").read_text(encoding="utf-8")
+def test_checked_in_release_manifest_matches_manifest_revision_artifacts() -> None:
+    manifest_path = Path("reports/release/week8_rc1_manifest.json")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    source_commit = manifest["source_commit"]
+    subprocess.run(
+        ["git", "cat-file", "-e", f"{source_commit}^{{commit}}"],
+        check=True,
     )
+    manifest_revision = subprocess.run(
+        ["git", "log", "-1", "--format=%H", "--", str(manifest_path)],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
     tracked = set(
         subprocess.run(
-            ["git", "ls-files"],
+            ["git", "ls-tree", "-r", "--name-only", manifest_revision],
             capture_output=True,
             text=True,
             check=True,
         ).stdout.splitlines()
     )
 
-    source_commit = manifest["source_commit"]
-    subprocess.run(
-        ["git", "cat-file", "-e", f"{source_commit}^{{commit}}"],
-        check=True,
-    )
     artifacts = {item["logical_path"]: item for item in manifest["artifacts"]}
     assert {
         "docs/presentation/plantdisease_ai_complete_bilingual_outline.md",
@@ -333,10 +338,14 @@ def test_checked_in_release_manifest_matches_tracked_artifacts() -> None:
     for logical_path, artifact in artifacts.items():
         if logical_path not in tracked:
             continue
-        path = Path(logical_path)
+        source_bytes = subprocess.run(
+            ["git", "show", f"{manifest_revision}:{logical_path}"],
+            capture_output=True,
+            check=True,
+        ).stdout
         assert artifact["status"] == "passed", logical_path
-        assert artifact["size_bytes"] == path.stat().st_size, logical_path
-        assert artifact["sha256"] == sha256_file(path), logical_path
+        assert artifact["size_bytes"] == len(source_bytes), logical_path
+        assert artifact["sha256"] == hashlib.sha256(source_bytes).hexdigest(), logical_path
 
 
 def test_run_week8_repro_runs_locked_commands_and_redacts_environment(

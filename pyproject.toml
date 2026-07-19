@@ -50,6 +50,11 @@ plant-error-analysis = "plantdisease.cli:error_analysis_main"
 plant-evaluate = "plantdisease.cli:evaluate_main"
 plant-freeze-samples = "plantdisease.cli:freeze_samples_main"
 plant-gradcam-atlas = "plantdisease.cli:gradcam_atlas_main"
+plant-openworld-calibrate = "plantdisease.openworld.cli:calibrate_main"
+plant-openworld-embed = "plantdisease.openworld.cli:embed_main"
+plant-openworld-index = "plantdisease.openworld.cli:index_main"
+plant-openworld-predict = "plantdisease.openworld.cli:predict_main"
+plant-openworld-prepare = "plantdisease.openworld.cli:prepare_main"
 plant-predict = "plantdisease.cli:predict_main"
 plant-smoke = "plantdisease.cli:smoke_main"
 
@@ -57,7 +62,7 @@ plant-smoke = "plantdisease.cli:smoke_main"
 packages = ["src/plantdisease", "app"]
 
 [tool.pytest.ini_options]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers --import-mode=importlib"
 testpaths = ["tests"]
 
 [tool.ruff]

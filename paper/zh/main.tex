@@ -20,13 +20,13 @@
 
 \title{PlantDiseaseAI：从高分分类器到可审计的植物病害研究系统}
 \author{Panjoel}
-\date{2026-07-16}
+\date{2026-07-19}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-本文报告 PlantDiseaseAI 在 Week 1--8 的完整研究与工程证据。项目围绕 PlantVillage 受控背景图像建立数据审计、五模型统一基准、单变量消融、错误与校准分析、Grad-CAM 相关性可视化、MPS/Streamlit 演示、Apple container 复现以及 Qwen3-VL 小样本探索。Week 2 ResNet50 在 official split 上获得 Accuracy \PDAWeekTwoAccuracy、Macro F1 \PDAWeekTwoMacroFOne；MobileNetV2 以 \PDAMobileParams 参数、\PDAMobileFlops FLOPs 和记录协议下 \PDAMobileThroughput~img/s 构成轻量候选。Week 3 的 Label Smoothing 与 Cosine Scheduler 组合在 seed 42、official split 上获得 Accuracy \PDAFinalAccuracy、Macro F1 \PDAFinalMacroFOne。然而数据审计发现 train/test 间有 \PDAOfficialOverlap 个重叠 leaf\_id，因此这些结果不是实体隔离泛化证据。Week 4 记录 \PDAErrorCount/\PDATestCount 个错误，并给出 ECE \PDAECE、MCE \PDAMCE、Brier \PDABrier。Week 5 的 \PDADemoLatency~ms 仅是一个固定合成输入的容器 CPU 观测。Week 6 Qwen3-VL choice/few-shot 冒烟严格匹配为 \PDAVLMChoice，condition 为 \PDAVLMCondition。Week 8 clean lane 共 \PDAWeekEightCleanTests 项测试通过，并完成本地证据与容器通道。本文的中心结论不是“高分即可信诊断”，而是：只有把数据边界、负结果、复现条件与安全拒答同时纳入，模型数字才具有可审计的研究意义。
+本文报告 PlantDiseaseAI 在 Week 1--8 的完整研究与工程证据。项目围绕 PlantVillage 受控背景图像建立数据审计、五模型统一基准、单变量消融、错误与校准分析、Grad-CAM 相关性可视化、MPS/Streamlit 演示、Apple container 复现以及 Qwen3-VL 小样本探索。后续 React/FastAPI 服务路径在冻结分类器外围增加目标叶片选择、植物身份路由、OpenCV 形态证据与拒识门控，但不改变既有 Benchmark。Week 2 ResNet50 在 official split 上获得 Accuracy \PDAWeekTwoAccuracy、Macro F1 \PDAWeekTwoMacroFOne；MobileNetV2 以 \PDAMobileParams 参数、\PDAMobileFlops FLOPs 和记录协议下 \PDAMobileThroughput~img/s 构成轻量候选。Week 3 的 Label Smoothing 与 Cosine Scheduler 组合在 seed 42、official split 上获得 Accuracy \PDAFinalAccuracy、Macro F1 \PDAFinalMacroFOne。然而数据审计发现 train/test 间有 \PDAOfficialOverlap 个重叠 leaf\_id，因此这些结果不是实体隔离泛化证据。Week 4 记录 \PDAErrorCount/\PDATestCount 个错误，并给出 ECE \PDAECE、MCE \PDAMCE、Brier \PDABrier。Week 5 的 \PDADemoLatency~ms 仅是一个固定合成输入的容器 CPU 观测。Week 6 Qwen3-VL choice/few-shot 冒烟严格匹配为 \PDAVLMChoice，condition 为 \PDAVLMCondition。Week 8 clean lane 共 \PDAWeekEightCleanTests 项测试通过，并完成本地证据与容器通道。本文的中心结论不是“高分即可信诊断”，而是：只有把数据边界、负结果、复现条件与安全拒答同时纳入，模型数字才具有可审计的研究意义。
 \end{abstract}
 
 \section{引言}
@@ -35,7 +35,7 @@
 
 PlantDiseaseAI 的分类主线按周推进。Week 1 固定数据加载、标签映射和评估接口；Week 2 在同一协议下比较五个 CNN；Week 3 以单变量消融支持模型选择；Week 4 审计错误、校准与 Grad-CAM；Week 5 将 Top-5、解释与安全提示整合进 Demo；Week 6 只在主线完成后探索视觉语言模型；Week 7 组织证据材料；Week 8 运行 clean、local evidence 与 Apple container 三条复现通道。本文将这些阶段组织为一条可核查的证据链，而非孤立的截图或最佳数字。
 
-本文贡献有三点。第一，给出统一协议下的五模型基准和可解释的消融决策。第二，把数据重叠、逐样本错误、校准、解释目标层与固定输入延迟作为一等研究对象。第三，将代码测试、模型产物、图表、论文表述和本地容器验证连接到同一 release candidate。所有结论都受 official split、单 seed 和受控背景限制；本文不声称真实田间泛化，也不提供农药名称、剂量或法规建议。
+本文贡献有四点。第一，给出统一协议下的五模型基准和可解释的消融决策。第二，把数据重叠、逐样本错误、校准、解释目标层与固定输入延迟作为一等研究对象。第三，将代码测试、模型产物、图表、论文表述和本地容器验证连接到同一 release candidate。第四，明确区分已验证分类器证据、已实现服务门控与实验扩展，使目标叶片、身份、形态和建议阶段可以拒答，而不静默提高证据等级。所有结论都受 official split、单 seed 和受控背景限制；本文不声称真实田间泛化，也不提供农药名称、剂量或法规建议。
 
 \section{相关工作}
 
@@ -47,7 +47,7 @@ PlantVillage 提供了开放的植物健康图像资源\cite{hughes2015plantvill
 
 \section{数据集、任务与划分审计}
 
-任务是 38 类整图分类。输入是一张叶片图像，输出是 PlantVillage 闭集中的植物--病害类别概率。系统不输出边界框、病斑 mask 或病原检测结果。训练增强只作用于训练集，验证和测试使用确定性预处理；官方测试集不参与 checkpoint 选择或超参数搜索。
+已验证任务是 38 类整图分类。输入是一张叶片图像，输出是 PlantVillage 闭集中的植物--病害类别概率。后续服务层会产生启发式目标叶片 mask、病斑候选与形态摘要，但它们不是学习得到的病理分割、病原检测或开放集保证。训练增强只作用于训练集，验证和测试使用确定性预处理；官方测试集不参与 checkpoint 选择或超参数搜索。
 
 项目沿用数据源的 official train/test split，并在训练部分以 seed 42 做分层 train/validation 划分。审计通过样本标识追踪发现 official train/test 间有 \PDAOfficialOverlap 个重叠 leaf\_id。重叠并不等价于像素完全相同，但说明同一叶片实体的相关图像可能跨集合出现。因此本文统一使用“official split 结果”，而不使用“无泄漏”或“实体隔离”的表述。
 
@@ -144,6 +144,21 @@ Grad-CAM 的正式目标层从 bottleneck 内部的 \texttt{layer4.2.conv3} 修�
 
 Week 5 把字节输入校验、Top-5 排序、概率与标签映射、低置信警告、Grad-CAM overlay 和非专业诊断声明封装到 UI 无关服务，再由 Streamlit 调用。Week 8 新增 React/Vite Liquid Glass 界面，仍复用同一冻结 checkpoint、标签与预处理。固定合成输入只验证历史工程路径；新界面的用户田间样例 SHA-256 为 \nolinkurl{0364ff44229c70666216343057f9ae77d82438a7f842b30af1ffabb786061a7e}，属于 out-of-domain 样例且 no verified ground truth。
 
+\subsection*{分层服务与拒识}
+
+React/FastAPI 路径现在先选择一片目标叶片，再运行模型。系统可自动接受明显占优的叶片组件，也可接收一个原图归一化坐标点；随后检查点击包含、前景保留、覆盖率、边缘接触和长叶主轴纯度。mask 失败或多叶歧义会返回明确的点选请求，而不是把整图强制送入分类器。通过门控后的中性背景 cutout 同时提供给植物身份、病害分类与 Grad-CAM，使手、土壤、天空和相邻植物不直接暴露给这些模型。
+
+身份路由首先使用由 UCI Leaf100 与 14 个 PlantVillage 宿主组成的本地 114 类目录。它扩展的是路由词表，不是已验证的 114 物种开放世界准确率。仅当本地结果不确定且已配置密钥时，才调用可选 Pl@ntNet。PlantVillage 不支持的身份可以保留为身份观察，但病害路径必须拒答。对于支持宿主，OpenCV 在显示作物内 condition 概率前，独立记录异常覆盖率、主轴方向、形状、粗粒度颜色与空间分布。
+
+接受为 Corn 的输入还要通过一个中轴形态门控。它在选择传染性 condition 之前检查异常覆盖率、中轴占比、纵向连续性、双侧相似度与离轴离散病斑。阳性形态会清除传染性标签、疾病知识、诊断 Grad-CAM 和管理建议资格，只显示 \texttt{suspected\_abiotic\_nutrient\_stress}。这是保守的安全提示，不是确诊缺氮。本地 Qwen 只描述可见形态；只要身份、condition 或非生物证据不支持病害声明，可选云端管理建议就保持锁定。
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=0.98\textwidth]{../../docs/media/week8_hierarchical_serving_architecture.png}
+\caption{冻结分类器外围已实现的分层服务与安全门控。该图不代表已验证开放世界身份准确率、病理分割或具体营养缺乏确诊。}
+\label{fig:hierarchical-serving-zh}
+\end{figure}
+
 \begin{figure}[tbp]
 \centering
 \includegraphics[width=0.94\textwidth]{../../reports/figures/week8_react_demo_desktop.png}
@@ -201,7 +216,7 @@ VLM 结果也体现了负结果价值。封闭选项把严格匹配提高到 11/
 
 \section{局限、伦理与预期用途}
 
-本研究有七项核心限制。第一，official split 有 \PDAOfficialOverlap 个 leaf\_id 重叠；尚无实体隔离结果。第二，最终候选只有 seed 42，未报告多 seed 均值与方差。第三，PlantVillage 背景受控，未完成真实田间外部验证。第四，Grad-CAM 是相关性可视化，不是因果解释、分割或病理证据。第五，24 样本 attention review 和 72 项 VQA 模板尚未完成全量人工审计。第六，校准只覆盖 top-label，尚无 temperature scaling。第七，容器与本地延迟是特定条件观测，不是生产 SLA。
+本研究有十一项核心限制。第一，official split 有 \PDAOfficialOverlap 个 leaf\_id 重叠；尚无实体隔离结果。第二，最终候选只有 seed 42，未报告多 seed 均值与方差。第三，PlantVillage 背景受控，未完成真实田间外部验证。第四，Grad-CAM 是相关性可视化，不是因果解释、分割或病理证据。第五，24 样本 attention review 和 72 项 VQA 模板尚未完成全量人工审计。第六，校准只覆盖 top-label，尚无 temperature scaling。第七，容器与本地延迟是特定条件观测，不是生产 SLA。第八，OpenCV 的目标叶片与病斑区域是启发式估计，不是专家标注的病理 mask。第九，114 类目录只有受控来源 pilot，没有已验证的 114 物种田间准确率。第十，Corn 门控没有专家标注的营养数据集，不能确认缺氮或其他具体原因。第十一，用户最初提供的缺氮图片已不在仓库中，因此现有门控 QA 不是对该精确文件完成的外部图像 Benchmark。
 
 预期用途是研究、教学和工程展示：比较训练策略、演示闭集 Top-5、检查错误与解释产物、验证本地复现流程。非预期用途包括独立田间确诊、未知病害排除、农药选择与剂量、法规建议、商业生产决策或人身/生态高风险处置。界面和材料必须保留“非专业诊断”声明，并在低置信、超范围或高风险问题上拒答。
 
@@ -211,9 +226,9 @@ VLM 结果也体现了负结果价值。封闭选项把严格匹配提高到 11/
 
 \section{结论与未来工作}
 
-PlantDiseaseAI 已形成从数据审计、统一基准、消融选择、逐样本错误、校准、Grad-CAM，到 MPS Demo、Apple container、VLM 冒烟与 Week 8 release audit 的本地闭环。当前候选在 seed 42 official split 上达到 \PDAFinalAccuracy{} Accuracy 与 \PDAFinalMacroFOne{} Macro F1；这一数字与 \PDAOfficialOverlap{} 个实体重叠风险必须同时呈现。项目的研究价值来自证据边界，而不是把高分扩写成田间可信性。
+PlantDiseaseAI 已形成从数据审计、统一基准、消融选择、逐样本错误、校准、Grad-CAM，到 MPS Demo、Apple container、VLM 冒烟、Week 8 release audit 与后续证据门控 React/FastAPI 服务架构的本地闭环。当前候选在 seed 42 official split 上达到 \PDAFinalAccuracy{} Accuracy 与 \PDAFinalMacroFOne{} Macro F1；这一数字与 \PDAOfficialOverlap{} 个实体重叠风险必须同时呈现。项目的研究价值来自证据边界，而不是把高分、启发式 mask 或广域身份目录扩写成田间可信性。
 
-下一阶段优先级依次为：建立 leaf entity 隔离的冻结 split；运行多个随机种子并报告离散程度；收集有合法来源的田间域样本；完成 Grad-CAM/VQA 人工审计；评估拒答与开放集输入；只在资源与固定测试协议允许时研究 LoRA/QLoRA。任何新结果都应进入版本化 manifest 与 claim ledger，再进入论文、PPT 或简历。
+下一阶段优先级依次为：建立 leaf entity 隔离的冻结 split；运行多个随机种子并报告离散程度；收集有合法来源的田间域样本；建立专家标注的生物、非生物与营养胁迫区域数据；以区域标注评估目标叶片与病斑 mask；完成 Grad-CAM/VQA 人工审计；评估拒答与开放集输入；只在资源与固定测试协议允许时研究 LoRA/QLoRA。任何新结果都应进入版本化 manifest 与 claim ledger，再进入论文、PPT 或简历。
 
 \section*{工具披露}
 

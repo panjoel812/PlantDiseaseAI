@@ -91,6 +91,49 @@ def test_independent_crop_head_selects_plant_then_rejects_weak_disease() -> None
     assert "evidence only" in hierarchy.disease_decision_reason
 
 
+def test_broad_species_outside_local_taxonomy_is_identified_without_disease() -> None:
+    hierarchy = build_taxonomy_hierarchy(
+        [
+            Prediction(0, "Tomato___Late_blight", 0.70),
+            Prediction(1, "Grape___Black_rot", 0.30),
+        ],
+        crop_predictions=[
+            Prediction(0, "Virginia creeper", 0.91),
+            Prediction(1, "Grape", 0.09),
+        ],
+        crop_prediction_source="plantnet_api",
+    )
+
+    assert hierarchy.method == "external_species_then_disease_v4"
+    assert hierarchy.crop_source == "plantnet_api"
+    assert hierarchy.selected_crop == "Virginia creeper"
+    assert hierarchy.crop_confident is True
+    assert hierarchy.conditions == []
+    assert hierarchy.disease_confident is False
+    assert "no matching local" in hierarchy.decision_reason
+
+
+def test_local_114_catalog_uses_same_safe_outside_taxonomy_routing() -> None:
+    hierarchy = build_taxonomy_hierarchy(
+        [
+            Prediction(0, "Grape___Black_rot", 0.70),
+            Prediction(1, "Apple___Black_rot", 0.30),
+        ],
+        crop_predictions=[
+            Prediction(0, "Acer campestre", 0.86),
+            Prediction(1, "Grape", 0.14),
+        ],
+        crop_prediction_source="local_leaf114_checkpoint",
+    )
+
+    assert hierarchy.method == "local_catalog_then_disease_v4"
+    assert hierarchy.crop_source == "local_leaf114_checkpoint"
+    assert hierarchy.selected_crop == "Acer campestre"
+    assert hierarchy.crop_confident is True
+    assert hierarchy.conditions == []
+    assert hierarchy.disease_confident is False
+
+
 @pytest.mark.parametrize(
     ("predictions", "message"),
     [
