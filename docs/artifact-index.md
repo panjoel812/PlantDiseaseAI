@@ -187,4 +187,7 @@
 | Grape healthy-veto 与病斑 ROI | `reports/grape_lesion_focus_pilot.md`、`reports/metrics/grape_lesion_focus_pilot.json`、`src/plantdisease/serving/disease_focus.py` | 实验性候选证据；健康葡萄 official test 误否决 0/100，用户图由 healthy 全叶候选切换为 Black rot ROI 候选并生成 focused Grad-CAM；不开放诊断或管理建议 |
 | Pl@ntNet 补充身份服务 | `src/plantdisease/serving/plant_identity.py`、`app/api.py`、`frontend/src/components/PlantIdentityConfigSheet.tsx` | 已接入可选 API key；本地身份通过时不调用，本地不确定时才发送选中的叶片 cutout。未进行付费或配额压力测试 |
 | 目标叶片选择与 Corn 非生物形态门控 | `docs/superpowers/specs/2026-07-18-target-leaf-abiotic-gate-design.md`、`docs/superpowers/plans/2026-07-18-target-leaf-abiotic-gate.md`、`reports/target-leaf-abiotic-qa.md`、`reports/metrics/target_leaf_abiotic_qa.json` | 已实现 source-coordinate 点选、GrabCut 纯度 409、Corn 中脉形态拒答、React 固定十字与管理建议锁定。公开参考图因边缘接触 `0.21519 > 0.18` 被正确拒绝；原用户附件路径已不存在，未冒充完成相同像素复测；阳性路径由固定阈值合成回归测试覆盖 |
+| 分层服务架构生成器 | `scripts/generate_hierarchical_architecture.py`、`tests/test_hierarchical_architecture_asset.py` | 可复现工具；以 Matplotlib 同时生成 3200×1800 PNG 与可编辑 SVG，并由测试锁定关键节点和输出尺寸 |
+| Week 8 分层服务架构图 | `docs/media/week8_hierarchical_serving_architecture.svg`、`docs/media/week8_hierarchical_serving_architecture.png` | derived media；区分 verified core、implemented gates 与 experimental extensions，不新增模型性能声明 |
+| 架构证据同步设计与计划 | `docs/superpowers/specs/2026-07-19-open-world-architecture-evidence-sync-design.md`、`docs/superpowers/plans/2026-07-19-open-world-architecture-evidence-sync.md` | 已批准并执行；范围包含双语论文、双语 PPT 大纲、公共架构与证据索引，明确不修改 PPTX/Keynote |
 | PlantWild / PlantSeg pilot | 见研究协议的 Milestones | 未开始；没有下载数据或训练结果 |

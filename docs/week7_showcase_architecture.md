@@ -1,13 +1,19 @@
 # Week 7 Showcase Architecture
 
-This architecture diagram is intended for README, blog, and PPT use. It shows
-the relationship between the verified classifier line, explainability, demo
-deployment, and the exploratory VLM branch.
+The Week 7 image below is retained as a historical classifier-first presentation asset.
+The maintainable architecture has since expanded to include target-leaf selection,
+plant-identity routing, OpenCV morphology evidence, and the Corn abiotic-stress gate.
 
-![PlantDiseaseAI Apple showcase architecture](media/week7_apple_architecture.png)
+![Historical PlantDiseaseAI Apple showcase architecture](media/week7_apple_architecture.png)
 
-*The PlantVillage classifier is the verified main line; Qwen3-VL is a
-secondary, exploratory smoke branch and does not replace classifier evidence.*
+The current paper and bilingual presentation outline should use the updated hierarchical
+serving visual:
+
+![Current evidence-gated serving architecture](media/week8_hierarchical_serving_architecture.png)
+
+*The PlantVillage classifier remains the verified experimental core. Target-leaf and
+abstention logic are implemented serving safeguards; broad identity, lesion-focus, Qwen,
+and provider guidance remain experimental extensions.*
 
 ```mermaid
 flowchart LR
@@ -19,29 +25,41 @@ flowchart LR
     ablation --> select
     select --> eval["Evaluation\nmetrics + calibration"]
     select --> explain["Week 4 explainability\nGrad-CAM + error analysis"]
-    select --> serve["Serving layer\nTop-5 + Grad-CAM + knowledge cards"]
-    serve --> streamlit["Week 5 Streamlit demo\neducational UI"]
+    select --> leaf["Target leaf\nauto or one click"]
+    leaf --> identity["Plant identity\nlocal 114-class catalog"]
+    identity --> support{"Supported host?"}
+    support -->|no| abstain["Abstain\nno disease claim"]
+    support -->|yes| morphology["OpenCV morphology\ncoverage · axis · shape · color"]
+    morphology --> corn{"Accepted Corn?"}
+    corn -->|yes| abiotic["Corn abiotic gate\nsuspected stress or continue"]
+    corn -->|no| disease["Crop-specific conditions\nPlantVillage closed set"]
+    abiotic -->|infectious path remains plausible| disease
+    abiotic -->|stress pattern| suppress["Suppress disease and guidance"]
+    disease --> serve["Serving outputs\nTop-5 + Grad-CAM + knowledge"]
+    serve --> streamlit["React / Streamlit demos\neducational UI"]
     serve --> container["Apple container\nCPU-only demo image"]
     select --> vlmdata["Week 6 VQA seed\n24 images / 72 questions"]
     vlmdata --> qwen["Qwen3-VL MLX smoke\nprompt comparison"]
     qwen --> assistant["Safety-bounded assistant prototype\nsource + refusal rules"]
 ```
 
-## How to explain the branches
+## How to explain the evidence levels
 
-- The classifier branch is the project core. It owns the measured classification
-  metrics, Grad-CAM, error analysis, and demo inference.
-- The deployment branch reuses the same serving layer so Streamlit and Apple
-  `container` do not drift from offline inference.
-- The VLM branch is exploratory. It uses source-grounded VQA data and Qwen3-VL
-  smoke runs to test capability boundaries, not to replace the classifier.
-- The assistant prototype is safety-bounded: it uses classifier context,
-  provenance, and refusal behavior instead of presenting itself as a professional
-  diagnosis system.
+- **Verified experimental core:** the frozen classifier owns the measured PlantVillage
+  metrics, error analysis, calibration, and Grad-CAM relevance evidence.
+- **Implemented serving gates:** one selected leaf, identity routing, supported-host
+  checks, morphology measurement, and downstream suppression reduce unsupported claims.
+- **Experimental extensions:** the 114-class catalog, Pl@ntNet fallback, Grape lesion
+  focus, Qwen morphology, and cloud providers do not extend the verified classifier metric.
+- React, Streamlit, and Apple `container` reuse the same serving contracts so UI changes do
+  not silently alter checkpoint semantics.
+
+OpenCV masks are heuristic evidence, not pathological segmentation. The Corn branch may
+report suspected abiotic/nutrient stress but cannot confirm nitrogen deficiency.
 
 ## Diagram caption
 
-“PlantDiseaseAI keeps the verified classifier as the central system and routes
-explainability, demo deployment, and VLM exploration through auditable evidence
-paths. The VLM branch is explicitly exploratory and does not override classifier
-results.”
+“PlantDiseaseAI keeps the verified PlantVillage classifier as the measured core, then
+requires target-leaf, plant-identity, crop-support, and morphology evidence before a
+crop-condition or management path can open. OpenCV and Grad-CAM remain non-diagnostic
+evidence, while broad identity and AI assistants remain experimental.”

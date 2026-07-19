@@ -22,6 +22,16 @@ PlantVillage 闭集分类、Grad-CAM 相关性可视化、React / FastAPI 主演
 
 *React Demo media uses the supplied field image with no verified ground truth; the visible result is a model prediction, not field-accuracy evidence.*
 
+## 系统架构
+
+![PlantDiseaseAI 证据门控服务架构](docs/media/week8_hierarchical_serving_architecture.png)
+
+冻结的 PlantVillage 分类器仍是具有正式实验指标的研究主线。React/FastAPI 在其外围增加
+“目标叶片 → 植物身份 → 支持作物 → OpenCV 形态 → 非生物/病害分支 → 下游证据门控”。
+本地 114 类只是身份路由目录，不代表已经验证 114 个物种的开放世界准确率；OpenCV 输出
+是启发式区域与形态证据，不是病理分割；玉米门控只能提示**疑似非生物/营养胁迫**，不能
+确认缺氮。完整模块图、证据级别与限制见[公开架构说明](docs/project-architecture.md)。
+
 ## React Demo
 
 React Demo 默认加载用户提供的田间玉米叶图片 `app/examples/field_corn_leaf.jpeg`。该图片是无已验证真值的域外交互样例；页面返回的是模型预测，不是田间准确率或专业诊断结论。

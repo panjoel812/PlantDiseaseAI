@@ -48,29 +48,31 @@ hash against `reports/release/week8_rc1_manifest.json`.
 
 ## Architecture
 
-The main data flow is:
+![Evidence-gated PlantDiseaseAI serving architecture](docs/media/week8_hierarchical_serving_architecture.png)
+
+The frozen PlantVillage classifier remains the measured research core. The React/FastAPI
+path adds implemented evidence gates around it:
 
 ```text
-image -> OpenCV on original resolution -> lesion location/size/shape/colour
-      -> isolated leaf on neutral background
-      -> MobileNetV2 crop-only checkpoint -> crop confidence + margin gate
-                                         | accepted
-      -> ResNet50 disease checkpoint -----+-> selected-crop conditions
-                                         +-> disease confidence + margin gate
-                                         | accepted: Grad-CAM / optional guidance
-                                         | uncertain: diagnosis withheld
+image -> target leaf: automatic isolation or one source-image click
+      -> local 114-class identity-routing catalog
+      -> optional Pl@ntNet only when local identity is uncertain
+      -> supported-host gate; unsupported identities abstain
+      -> OpenCV morphology: coverage / axis / shape / colour
+      -> accepted Corn: abiotic-stress gate before infectious conditions
+      -> other supported hosts: crop-specific PlantVillage conditions
+      -> evidence gates: Grad-CAM / Qwen morphology / optional guidance
 
 React -> FastAPI ----+
                      +-> shared classifier serving layer
 Streamlit -----------+
-
-Qwen3-VL (optional context branch; never the classifier truth source)
 ```
 
-FastAPI exposes the classifier service to React. Streamlit uses the same serving
-layer directly, keeping checkpoint loading, preprocessing, Top-5, and Grad-CAM
-consistent across interfaces. Qwen is optional context, not a source of
-classifier ground truth. See the [complete module map](docs/project-architecture.md).
+The 114 classes are a routing catalog, not evidence of validated 114-species open-world
+accuracy. OpenCV supplies heuristic region and morphology evidence, not pathological
+segmentation. The Corn gate may report **suspected abiotic / nutrient stress**, but it
+cannot confirm nitrogen deficiency. Qwen describes visible morphology only and never
+becomes classifier ground truth. See the [complete module map and evidence levels](docs/project-architecture.md).
 
 ## Experimental open-world research
 

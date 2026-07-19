@@ -1,88 +1,124 @@
 # PlantDiseaseAI Public Architecture and Feature Overview
 
-PlantDiseaseAI is a reproducible plant disease image-classification project built around a
-verified classifier, explainability tooling, a local Streamlit demo, Apple `container`
-packaging, and a clearly separated Week 6 VLM exploration.
+PlantDiseaseAI is a reproducible plant-leaf classification research project. Its measured
+core remains the frozen PlantVillage benchmark, ablation, calibration, error analysis, and
+Grad-CAM relevance evidence. The React/FastAPI demo now surrounds that core with target-leaf,
+plant-identity, morphology, and abstention gates so unsupported inputs do not automatically
+become crop-condition or management claims.
 
-This page is suitable for public project descriptions. It only describes functionality that
-has local evidence in this repository, and it does not present the model as professional
-crop-diagnosis advice.
+This page is suitable for public project descriptions. It distinguishes measured research
+evidence from implemented serving safeguards and experimental extensions; it does not present
+the system as professional crop diagnosis.
 
-## Architecture
+![Evidence-gated PlantDiseaseAI serving architecture](media/week8_hierarchical_serving_architecture.png)
+
+## Research and serving architecture
+
+The offline research line produces the frozen checkpoint and its auditable evidence:
 
 ```mermaid
 flowchart LR
     data["PlantVillage data\nHugging Face cache"] --> audit["Data audit\nEDA and split checks"]
     audit --> train["Training pipeline\nconfigs + checkpoints"]
-    train --> eval["Evaluation\nmetrics, benchmark, calibration"]
-    train --> explain["Explainability\nGrad-CAM and error analysis"]
-    eval --> select["Frozen Week 3/4 classifier\nResNet50 combo candidate"]
-    explain --> select
-    data --> crop["Independent crop head\nMobileNetV2 + confidence gate"]
-    select --> service["Hierarchical serving layer\nOpenCV + crop gate + disease gate"]
-    crop --> service
-    service --> streamlit["Streamlit demo\nupload, example image, disclaimer"]
-    service --> container["Apple container\nCPU-only deployable demo"]
-    select --> vlm["Week 6 VLM exploration\nVQA seed + Qwen3-VL smoke"]
+    train --> eval["Evaluation\nbenchmark + calibration"]
+    train --> explain["Error analysis\nGrad-CAM relevance"]
+    eval --> frozen["Frozen ResNet50 candidate\nofficial split · seed 42"]
+    explain --> frozen
 ```
 
-## Verified Features
+The online serving line uses the checkpoint only after upstream evidence gates pass:
+
+```mermaid
+flowchart LR
+    upload["Leaf image"] --> leaf["Target leaf\nauto or one click"]
+    leaf --> identity["Plant identity\nlocal 114-class catalog"]
+    identity --> support{"Supported host?"}
+    support -->|no| abstain["Abstain\nno disease claim"]
+    support -->|yes| morphology["OpenCV morphology\ncoverage · axis · shape · color"]
+    morphology --> corn{"Accepted Corn?"}
+    corn -->|yes| abiotic["Corn abiotic gate\nsuspected stress or continue"]
+    corn -->|no| disease["Crop-specific conditions\nPlantVillage closed set"]
+    abiotic -->|infectious path remains plausible| disease
+    abiotic -->|stress pattern| suppress["Suppress disease and guidance"]
+    disease --> outputs["Grad-CAM · Qwen morphology\noptional management guidance"]
+```
+
+Local identity is attempted first. Pl@ntNet is an optional broad-identity fallback only when
+the local result is uncertain and a key is configured. An accepted identity outside the 14
+PlantVillage hosts may be displayed as identity evidence, but it still cannot unlock the
+closed-set disease model.
+
+## Evidence levels
+
+### Verified experimental core
 
 - Reproducible Python 3.12 project with `uv`, `pytest`, and `ruff`.
-- PlantVillage data loading, audit reports, EDA outputs, and official split caveats.
-- Five-model benchmark using a shared training and evaluation protocol.
-- Week 3 ablation study selecting the ResNet50 label-smoothing + cosine-scheduler
-  candidate for downstream explanation and demo work.
-- Week 4 Grad-CAM atlas, error analysis, calibration analysis, attention review, and
-  reproducibility checks.
-- Week 5 Streamlit demo with Top-5 predictions, confidence values, Grad-CAM overlay,
-  disease knowledge cards, low-confidence warnings, invalid-input handling, and
-  non-professional diagnosis disclaimers.
-- React/FastAPI hierarchy with original-resolution OpenCV lesion evidence, a
-  separately trained 14-class MobileNetV2 crop head, crop and disease abstention
-  gates, and management guidance disabled whenever either learned stage is
-  uncertain.
-- Apple `container` workflow with CPU-only image, healthcheck, fixed-sample end-to-end
-  validation, image size record, and one runtime memory sample.
-- Week 6 exploratory Qwen3-VL MLX smoke baseline on a small label-grounded VQA seed set.
+- PlantVillage loading, data/split audits, a shared-protocol five-model benchmark, and
+  controlled ablation.
+- Frozen ResNet50 candidate evidence on seed 42 and the official split, with the 227
+  overlapping-`leaf_id` limitation retained beside the result.
+- Error records, calibration analysis, and a fixed-sample Grad-CAM atlas.
+- Streamlit and Apple `container` engineering paths using the same serving contracts.
 
-## Main Evidence Paths
+### Implemented serving gates
 
-- Week 5 demo engineering report: `reports/week5_demo_engineering.md`
-- Demo screenshot: `reports/figures/week5_streamlit_demo.jpg`
-- Streamlit app: `app/streamlit_app.py`
-- Serving layer: `src/plantdisease/serving/service.py`
-- Crop training and QA: `src/plantdisease/training/crop.py`,
-  `reports/week8_hierarchical_crop_qa.md`
+- Original-resolution target-leaf selection, either automatic or from one normalized
+  source-image click.
+- Click-seeded GrabCut purity checks that can return `409 leaf_selection_required` before
+  model inference.
+- Local 114-class identity routing, supported-host abstention, neutral-background disease
+  input, and OpenCV lesion/morphology summaries.
+- A Corn-only central-axis morphology gate that can suppress infectious outputs and report
+  only `suspected_abiotic_nutrient_stress`.
+- Management guidance disabled whenever plant, disease, or abiotic evidence does not support
+  a disease claim.
+
+### Experimental extensions
+
+- The UCI Leaf100 + PlantVillage 14 identity catalog and optional Pl@ntNet fallback.
+- Grape lesion-focus reranking when whole-leaf and lesion evidence conflict.
+- Local Qwen3-VL visible-morphology descriptions and manually selected cloud guidance
+  providers.
+
+## Main evidence paths
+
+- Frozen classification and demo engineering: `reports/final_experiment_report.md`,
+  `reports/week5_demo_engineering.md`
+- Target-leaf and Corn-gate QA: `reports/target-leaf-abiotic-qa.md`,
+  `reports/metrics/target_leaf_abiotic_qa.json`
+- Leaf isolation and hierarchy: `src/plantdisease/serving/leaf_isolation.py`,
+  `src/plantdisease/serving/hierarchy.py`
+- Lesion-focus implementation: `src/plantdisease/serving/lesion_focus.py`
+- Local identity pilot: `reports/openleaf114_local_pilot.md`
+- Week 6 VLM smoke: `reports/week6_vlm_experiment.md`
 - Container config: `Containerfile`
 - Artifact index: `docs/artifact-index.md`
-- Week 6 VLM experiment record: `reports/week6_vlm_experiment.md`
 
 Generated runtime outputs under `outputs/` are local evidence and are intentionally ignored
-by Git. Important examples include:
+by Git.
 
-- `outputs/plantvillage/week5_demo/local_e2e.json`
-- `outputs/plantvillage/week5_demo/container_e2e.json`
-- `outputs/plantvillage/week6_vlm/qwen3_vl_zero_shot_smoke.json`
-- `outputs/plantvillage/week6_vlm/qwen3_vl_zero_shot_smoke_short.json`
-
-## Public Description
+## Public description
 
 PlantDiseaseAI demonstrates an end-to-end agricultural computer-vision workflow: audited
-data loading, reproducible classifier training, model comparison, ablation, explainability,
-error analysis, a local demo app, and containerized execution on Apple Silicon. The verified
-classification line is the core project result. The VLM work is an exploratory extension
-that tests whether a small local Qwen3-VL model can answer simple label-grounded questions
-about fixed PlantVillage images.
+data, reproducible classifier training, comparable experiments, error and calibration
+analysis, relevance visualization, evidence-gated serving, and local container execution.
+The verified PlantVillage classification line is the measured core. Target-leaf selection,
+identity routing, morphology checks, Qwen, and provider guidance extend the demo while
+remaining explicitly separated by evidence status.
 
 ## Boundaries
 
-- PlantVillage has controlled image conditions; results must not be treated as field
-  generalization evidence.
-- Grad-CAM is a relevance visualization, not a causal explanation.
-- The crop head and disease model are both PlantVillage closed-set models; the
-  crop split improves taxonomy ordering but is not open-world plant recognition.
-- The Streamlit demo is educational and should not be used as professional crop diagnosis.
-- Week 6 VLM results are small smoke baselines, not LoRA fine-tuning results.
-- Pesticide choice, dosage, legal compliance, and high-risk crop actions should be checked
-  with local plant-protection professionals and local regulations.
+- PlantVillage has controlled image conditions; its scores are not field-generalization
+  evidence or ground truth for uploaded photographs.
+- The local 114-class catalog expands routing choices; it is not validated 114-species
+  open-world accuracy.
+- OpenCV outputs heuristic regions and morphology measurements, not pathological masks,
+  pathogen evidence, or a disease classifier.
+- `suspected_abiotic_nutrient_stress` is a safety abstention label, not confirmed nitrogen
+  deficiency; nutrient attribution requires soil/tissue tests and local agronomic context.
+- Grad-CAM is a non-causal relevance visualization.
+- The original user-supplied nitrogen-deficiency image is no longer available in the
+  repository, so the gate QA is not an external-image benchmark on that exact file.
+- Qwen results are a small smoke study, not LoRA/QLoRA or a professional diagnostic system.
+- Pesticide choice, dosage, legal compliance, and high-risk crop actions require local
+  plant-protection professionals and local regulations.
